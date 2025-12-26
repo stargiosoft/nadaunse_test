@@ -590,24 +590,24 @@ export default function HomePage() {
   const loadFromCache = useCallback(() => {
     try {
       // 🗑️ 이전 버전 캐시 삭제
-      const oldKeys = Object.keys(localStorage).filter(key => 
+      const oldKeys = Object.keys(localStorage).filter(key =>
         key.startsWith(CACHE_KEY) && key !== VERSIONED_CACHE_KEY
       );
       oldKeys.forEach(key => localStorage.removeItem(key));
-      
+
       const cached = localStorage.getItem(VERSIONED_CACHE_KEY);
       if (cached) {
         const { data, timestamp } = JSON.parse(cached);
         const now = Date.now();
-        
+
         // 캐시가 유효한 경우 (5분 이내)
         if (now - timestamp < CACHE_EXPIRY) {
           console.log('✅ 캐시에서 데이터 로드');
           const contents = data as MasterContent[];
-          
+
           // weekly_clicks가 0보다 큰 콘텐츠가 있는지 확인
           const hasClicks = contents.some((c: MasterContent) => c.weekly_clicks > 0);
-          
+
           if (hasClicks) {
             const maxClicks = Math.max(...contents.map((c: MasterContent) => c.weekly_clicks));
             const featuredIndex = contents.findIndex((c: MasterContent) => c.weekly_clicks === maxClicks);
@@ -615,8 +615,15 @@ export default function HomePage() {
           } else {
             setFeaturedContent(contents[0]);
           }
-          
+
           setAllContents(contents);
+
+          // 🆕 캐시 데이터 크기에 맞춰 currentPage 복원
+          const cachedPage = Math.max(0, Math.floor((contents.length - 1) / 10));
+          setCurrentPage(cachedPage);
+          setHasMore(false); // 캐시에 모든 데이터가 있으므로 더 로드 불필요
+          console.log(`📦 캐시에서 ${contents.length}개 로드, currentPage: ${cachedPage}`);
+
           return true;
         } else {
           console.log('⏰ 캐시 만료됨');
@@ -715,7 +722,14 @@ export default function HomePage() {
       // 🚀 필터가 '전체/all'일 때만 캐시에서 로드
       const shouldUseCache = selectedCategory === '전체' && selectedType === 'all';
       const hasCache = shouldUseCache ? loadFromCache() : false;
-      
+
+      // 🆕 캐시에서 전체 데이터를 로드했으면 서버 쿼리 스킵
+      if (hasCache) {
+        console.log('🚀 캐시에서 전체 데이터 로드 완료 - 서버 쿼리 스킵');
+        setIsInitialLoading(false);
+        return;
+      }
+
       try {
         console.log('🔍 [HomePage] deployed 콘텐츠 조회 시작...');
         
