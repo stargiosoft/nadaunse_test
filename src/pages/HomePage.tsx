@@ -501,55 +501,50 @@ export default function HomePage() {
   const [showNavigation, setShowNavigation] = useState(true);
   const lastScrollY = useRef(0);
 
-  // 🛡️ iOS Safari 히스토리 버그 해결: 버퍼 방식
+  // 🛡️ iOS Safari 히스토리 버그 해결: 최초 진입 시에만 버퍼 추가
   useEffect(() => {
     const initHistory = () => {
       const currentLength = window.history.length;
       console.log('🔧 [히스토리 초기화] 현재 길이:', currentLength);
 
-      // SessionStorage에서 히스토리 상태 확인
+      // 🆕 최초 앱 진입인지 확인 (세션 내에서 한 번만 버퍼 추가)
+      const isAppInitialized = sessionStorage.getItem('appInitialized');
       const hasNavigatedFromHome = sessionStorage.getItem('navigatedFromHome');
-      console.log('🔍 [히스토리] SessionStorage 상태:', hasNavigatedFromHome);
 
-      // 뒤로가기로 홈에 왔으면 플래그 제거
+      console.log('🔍 [히스토리] appInitialized:', isAppInitialized, ', navigatedFromHome:', hasNavigatedFromHome);
+
+      // 뒤로가기로 홈에 왔으면 플래그 제거 (버퍼 추가 안 함)
       if (hasNavigatedFromHome === 'true') {
         sessionStorage.removeItem('navigatedFromHome');
-        console.log('🧹 [히스토리] SessionStorage 플래그 제거');
+        console.log('🏠 [히스토리] 콘텐츠에서 홈 복귀 - 버퍼 추가 스킵');
+        return;
       }
 
-      // 🆕 홈 진입 시 항상 버퍼 히스토리 추가 (사이트 닫힘 방지)
-      window.history.pushState({ page: 'home-buffer' }, '', '/');
-      console.log('✅ [히스토리] 버퍼 추가 완료, 새 길이:', window.history.length);
+      // 🆕 최초 앱 진입 시에만 버퍼 추가
+      if (!isAppInitialized) {
+        sessionStorage.setItem('appInitialized', 'true');
+        window.history.pushState({ page: 'home-buffer' }, '', '/');
+        console.log('✅ [히스토리] 최초 진입 - 버퍼 추가 완료, 새 길이:', window.history.length);
+      } else {
+        console.log('ℹ️ [히스토리] 이미 초기화됨 - 버퍼 추가 스킵');
+      }
     };
 
     initHistory();
   }, []);
 
-  // 🛡️ popstate 이벤트 처리: 버퍼 재추가 방식
+  // 🛡️ popstate 이벤트 처리: 버퍼 감지 시 앞으로 이동
   useEffect(() => {
     const handlePopState = (event: PopStateEvent) => {
       console.log('⬅️ [popstate] 뒤로가기 감지:', event.state);
       console.log('📍 [popstate] 현재 경로:', window.location.pathname);
-      console.log('📊 [popstate] history.length:', window.history.length);
 
-      // 버퍼 페이지에 도달한 경우 (홈에서 뒤로가기)
+      // 버퍼 페이지에 도달한 경우 (홈에서 뒤로가기 시도)
       if (event.state && event.state.page === 'home-buffer') {
-        console.log('🛡️ [popstate] 버퍼 감지 → 사이트 닫힘 방지, 버퍼 재추가');
-        // 버퍼 다시 추가 (무한 뒤로가기 방지)
-        window.history.pushState({ page: 'home-buffer' }, '', '/');
+        console.log('🛡️ [popstate] 버퍼 감지 → 앞으로 이동하여 홈 유지');
+        // 앞으로 이동하여 홈 화면 유지 (pushState 대신 go(1) 사용)
+        window.history.go(1);
         return;
-      }
-
-      // 홈이 아닌 곳에서 popstate 발생 시 (콘텐츠 상세 → 홈)
-      if (window.location.pathname === '/') {
-        const hasNavigatedFromHome = sessionStorage.getItem('navigatedFromHome');
-        if (hasNavigatedFromHome === 'true') {
-          console.log('🏠 [popstate] 콘텐츠에서 홈으로 복귀 감지');
-          sessionStorage.removeItem('navigatedFromHome');
-          // 버퍼 추가
-          window.history.pushState({ page: 'home-buffer' }, '', '/');
-          console.log('✅ [popstate] 버퍼 재추가 완료');
-        }
       }
     };
 
