@@ -1,0 +1,492 @@
+import { useState, useEffect } from 'react';
+import { motion } from 'motion/react';
+import svgPaths from "../imports/svg-iwpvhe731i";
+import { supabase } from '../lib/supabase';
+import { signOut } from '../lib/auth';
+import { SessionExpiredDialog } from './SessionExpiredDialog';
+import Footer from './Footer';
+import { getZodiacImageUrl, getConstellation } from '../lib/zodiacUtils';
+import { ProfileSkeletonWithSaju } from './skeletons/ProfileSkeleton';
+import { ProfileImage } from './ProfileImage';
+
+interface ProfilePageProps {
+  onBack: () => void;
+  onLogout: () => void;
+  onNavigateToMasterContent?: () => void;
+  onNavigateToTermsOfService?: () => void;
+  onNavigateToPrivacyPolicy?: () => void;
+  onNavigateToPurchaseHistory?: () => void;
+  onNavigateToSajuInput?: () => void;
+  onNavigateToSajuManagement?: () => void;
+}
+
+// 사주 정보 타입
+interface SajuRecord {
+  id: string;
+  full_name: string;  // 이름
+  notes: string;  // 관계 (본인, 자녀 등)
+  birth_date: string;  // ISO 형식 (1991-12-25T09:00:00+09:00)
+  birth_time: string;  // 시간 (午(오시))
+  calendar_type?: string;  // 양력('solar')/음력('lunar')
+  zodiac?: string;  // 띠 (DB에서 가져온 값)
+  gender: 'male' | 'female';
+  is_primary?: boolean;  // 대표 사주 여부
+}
+
+// Arrow Right Icon
+function ArrowRightIcon() {
+  return (
+    <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 16 16">
+      <g id="arrow-right">
+        <path d={svgPaths.p232a3c80} stroke="var(--stroke-0, #B7B7B7)" strokeLinecap="round" strokeLinejoin="round" strokeMiterlimit="10" strokeWidth="1.7" />
+      </g>
+    </svg>
+  );
+}
+
+// Arrow Left Icon
+function ArrowLeftIcon() {
+  return (
+    <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
+      <g id="arrow-left">
+        <path d={svgPaths.p2a5cd480} stroke="var(--stroke-0, #848484)" strokeLinecap="round" strokeLinejoin="round" strokeMiterlimit="10" strokeWidth="1.7" />
+      </g>
+    </svg>
+  );
+}
+
+// Profile Icon (기본)
+function ProfileIcon() {
+  return (
+    <div className="relative shrink-0 size-[62px]">
+      <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 62 62">
+        <g id="Group">
+          <path d={svgPaths.p961370} fill="var(--fill-0, #E4F7F7)" id="Vector" />
+        </g>
+      </svg>
+      <div className="absolute inset-[20.11%_23.69%_18.25%_23.68%]">
+        <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 33 39">
+          <g id="Profile Icon">
+            <path d={svgPaths.pa9095f0} fill="var(--fill-0, #557170)" id="Vector" />
+            <path d={svgPaths.p1139d800} fill="var(--fill-0, #3FB5B3)" id="Vector_2" />
+            <path d={svgPaths.p4bd4980} fill="var(--fill-0, #8BE1DF)" id="Vector_3" />
+            <path d={svgPaths.p36a0700} fill="var(--fill-0, #3FB5B3)" id="Vector_4" />
+            <path d={svgPaths.p786fd00} fill="var(--fill-0, #3FB5B3)" id="Vector_5" />
+            <path d={svgPaths.p1a321300} fill="var(--fill-0, #C8FFFD)" id="Vector_6" />
+          </g>
+        </svg>
+      </div>
+    </div>
+  );
+}
+
+// 텍스트 구분선
+function TextDivider() {
+  return (
+    <div className="h-[6px] relative shrink-0 w-0">
+      <div className="absolute inset-[-8.33%_-0.5px]">
+        <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 1 7">
+          <path d="M0.5 0.5V6.5" stroke="rgba(212, 212, 212, 1)" strokeLinecap="round" />
+        </svg>
+      </div>
+    </div>
+  );
+}
+
+// 생년월일시 포맷팅 (예: "양력 1991.12.25")
+function formatBirthDate(birthDate: string, calendarType?: string): string {
+  // ISO 형식에서 날짜 부분만 추출: "1991-12-25T09:00:00+09:00" -> "1991-12-25"
+  const dateOnly = birthDate.split('T')[0];
+  const [year, month, day] = dateOnly.split('-');
+  
+  // calendar_type 필드가 없으면 기본값으로 양력 사용
+  const calendarPrefix = calendarType === 'lunar' ? '음력' : '양력';
+  
+  return `${calendarPrefix} ${year}.${month}.${day}`;
+}
+
+// 띠 계산 (간단 버전 - 생년 기준)
+function getChineseZodiac(birthDate: string): string {
+  const year = parseInt(birthDate.split('-')[0] || birthDate.substring(0, 4));
+  const zodiacs = ['원숭이띠', '닭띠', '개띠', '돼지띠', '쥐띠', '소띠', '호랑이띠', '토끼띠', '용띠', '뱀띠', '말띠', '양띠'];
+  return zodiacs[year % 12];
+}
+
+export default function ProfilePage({ 
+  onBack, 
+  onLogout, 
+  onNavigateToMasterContent, 
+  onNavigateToTermsOfService, 
+  onNavigateToPrivacyPolicy, 
+  onNavigateToPurchaseHistory, 
+  onNavigateToSajuInput, 
+  onNavigateToSajuManagement 
+}: ProfilePageProps) {
+  const [user, setUser] = useState<any>(null);
+  const [isMaster, setIsMaster] = useState(false);
+  const [isCheckingSaju, setIsCheckingSaju] = useState(false);
+  const [isSessionExpired, setIsSessionExpired] = useState(false);
+  const [primarySaju, setPrimarySaju] = useState<SajuRecord | null>(null);
+  const [isLoadingSaju, setIsLoadingSaju] = useState(true);
+  const [showEmptyState, setShowEmptyState] = useState(false);
+
+
+  // ⚠️ 제거: pushState는 히스토리 스택을 오염시켜 뒤로가기 문제를 일으킴
+  // 대신 React Router의 기본 동작만 사용
+
+  useEffect(() => {
+    const loadUser = async () => {
+      // ⭐️ 개발용 우회 로직: localStorage에 개발 유저가 있으면 Supabase 체크 건너뜀
+      const localUserJson = localStorage.getItem('user');
+      if (localUserJson) {
+        try {
+          const localUser = JSON.parse(localUserJson);
+          if (localUser.provider === 'dev') {
+            console.log('⚡ [ProfilePage] 개발용 유저 감지 → Supabase 체크 우회');
+            setUser(localUser);
+            // setIsMaster(localUser.role === 'master'); // 개발 유저는 마스터 권한 없음으로 설정 가능
+            
+            // 더미 사주 데이터 로드 (화면 표시용)
+            setPrimarySaju({
+              id: 'dev_saju_1',
+              full_name: localUser.nickname || '개발자',
+              notes: '본인',
+              birth_date: '1990-01-01T12:00:00',
+              birth_time: '오시',
+              calendar_type: 'solar',
+              gender: 'male',
+              zodiac: '말띠',
+              is_primary: true
+            });
+            setIsLoadingSaju(false);
+            return;
+          }
+        } catch (e) {
+          console.error('JSON parse error', e);
+        }
+      }
+
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      
+      if (authUser) {
+        const { data: userData, error } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', authUser.id)
+          .single();
+
+        if (userData && !error) {
+          setUser(userData);
+          setIsMaster(userData.role === 'master');
+          localStorage.setItem('user', JSON.stringify(userData));
+        }
+        
+        await loadPrimarySaju(authUser.id);
+      } else {
+        setIsSessionExpired(true);
+      }
+    };
+
+    loadUser();
+  }, []);
+  
+  /**
+   * 대표 사주 정보 로드
+   * 1. is_primary = true인 사주 우선
+   * 2. 없으면 첫 번째 사주
+   */
+  const loadPrimarySaju = async (userId: string) => {
+    try {
+      setIsLoadingSaju(true);
+      
+      const { data: sajuList, error } = await supabase
+        .from('saju_records')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: true });
+      
+      if (error) {
+        console.error('❌ 사주 정보 로드 실패:', error);
+        setPrimarySaju(null);
+        return;
+      }
+      
+      if (sajuList && sajuList.length > 0) {
+        const primary = sajuList.find((s: any) => s.is_primary) || sajuList[0];
+        setPrimarySaju(primary);
+        console.log('✅ 대표 사주 로드 완료:', primary);
+      } else {
+        setPrimarySaju(null);
+        console.log('📭 등록된 사주 없음');
+      }
+    } catch (error) {
+      console.error('❌ 사주 정보 로드 중 오류:', error);
+      setPrimarySaju(null);
+    } finally {
+      setIsLoadingSaju(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      console.log('✅ 로그아웃 완료');
+      if (onLogout) {
+        onLogout();
+      }
+    } catch (error) {
+      console.error('❌ 로그아웃 실패:', error);
+      alert('로그아웃 중 오류가 발생했습니다.');
+    }
+  };
+
+  const handleSajuMenuClick = async () => {
+    if (isCheckingSaju) return;
+    
+    setIsCheckingSaju(true);
+    
+    try {
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      
+      if (!authUser) {
+        alert('로그인이 필요합니다');
+        return;
+      }
+
+      const { data: sajuList, error } = await supabase
+        .from('saju_records')
+        .select('*')
+        .eq('user_id', authUser.id);
+
+      if (error) {
+        alert('사주 정보를 불러오는데 실패했습니다');
+        return;
+      }
+
+      if (!sajuList || sajuList.length === 0) {
+        if (onNavigateToSajuInput) {
+          onNavigateToSajuInput();
+        }
+      } else {
+        if (onNavigateToSajuManagement) {
+          onNavigateToSajuManagement();
+        }
+      }
+    } catch (error) {
+      alert('네트워크 연결을 확인해주세요');
+    } finally {
+      setIsCheckingSaju(false);
+    }
+  };
+
+  return (
+    <div className="bg-white relative w-full min-h-screen flex justify-center">
+      <div className="relative w-full max-w-[440px] min-h-screen flex flex-col bg-white">
+        
+        {/* Top Navigation */}
+        <div className="bg-white h-[52px] relative shrink-0 w-full">
+          <div className="flex flex-col justify-center size-full">
+            <div className="content-stretch flex flex-col h-[52px] items-start justify-center px-[12px] py-[4px] relative w-full">
+              <div className="content-stretch flex items-center justify-between fixed top-0 left-1/2 -translate-x-1/2 z-50 w-full max-w-[440px] h-[52px] px-[12px] bg-white shrink-0">
+                <div onClick={onBack} className="content-stretch flex items-center justify-center p-[4px] relative rounded-[12px] shrink-0 size-[44px] cursor-pointer group text-gray-700 transition-colors active:bg-gray-100">
+                  <div className="relative shrink-0 size-[24px] transition-transform group-active:scale-90">
+                    <ArrowLeftIcon />
+                  </div>
+                </div>
+                <p className="font-['Pretendard_Variable',sans-serif] font-semibold leading-[25.5px] text-[18px] text-black tracking-[-0.36px]">마이페이지</p>
+                <div className="content-stretch flex items-center justify-center opacity-0 p-[4px] relative rounded-[12px] shrink-0 size-[44px]" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Spacer */}
+        <div className="h-[16px] shrink-0 w-full" />
+
+        {/* Main Content */}
+        <div className="flex-1 flex flex-col px-[20px] pb-0 font-['Pretendard_Variable',sans-serif]">
+          
+          {/* Profile Section - 조건부 렌더링 */}
+          {isLoadingSaju ? (
+            // 로딩 중 - 스켈레톤 표시
+            <ProfileSkeletonWithSaju />
+          ) : (
+            <motion.div 
+              className="flex flex-col flex-1"
+              initial="hidden" 
+              animate="visible" 
+              variants={{
+                hidden: { opacity: 0 },
+                visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+              }}
+            >
+              {!showEmptyState && primarySaju ? (
+                // 사주 정보 있음
+                <motion.div 
+                  variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}
+                  className="content-stretch flex flex-col gap-[16px] w-full pb-[24px]"
+                >
+                  {/* 프로필 이미지 + 닉네임/관계 */}
+                  <div className="content-stretch flex gap-[12px] items-center w-full -mb-[6px]">
+                    <ProfileImage 
+                      alt={primarySaju.zodiac || getChineseZodiac(primarySaju.birth_date)}
+                      src={getZodiacImageUrl(primarySaju.zodiac || getChineseZodiac(primarySaju.birth_date))}
+                    />
+                    <div className="basis-0 content-stretch flex flex-col gap-[3px] grow items-start min-h-px min-w-px text-nowrap">
+                      <p className="font-['Pretendard_Variable:Regular',sans-serif] h-[16px] leading-[16px] overflow-ellipsis overflow-hidden text-[#848484] text-[12px] tracking-[-0.24px] w-full">
+                        {primarySaju.zodiac || getChineseZodiac(primarySaju.birth_date)}
+                      </p>
+                      <p className="font-['Pretendard_Variable',sans-serif] font-semibold leading-[25px] min-w-full overflow-ellipsis overflow-hidden text-[16px] text-black tracking-[-0.32px] w-[min-content]">
+                        {primarySaju.full_name} ({primarySaju.notes})
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* 생년월일시 / 띠 / 별자리 / 성별 */}
+                  <div className="bg-[#f9f9f9] relative rounded-[12px] w-full">
+                    <div className="flex flex-col items-center justify-center size-full">
+                      <div className="content-stretch flex flex-col items-center justify-center p-[12px] w-full">
+                        <div className="flex items-center justify-center gap-[6px] rounded-[12px]">
+                          <p className="font-['Pretendard_Variable:Regular',sans-serif] leading-[19px] overflow-ellipsis overflow-hidden text-[#525252] text-[13px] text-nowrap tracking-[-0.26px]">
+                            {formatBirthDate(primarySaju.birth_date, primarySaju.calendar_type)}
+                          </p>
+                          <TextDivider />
+                          <p className="font-['Pretendard_Variable:Regular',sans-serif] leading-[19px] overflow-ellipsis overflow-hidden text-[#525252] text-[13px] text-nowrap tracking-[-0.26px]">
+                            {primarySaju.zodiac || getChineseZodiac(primarySaju.birth_date)}
+                          </p>
+                          <TextDivider />
+                          <p className="font-['Pretendard_Variable:Regular',sans-serif] leading-[19px] overflow-ellipsis overflow-hidden text-[#525252] text-[13px] text-nowrap tracking-[-0.26px]">
+                            {(() => {
+                              const dateOnly = primarySaju.birth_date.split('T')[0];
+                              const [_, month, day] = dateOnly.split('-');
+                              return getConstellation(parseInt(month), parseInt(day));
+                            })()}
+                          </p>
+                          <TextDivider />
+                          <p className="font-['Pretendard_Variable:Regular',sans-serif] leading-[19px] overflow-ellipsis overflow-hidden text-[#525252] text-[13px] text-nowrap tracking-[-0.26px]">
+                            {primarySaju.gender === 'male' ? '남성' : '여성'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              ) : (
+                // 사주 정보 없음
+                <motion.div 
+                  variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}
+                  className="content-stretch flex flex-col gap-[32px] py-[32px] w-full"
+                >
+                  {/* Profile Icon - 중앙 정렬 */}
+                  <div className="flex items-center justify-center relative shrink-0 w-full">
+                    <ProfileIcon />
+                  </div>
+
+                  {/* Text Lines */}
+                  <div className="content-stretch flex flex-col gap-[4px] items-center relative shrink-0 w-full">
+                    <p className="font-['Pretendard_Variable:Bold',sans-serif] leading-[25px] text-[17px] text-black text-center tracking-[-0.34px]">
+                      사주 정보가 아직 없어요
+                    </p>
+                    <p className="font-['Pretendard_Variable:Regular',sans-serif] leading-[25.5px] text-[15px] text-[#6d6d6d] text-center tracking-[-0.3px]">
+                      사주를 등록하면 운세 풀이가 시작돼요
+                    </p>
+                  </div>
+
+                  {/* Button */}
+                  <motion.button
+                    onClick={handleSajuMenuClick}
+                    disabled={isCheckingSaju}
+                    whileTap={{ scale: 0.96 }}
+                    className="bg-[#48b2af] h-[48px] rounded-[12px] shrink-0 w-full cursor-pointer border-none transition-colors disabled:opacity-50 active:bg-[#389998]"
+                  >
+                    <div className="flex flex-row items-center justify-center size-full">
+                      <div className="content-stretch flex items-center justify-center px-[12px] py-0 relative size-full">
+                        <p className="font-['Pretendard_Variable:Medium',sans-serif] leading-[20px] text-[15px] text-white text-nowrap tracking-[-0.45px] select-none" style={{ WebkitTouchCallout: 'none' }}>
+                          {isCheckingSaju ? '확인 중...' : '사주 정보 등록하기'}
+                        </p>
+                      </div>
+                    </div>
+                  </motion.button>
+                </motion.div>
+              )}
+
+              {/* Divider */}
+              <motion.div 
+                variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}
+                className="h-[8px] -mx-[20px] bg-[#f9f9f9] my-[0px]" 
+              />
+
+              {/* Menu List */}
+              <motion.div 
+                variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}
+                className="content-stretch flex flex-col gap-[0px] items-start w-full mb-[120px] pt-[24px]"
+              >
+                {isMaster && (
+                  <div className="content-stretch flex items-center justify-between px-[16px] py-[12px] rounded-[16px] w-full cursor-pointer hover:bg-[#f9f9f9] active:bg-[#f9f9f9] transition-colors" onClick={onNavigateToMasterContent}>
+                    <p className="font-['Pretendard_Variable:Medium',sans-serif] leading-[28.5px] text-[16px] text-black tracking-[-0.32px]">콘텐츠 만들기</p>
+                    <div className="relative shrink-0 size-[16px]">
+                      <ArrowRightIcon />
+                    </div>
+                  </div>
+                )}
+                <div className="content-stretch flex items-center justify-between px-[16px] py-[12px] rounded-[16px] w-full cursor-pointer hover:bg-[#f9f9f9] active:bg-[#f9f9f9] transition-colors" onClick={handleSajuMenuClick}>
+                  <p className="font-['Pretendard_Variable:Medium',sans-serif] leading-[28.5px] text-[16px] text-black tracking-[-0.32px]">사주 정보 관리</p>
+                  <div className="relative shrink-0 size-[16px]">
+                    <ArrowRightIcon />
+                  </div>
+                </div>
+                <div onClick={onNavigateToPurchaseHistory} className="content-stretch flex items-center justify-between px-[16px] py-[12px] rounded-[16px] w-full cursor-pointer hover:bg-[#f9f9f9] active:bg-[#f9f9f9] transition-colors">
+                  <p className="font-['Pretendard_Variable:Medium',sans-serif] leading-[28.5px] text-[16px] text-black tracking-[-0.32px]">구매 내역</p>
+                  <div className="relative shrink-0 size-[16px]">
+                    <ArrowRightIcon />
+                  </div>
+                </div>
+                <div onClick={handleLogout} className="content-stretch flex items-center justify-between px-[16px] py-[12px] rounded-[16px] w-full cursor-pointer hover:bg-[#f9f9f9] active:bg-[#f9f9f9] transition-colors">
+                  <p className="font-['Pretendard_Variable:Medium',sans-serif] leading-[28.5px] text-[16px] text-black tracking-[-0.32px]">로그아웃</p>
+                  <div className="relative shrink-0 size-[16px]">
+                    <ArrowRightIcon />
+                  </div>
+                </div>
+                <div 
+                  onClick={() => window.open('https://docs.google.com/forms/d/1yHM5cioHLaZWCaevJ0ib7Y8i6zmCQTnTfG-KK4nMceU/edit', '_blank')}
+                  className="content-stretch flex items-center justify-between px-[16px] py-[12px] rounded-[16px] w-full cursor-pointer hover:bg-[#f9f9f9] active:bg-[#f9f9f9] transition-colors"
+                >
+                  <p className="font-['Pretendard_Variable:Medium',sans-serif] leading-[28.5px] text-[16px] text-black tracking-[-0.32px]">의견 전달하기</p>
+                  <div className="relative shrink-0 size-[16px]">
+                    <ArrowRightIcon />
+                  </div>
+                </div>
+
+                {/* 디버그용 버튼: 사주 미등록 화면 토글 */}
+                <div 
+                  onClick={() => setShowEmptyState(!showEmptyState)}
+                  className="content-stretch flex items-center justify-between px-[16px] py-[12px] rounded-[16px] w-full cursor-pointer hover:bg-[#f9f9f9] active:bg-[#f9f9f9] transition-colors bg-red-50"
+                >
+                  <p className="font-['Pretendard_Variable:Medium',sans-serif] leading-[28.5px] text-[16px] text-red-500 tracking-[-0.32px]">
+                    [디버그] {showEmptyState ? '등록된 상태 보기' : '미등록 화면 보기'}
+                  </p>
+                </div>
+
+
+
+
+              </motion.div>
+
+              {/* Footer */}
+              <motion.div 
+                variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}
+                className="-mx-[20px] mt-auto"
+              >
+                <Footer 
+                  onNavigateToTerms={onNavigateToTermsOfService}
+                  onNavigateToPrivacy={onNavigateToPrivacyPolicy}
+                />
+              </motion.div>
+            </motion.div>
+          )}
+        </div>
+      </div>
+      <SessionExpiredDialog isOpen={isSessionExpired} />
+    </div>
+  );
+}
