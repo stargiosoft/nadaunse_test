@@ -32,6 +32,7 @@ cat PROJECT_CONTEXT.md
 - **타로/사주 운세 모바일 웹 서비스**
 - iOS Safari 최적화 완료
 - 개발/배포 환경 자동 분리
+- **Supabase 환경 분리**: Production / Staging
 
 ### 주요 통계
 - **컴포넌트**: 52개 (활성화)
@@ -275,102 +276,24 @@ console.log('스크롤:', 500);
 
 ## 🔍 파일 찾기 치트시트
 
-### 기능별 파일 위치 (빠른 참조)
+**상세한 파일 구조는 [PROJECT_CONTEXT.md - File Structure](./PROJECT_CONTEXT.md#-file-structure-key-files)를 참조하세요.**
 
-#### 무료 콘텐츠 (사주)
-```
-/components/FreeProductDetail.tsx       # 무료 상세
-/components/FreeBirthInfoInput.tsx      # 사주 입력
-/components/FreeSajuSelectPage.tsx      # 사주 선택
-/components/FreeContentLoading.tsx      # 로딩
-/components/FreeSajuDetail.tsx          # 결과
-/components/FreeContentDetail.tsx       # 메인 로직
-/lib/freeContentService.ts              # 비즈니스 로직
-```
+### 기능별 빠른 참조
 
-#### 유료 콘텐츠 (심화 해석판)
-```
-/components/ProductDetail.tsx           # 유료 상세
-/components/PaymentNew.tsx              # 결제
-/components/BirthInfoInput.tsx          # 사주 입력
-/components/SajuSelectPage.tsx          # 사주 선택
-/components/LoadingPage.tsx             # 로딩
-/components/SajuResultPage.tsx          # 결과
-/components/CouponBottomSheetNew.tsx    # 쿠폰 선택
-```
+기능별 파일 위치는 `PROJECT_CONTEXT.md`의 "기능별 빠른 참조" 섹션에서 확인하세요:
+- 무료 콘텐츠 (사주)
+- 유료 콘텐츠 (심화 해석판)  
+- 타로 콘텐츠
+- 사주 정보 관리
+- 프로필 & 구매
+- 인증
+- 공통 UI
 
-#### 타로 콘텐츠
-```
-/components/TarotFlowPage.tsx           # 타로 플로우 통합
-/components/TarotCardSelection.tsx      # 카드 선택
-/components/TarotShufflePage.tsx        # 카드 섞기
-/components/TarotResultPage.tsx         # 타로 결과
-/pages/TarotDemo.tsx                    # 타로 데모
-/lib/tarotCards.ts                      # 타로 카드 데이터
-```
-
-#### 사주 정보 관리
-```
-/components/SajuManagementPage.tsx      # 사주 관리 메인
-/components/SajuInputPage.tsx           # 내 사주 입력
-/components/SajuAddPage.tsx             # 관계 사주 추가
-/components/SajuDetail.tsx              # 사주 상세
-/components/SajuKebabMenu.tsx           # 케밥 메뉴
-/components/PrimarySajuChangeDialog.tsx # 대표 사주 변경
-```
-
-#### 프로필 & 구매
-```
-/components/ProfilePage.tsx             # 프로필 메인
-/components/PurchaseHistoryPage.tsx     # 구매 내역
-/components/WelcomeCouponPage.tsx       # 웰컴 쿠폰
-```
-
-#### 인증
-```
-/components/LoginPageNew.tsx            # 로그인
-/components/ExistingAccountPageNew.tsx  # 기존 계정 연동
-/components/SessionExpiredDialog.tsx    # 세션 만료
-/lib/auth.ts                            # 인증 헬퍼
-/pages/AuthCallback.tsx                 # OAuth 콜백
-```
-
-#### 공통 UI
-```
-/components/ui/*                        # shadcn/ui 재사용 컴포넌트 (26개)
-/components/skeletons/*                 # 로딩 스켈레톤 (5개)
-/components/NavigationHeader.tsx        # 헤더
-/components/Footer.tsx                  # 푸터
-/components/BottomNavigation.tsx        # 하단 네비게이션
-/components/ErrorPage.tsx               # 공통 에러 페이지
-/components/ErrorBoundary.tsx           # 에러 바운더리
-```
-
-#### 비즈니스 로직
-```
-/lib/supabase.ts                        # Supabase 클라이언트
-/lib/freeContentService.ts              # 무료 콘텐츠 서비스
-/lib/masterContentAI.ts                 # 유료 AI 생성
-/lib/coupon.ts                          # 쿠폰 관리
-/lib/auth.ts                            # 인증 헬퍼
-/lib/zodiacUtils.ts                     # 띠 계산
-/lib/tarotCards.ts                      # 타로 카드 데이터
-```
-
-#### Edge Functions (17개)
-```
-/supabase/functions/generate-free-preview/      # 무료 맛보기
-/supabase/functions/generate-master-content/    # 유료 생성
-/supabase/functions/generate-saju-answer/       # 사주 운세
-/supabase/functions/generate-tarot-answer/      # 타로 운세
-/supabase/functions/get-available-coupons/      # 쿠폰 조회
-/supabase/functions/issue-welcome-coupon/       # 웰컴 쿠폰
-/supabase/functions/issue-revisit-coupon/       # 재방문 쿠폰
-/supabase/functions/apply-coupon-to-order/      # 쿠폰 적용
-/supabase/functions/send-alimtalk/              # 알림톡
-/supabase/functions/users/                      # 사용자 관리
-... (17개 전체 목록: /supabase/EDGE_FUNCTIONS_GUIDE.md)
-```
+**전체 파일 구조**:
+- 인증 관련: `PROJECT_CONTEXT.md`의 "🔐 인증 관련" 참조
+- UI 컴포넌트: `PROJECT_CONTEXT.md`의 "🎨 UI 컴포넌트" 참조
+- 비즈니스 로직: `PROJECT_CONTEXT.md`의 "🧠 비즈니스 로직" 참조
+- Edge Functions: `PROJECT_CONTEXT.md`의 "🗄️ Supabase Edge Functions" 참조
 
 ---
 
@@ -618,7 +541,7 @@ README.md (시작점)
 │ 관련 파일 찾기    │
 └────────┬─────────┘
          ↓
-┌──────────────────────────┐
+┌──────────────────┐
 │ 5. Critical Rules 체크   │
 │ - TypeScript?           │
 │ - Tailwind only?        │
@@ -807,6 +730,12 @@ AI: "DECISIONS.md를 확인하겠습니다."
 ### ✅ 타로 서비스 통합
 - 타로 카드 섞기, 선택, 결과 페이지 추가
 - 사주/타로 통합 운세 서비스로 확장
+
+### ✅ Supabase 환경 분리
+- **Production**: `kcthtpmxffppfbkjjkub` (nadaunse.com)
+- **Staging**: `hyltbeewxaqashyivilu` (Vercel Preview)
+- 환경변수: `VITE_SUPABASE_PROJECT_ID`, `VITE_SUPABASE_ANON_KEY`
+- 코드 수정 없이 Vercel 환경변수로 전환
 
 ### ✅ 하단 고정 CTA 리팩토링
 - 모바일 최적화된 하단 CTA 컴포넌트 개선 완료

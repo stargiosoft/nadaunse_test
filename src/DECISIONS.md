@@ -16,6 +16,75 @@
 
 ## 2026-01-06
 
+### Supabase 환경변수 기반 설정: Staging/Production 분리
+**결정**: 하드코딩된 Supabase Project ID와 Anon Key를 환경변수 기반으로 변경
+**배경**:
+- 기존에 `src/utils/supabase/info.tsx`에 Production 값이 하드코딩되어 있음
+- Staging 환경에서 테스트 시 매번 코드 수정 필요
+- Vercel Preview 배포 시 Production DB에 연결되는 문제
+**환경 구성**:
+| 환경 | Project ID | Supabase URL |
+|------|------------|--------------|
+| Production | `kcthtpmxffppfbkjjkub` | https://kcthtpmxffppfbkjjkub.supabase.co |
+| Staging | `hyltbeewxaqashyivilu` | https://hyltbeewxaqashyivilu.supabase.co |
+
+**Vercel 환경변수**:
+```
+# Production
+VITE_SUPABASE_PROJECT_ID=kcthtpmxffppfbkjjkub
+VITE_SUPABASE_ANON_KEY=<production-anon-key>
+
+# Preview/Development
+VITE_SUPABASE_PROJECT_ID=hyltbeewxaqashyivilu
+VITE_SUPABASE_ANON_KEY=<staging-anon-key>
+```
+**수정 파일**:
+- `/src/utils/supabase/info.tsx` - 환경변수 기반 설정
+- `/src/lib/supabase.ts` - storageKey 동적 생성
+- `/src/lib/zodiacUtils.ts` - Storage URL 동적 생성
+**장점**:
+- ✅ 코드 수정 없이 환경 전환 가능
+- ✅ Vercel Preview에서 Staging DB 사용
+- ✅ Production 데이터 보호
+**영향**: 전체 Supabase 연동 코드
+
+---
+
+### 도메인 기반 환경 감지: `/lib/env.ts` 유틸리티 도입
+**결정**: Figma Make 환경에서 `import.meta.env.DEV`가 부정확하므로, 도메인 기반 환경 감지 로직을 `/lib/env.ts`로 분리  
+**배경**: 
+- Figma Make 플랫폼에서 `import.meta.env.DEV`가 프로덕션 배포 시에도 `true`로 설정되는 문제 발견
+- `nadaunse.figma.site` 도메인이 테스트 URL이지만 실제 사용자에게 공개되는 프로덕션 환경  
+**문제 상황**:
+```tsx
+// ❌ Figma Make에서 문제 발생
+{import.meta.env.DEV && <DevButton />}  
+// → nadaunse.figma.site에서도 개발 버튼 노출됨
+```
+**해결 방법**: 
+1. `/lib/env.ts` 파일 생성 - 도메인 화이트리스트 기반 환경 감지
+2. 프로덕션 도메인: `nadaunse.com`, `www.nadaunse.com`, `nadaunse.figma.site`
+3. 위 도메인에서는 `DEV = false`, 나머지 환경(localhost 등)에서는 `DEV = true`  
+**제공 함수**:
+```typescript
+export const DEV: boolean              // 개발 환경 플래그
+export const isProduction(): boolean   // 프로덕션 도메인 체크
+export const isDevelopment(): boolean  // 개발 환경 체크
+export const isLocalhost(): boolean    // 로컬 환경 체크
+export const isFigmaSite(): boolean    // Figma Make 환경 체크
+```
+**적용 컴포넌트**:
+- `LoginPageNew.tsx`: `isDevelopment()`로 테스트 버튼 분기
+- `ProfilePage.tsx`: `DEV` 플래그로 UI 테스팅 버튼 숨김
+- `App.tsx`: 프로덕션 환경 체크 및 `import.meta.env.DEV` 오버라이드  
+**장점**:
+- ✅ 도메인만 추가하면 환경 구분 가능 (확장성)
+- ✅ Figma Make 특수 환경에서도 정확한 환경 감지
+- ✅ 중앙 집중식 환경 관리 (유지보수 편의)  
+**영향**: 모든 프로덕션 도메인에서 개발 버튼 완전히 숨김, 사용자 경험 개선
+
+---
+
 ### 개발/배포 환경 자동 분리: `import.meta.env.DEV` 조건 처리
 **결정**: 모든 개발 전용 UI 요소(테스트 버튼, 디버깅 도구 등)를 `import.meta.env.DEV` 조건으로 감싸기  
 **배경**: 

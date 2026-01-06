@@ -18,7 +18,10 @@
 - **AI**: OpenAI GPT-4o, Anthropic Claude-3.5-Sonnet, Google Gemini
 - **Payment**: PortOne (구 아임포트) v2
 - **Notification**: TalkDream API (카카오 알림톡)
-- **Hosting**: Figma Make (Dev), Supabase (Production)
+- **Hosting**: Vercel (Production: nadaunse.com)
+- **Supabase 환경**:
+  - Production: `kcthtpmxffppfbkjjkub`
+  - Staging: `hyltbeewxaqashyivilu`
 - **State Management**: React Hooks (useState, useEffect)
 - **Animation**: Framer Motion
 - **Image Optimization**: Supabase Storage (thumbnail variants)
@@ -114,21 +117,56 @@
 - ✅ **에러 핸들링**: try-catch + 구조화된 로깅
 
 ### 6. 개발/배포 환경 분리 (NEW!)
-- ✅ **개발 전용 코드**: `import.meta.env.DEV` 조건으로 감싸기
+- ✅ **환경 감지 유틸리티**: `/lib/env.ts`의 `DEV`, `isProduction()`, `isDevelopment()` 사용
+- ✅ **프로덕션 도메인**: `nadaunse.com`, `www.nadaunse.com`, `nadaunse.figma.site`
+- ✅ **개발 전용 코드**: `import.meta.env.DEV` 대신 `/lib/env.ts`의 `DEV` 플래그 사용 권장
 - ✅ **적용 대상**: 테스트 버튼, 디버깅 도구, UI 테스팅용 버튼
 - ❌ **금지**: 개발 전용 코드가 프로덕션에 노출
 
-```tsx
-// ✅ 올바른 예시
-{import.meta.env.DEV && (
-  <button onClick={handleDebug}>디버그 버튼</button>
-)}
-
-// ❌ 잘못된 예시 - 프로덕션에 노출됨
-<button onClick={handleDebug}>디버그 버튼</button>
+**핵심 파일**: `/lib/env.ts`
+```typescript
+// Figma Make 환경에서는 import.meta.env.DEV가 프로덕션에서도 true일 수 있으므로
+// 도메인 기반으로 환경을 감지
+export const DEV: boolean  // nadaunse.com, nadaunse.figma.site에서는 false
+export const isProduction(): boolean  // 프로덕션 도메인 체크
+export const isDevelopment(): boolean  // 프로덕션이 아닌 모든 환경
+export const isLocalhost(): boolean  // 로컬 환경 체크
+export const isFigmaSite(): boolean  // Figma Make 환경 체크
 ```
 
-### 7. 모바일 최적화 (iOS Safari) (NEW!)
+**사용법**:
+```tsx
+// ✅ 권장 방법 - /lib/env.ts 사용
+import { DEV } from '../lib/env';
+{DEV && <button onClick={handleDebug}>디버그 버튼</button>}
+
+// ⚠️ 대안 - import.meta.env.DEV (Figma Make에서 부정확할 수 있음)
+{import.meta.env.DEV && <button onClick={handleDebug}>디버그 버튼</button>}
+```
+
+### 7. Supabase 환경 분리 (NEW!)
+- ✅ **환경변수 기반 설정**: `VITE_SUPABASE_PROJECT_ID`, `VITE_SUPABASE_ANON_KEY`
+- ✅ **Production**: `kcthtpmxffppfbkjjkub` (nadaunse.com)
+- ✅ **Staging/Preview**: `hyltbeewxaqashyivilu` (Vercel Preview)
+- ✅ **동적 URL 생성**: `https://${projectId}.supabase.co`
+
+**핵심 파일**: `/utils/supabase/info.tsx`
+```typescript
+// 환경변수 기반 설정 (fallback: Production)
+export const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "kcthtpmxffppfbkjjkub";
+export const publicAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "<production-key>";
+```
+
+**Vercel 환경변수 설정**:
+| 환경 | VITE_SUPABASE_PROJECT_ID |
+|------|--------------------------|
+| Production | `kcthtpmxffppfbkjjkub` |
+| Preview | `hyltbeewxaqashyivilu` |
+| Development | `hyltbeewxaqashyivilu` |
+
+---
+
+### 8. 모바일 최적화 (iOS Safari) (NEW!)
 - ✅ **border-radius 렌더링 이슈 해결**: `transform-gpu` 클래스 추가
 - ✅ **적용 조건**: `overflow: hidden` + `border-radius` 조합 사용 시
 - ✅ **하단 고정 CTA**: 리팩토링된 컴포넌트 사용
@@ -148,6 +186,100 @@
 ---
 
 ## 📂 File Structure (Key Files)
+
+### 🎯 기능별 빠른 참조 (Quick Reference by Feature)
+
+<details>
+<summary><b>무료 콘텐츠 (사주)</b></summary>
+
+```
+/components/FreeProductDetail.tsx       → 무료 상세
+/components/FreeBirthInfoInput.tsx      → 사주 입력
+/components/FreeSajuSelectPage.tsx      → 사주 선택
+/components/FreeContentLoading.tsx      → 로딩
+/components/FreeSajuDetail.tsx          → 결과
+/components/FreeContentDetail.tsx       → 메인 로직
+/lib/freeContentService.ts              → 비즈니스 로직
+```
+</details>
+
+<details>
+<summary><b>유료 콘텐츠 (심화 해석판)</b></summary>
+
+```
+/components/ProductDetail.tsx           → 유료 상세
+/components/PaymentNew.tsx              → 결제
+/components/BirthInfoInput.tsx          → 사주 입력
+/components/SajuSelectPage.tsx          → 사주 선택
+/components/LoadingPage.tsx             → 로딩
+/components/SajuResultPage.tsx          → 결과
+/components/CouponBottomSheetNew.tsx    → 쿠폰 선택
+```
+</details>
+
+<details>
+<summary><b>타로 콘텐츠</b></summary>
+
+```
+/components/TarotFlowPage.tsx           → 타로 플로우 통합
+/components/TarotCardSelection.tsx      → 카드 선택
+/components/TarotShufflePage.tsx        → 카드 섞기
+/components/TarotResultPage.tsx         → 타로 결과
+/pages/TarotDemo.tsx                    → 타로 데모
+/lib/tarotCards.ts                      → 타로 카드 데이터
+```
+</details>
+
+<details>
+<summary><b>사주 정보 관리</b></summary>
+
+```
+/components/SajuManagementPage.tsx      → 사주 관리 메인
+/components/SajuInputPage.tsx           → 내 사주 입력
+/components/SajuAddPage.tsx             → 관계 사주 추가
+/components/SajuDetail.tsx              → 사주 상세
+/components/SajuKebabMenu.tsx           → 케밥 메뉴
+/components/PrimarySajuChangeDialog.tsx → 대표 사주 변경
+```
+</details>
+
+<details>
+<summary><b>프로필 & 구매</b></summary>
+
+```
+/components/ProfilePage.tsx             → 프로필 메인
+/components/PurchaseHistoryPage.tsx     → 구매 내역
+/components/WelcomeCouponPage.tsx       → 웰컴 쿠폰
+```
+</details>
+
+<details>
+<summary><b>인증</b></summary>
+
+```
+/components/LoginPageNew.tsx            → 로그인
+/components/ExistingAccountPageNew.tsx  → 기존 계정 연동
+/components/SessionExpiredDialog.tsx    → 세션 만료
+/lib/auth.ts                            → 인증 헬퍼
+/pages/AuthCallback.tsx                 → OAuth 콜백
+```
+</details>
+
+<details>
+<summary><b>공통 UI</b></summary>
+
+```
+/components/ui/*                        → shadcn/ui 재사용 컴포넌트 (26개)
+/components/skeletons/*                 → 로딩 스켈레톤 (5개)
+/components/NavigationHeader.tsx        → 헤더
+/components/Footer.tsx                  → 푸터
+/components/BottomNavigation.tsx        → 하단 네비게이션
+/components/ErrorPage.tsx               → 공통 에러 페이지
+/components/ErrorBoundary.tsx           → 에러 바운더리
+```
+</details>
+
+---
 
 ### 🔐 인증 관련
 ```
@@ -735,9 +867,20 @@ NO  → 추가 로드 후 재시도
 ## 🎯 최근 주요 개선사항 (2026-01-06)
 
 ### ✅ 개발/배포 환경 자동 분리
-- `import.meta.env.DEV` 조건으로 개발 전용 UI 자동 제외
+- **도메인 기반 환경 감지**: `/lib/env.ts` 파일을 통한 정확한 환경 판별
+  - 프로덕션 도메인: `nadaunse.com`, `www.nadaunse.com`, `nadaunse.figma.site`
+  - `import.meta.env.DEV`는 Figma Make 환경에서 부정확할 수 있어 대체
+- **환경 유틸리티 함수**:
+  - `DEV`: 개발 환경 여부 (프로덕션에서 false)
+  - `isProduction()`: 프로덕션 도메인 체크
+  - `isDevelopment()`: 프로덕션이 아닌 모든 환경
+  - `isLocalhost()`: 로컬 환경 체크
+  - `isFigmaSite()`: Figma Make 환경 체크
+- **적용 컴포넌트**:
+  - `LoginPageNew.tsx`: `isDevelopment()`로 테스트 버튼 분기
+  - `ProfilePage.tsx`: `DEV` 플래그로 UI 테스팅 버튼 숨김
+  - `App.tsx`: 프로덕션 환경 체크 및 `import.meta.env.DEV` 오버라이드
 - 테스트 버튼, 디버깅 도구가 프로덕션에 노출되지 않음
-- LoginPageNew, ProfilePage, MasterContentDetailPage 등에 적용 완료
 
 ### ✅ iOS Safari 렌더링 최적화
 - `transform-gpu` 클래스로 `border-radius` 이슈 해결
