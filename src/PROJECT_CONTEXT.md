@@ -37,10 +37,14 @@
 - 무료/유료 콘텐츠 이원화 시스템
 
 ### 주요 통계
-- **컴포넌트**: 52개 (활성화)
+- **컴포넌트**: 51개 (활성화)
 - **Edge Functions**: 17개
 - **페이지 컴포넌트**: 38개
-- **UI 컴포넌트**: 14개
+- **UI 컴포넌트 (shadcn/ui)**: 48개
+- **스켈레톤**: 5개
+
+### 필수 문서
+- **[CLAUDE.md](../CLAUDE.md)** - 개발 규칙 (필독)
 
 ---
 
@@ -103,7 +107,7 @@
 ### 3. 파일 구조
 - ✅ **React Router v6** 사용 (`/App.tsx`가 라우터)
 - ✅ 페이지 컴포넌트: `/pages/*.tsx`, `/components/*Page.tsx`
-- ✅ 재사용 컴포넌트: `/components/*.tsx` (52개)
+- ✅ 재사용 컴포넌트: `/components/*.tsx` (51개)
 - ✅ 비즈니스 로직: `/lib/*.ts` (서비스 클래스)
 - ✅ 유틸리티: `/utils/*.ts`
 
@@ -861,7 +865,7 @@ NO  → 추가 로드 후 재시도
 |------|------|-----------|--------|
 | 1.0.0 | 2025-12-20 | 초기 문서 작성 | AI Assistant |
 | 1.1.0 | 2025-12-20 | DEV_FLOW.md 통합 (무료/유료 플로우 추가) | AI Assistant |
-| 1.2.0 | 2026-01-06 | 타로 서비스 추가, 개발/배포 환경 분리, iOS Safari 최적화, 컴포넌트 52개/Edge Functions 17개 반영 | AI Assistant |
+| 1.2.0 | 2026-01-06 | 타로 서비스 추가, 개발/배포 환경 분리, iOS Safari 최적화, 컴포넌트 51개/Edge Functions 17개 반영 | AI Assistant |
 
 ---
 
@@ -909,7 +913,7 @@ NO  → 추가 로드 후 재시도
 - **[AI_ONBOARDING.md](./AI_ONBOARDING.md)** - AI 작업 가이드 (필독!)
 - **[DECISIONS.md](./DECISIONS.md)** - 아키텍처 결정 기록
 - **[DATABASE_SCHEMA.md](./DATABASE_SCHEMA.md)** - DB 스키마 상세
-- **[components-inventory.md](./components-inventory.md)** - 컴포넌트 목록 (52개)
+- **[components-inventory.md](./components-inventory.md)** - 컴포넌트 목록 (51개)
 - **[supabase/EDGE_FUNCTIONS_GUIDE.md](./supabase/EDGE_FUNCTIONS_GUIDE.md)** - Edge Functions 가이드 (17개)
 - **[supabase/DATABASE_TRIGGERS_AND_FUNCTIONS.md](./supabase/DATABASE_TRIGGERS_AND_FUNCTIONS.md)** - Database Triggers & Functions
 

@@ -2,8 +2,9 @@
 
 본 문서는 Supabase 데이터베이스의 Triggers와 Functions를 정리한 문서입니다.
 
-> **최종 업데이트**: 2025-12-31  
+> **최종 업데이트**: 2026-01-06
 > **환경**: Production & Staging 공통
+> **필수 문서**: [CLAUDE.md](../../CLAUDE.md) - 개발 규칙
 
 ---
 

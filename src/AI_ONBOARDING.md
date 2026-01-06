@@ -36,10 +36,14 @@ cat PROJECT_CONTEXT.md
 - **Supabase 환경 분리**: Production / Staging
 
 ### 주요 통계
-- **컴포넌트**: 52개 (활성화)
+- **컴포넌트**: 51개 (활성화)
 - **Edge Functions**: 17개
 - **페이지**: 38개
-- **UI 컴포넌트**: 14개
+- **UI 컴포넌트 (shadcn/ui)**: 48개
+- **스켈레톤**: 5개
+
+### 필수 문서
+- **[CLAUDE.md](../CLAUDE.md)** - 개발 규칙 (필독)
 
 ---
 
@@ -80,7 +84,7 @@ cat PROJECT_CONTEXT.md
 ```bash
 # 필수 (순서대로)
 1. PROJECT_CONTEXT.md    # Critical Rules, 파일 구조
-2. components-inventory.md  # 재사용 가능한 컴포넌트 확인 (52개)
+2. components-inventory.md  # 재사용 가능한 컴포넌트 확인 (51개)
 3. DATABASE_SCHEMA.md    # DB 스키마 (테이블 추가 필요 시)
 4. DECISIONS.md          # 기존 설계 패턴 확인
 ```
@@ -397,7 +401,7 @@ file_search:
 
 #### Step 1: 기존 구조 파악
 ```bash
-# 1. 컴포넌트 인벤토리 확인 (52개 중)
+# 1. 컴포넌트 인벤토리 확인 (51개 중)
 cat components-inventory.md | grep "프로필"
 
 # 2. DB 스키마 확인
@@ -489,7 +493,7 @@ README.md (시작점)
     │       │
     │       ├─→ DECISIONS.md (설계 의도)
     │       ├─→ DATABASE_SCHEMA.md (DB 구조)
-    │       └─→ components-inventory.md (파일 위치, 52개)
+    │       └─→ components-inventory.md (파일 위치, 51개)
     │
     ├─→ supabase/EDGE_FUNCTIONS_GUIDE.md (Edge Functions 17개)
     ├─→ supabase/DATABASE_TRIGGERS_AND_FUNCTIONS.md (트리거/함수)
@@ -572,7 +576,7 @@ README.md (시작점)
 [ ] Critical Rules 숙지
 [ ] 작업 유형 분류 완료
 [ ] 필요한 추가 문서 확인
-[ ] 관련 파일 경로 파악 (52개 컴포넌트 중)
+[ ] 관련 파일 경로 파악 (51개 컴포넌트 중)
 [ ] 기존 설계 패턴 이해 (DECISIONS.md)
 [ ] 보호된 파일 확인 (수정 금지)
 [ ] 개발/배포 환경 분리 확인
@@ -676,7 +680,7 @@ AI: "DECISIONS.md를 확인하겠습니다."
 | "전체 시스템 구조는?" | PROJECT_CONTEXT.md |
 | "왜 이렇게 설계했어?" | DECISIONS.md |
 | "DB 테이블 구조는?" | DATABASE_SCHEMA.md |
-| "이 컴포넌트 어디 있어?" | components-inventory.md (52개) |
+| "이 컴포넌트 어디 있어?" | components-inventory.md (51개) |
 | "Edge Functions 목록은?" | supabase/EDGE_FUNCTIONS_GUIDE.md (17개) |
 | "빠르게 시작하려면?" | README.md |
 | "라이선스 확인" | Attributions.md |
@@ -700,7 +704,7 @@ AI: "DECISIONS.md를 확인하겠습니다."
 [ ] 스크롤 복원 로직 설명할 수 있다
 [ ] import.meta.env.DEV 사용 목적 안다 (NEW!)
 [ ] iOS Safari transform-gpu 이슈 해결법 안다 (NEW!)
-[ ] 52개 컴포넌트 위치를 빠르게 찾을 수 있다
+[ ] 51개 컴포넌트 위치를 빠르게 찾을 수 있다
 [ ] 개발/배포 환경 차이를 설명할 수 있다
 ```
 
@@ -714,7 +718,7 @@ AI: "DECISIONS.md를 확인하겠습니다."
 |------|------|-----------|--------|
 | 1.0.0 | 2025-12-21 | 초기 문서 작성 | AI Assistant |
 | 1.1.0 | 2025-12-31 | LoadingPage 이미지 최적화, 목차 더미 데이터 제거 반영 | AI Assistant |
-| 1.2.0 | 2026-01-06 | 개발/배포 환경 분리, iOS Safari 최적화, 타로 서비스 추가, 컴포넌트 52개/Edge Functions 17개 반영 | AI Assistant |
+| 1.2.0 | 2026-01-06 | 개발/배포 환경 분리, iOS Safari 최적화, 타로 서비스 추가, 컴포넌트 51개/Edge Functions 17개 반영 | AI Assistant |
 
 ---
 
