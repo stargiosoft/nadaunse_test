@@ -3,8 +3,10 @@
  * 이미지 프리페칭 & 캐싱 기능 포함
  */
 
-// Supabase Storage URL
-const SUPABASE_STORAGE_URL = 'https://hyltbeewxaqashyivilu.supabase.co/storage/v1/object/public';
+import { projectId } from '../utils/supabase/info';
+
+// Supabase Storage URL (환경에 따라 동적 생성)
+const SUPABASE_STORAGE_URL = `https://${projectId}.supabase.co/storage/v1/object/public`;
 
 // 띠 이미지 매핑 (Supabase Storage)
 const ZODIAC_IMAGE_MAP: Record<string, string> = {

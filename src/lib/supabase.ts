@@ -34,7 +34,7 @@ function getSupabaseClient() {
       autoRefreshToken: true,
       detectSessionInUrl: true,
       flowType: 'pkce',
-      storageKey: 'sb-kcthtpmxffppfbkjjkub-auth-token',
+      storageKey: `sb-${projectId}-auth-token`,
     },
     global: {
       headers: {
