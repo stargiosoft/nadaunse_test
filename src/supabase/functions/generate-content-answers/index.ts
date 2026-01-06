@@ -1,0 +1,372 @@
+// Supabase Edge Function: 콘텐츠 답변 생성 (병렬 처리)
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7'
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+}
+
+serve(async (req) => {
+  // CORS preflight
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
+  }
+
+  try {
+    const { 
+      contentId,      // 콘텐츠 ID
+      orderId,        // 주문 ID
+      sajuRecordId    // 사주 정보 ID
+    } = await req.json()
+
+    if (!contentId || !orderId || !sajuRecordId) {
+      return new Response(
+        JSON.stringify({ success: false, error: '필수 정보가 누락되었습니다.' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    console.log('🚀 콘텐츠 답변 생성 시작')
+    console.log('📦 contentId:', contentId)
+    console.log('📦 orderId:', orderId)
+    console.log('📦 sajuRecordId:', sajuRecordId)
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    const supabase = createClient(supabaseUrl, supabaseServiceKey)
+
+    // 1. 콘텐츠 정보 조회
+    const { data: content, error: contentError } = await supabase
+      .from('master_contents')
+      .select('*')
+      .eq('id', contentId)
+      .single()
+
+    if (contentError || !content) {
+      throw new Error('콘텐츠를 찾을 수 없습니다.')
+    }
+
+    console.log('✅ 콘텐츠 조회 완료:', content.title)
+
+    // 2. 질문지 조회
+    const { data: questions, error: questionsError } = await supabase
+      .from('master_content_questions')
+      .select('*')
+      .eq('content_id', contentId)
+      .order('question_order', { ascending: true })
+
+    if (questionsError || !questions || questions.length === 0) {
+      throw new Error('질문지를 찾을 수 없습니다.')
+    }
+
+    console.log(`✅ 질문지 조회 완료: ${questions.length}개`)
+
+    // 3. 사주 정보 조회
+    const { data: sajuRecord, error: sajuError } = await supabase
+      .from('saju_records')
+      .select('*')
+      .eq('id', sajuRecordId)
+      .single()
+
+    if (sajuError || !sajuRecord) {
+      throw new Error('사주 정보를 찾을 수 없습니다.')
+    }
+
+    console.log('✅ 사주 정보 조회 완료:', sajuRecord.name)
+
+    // 4. 모든 질문에 대해 병렬로 답변 생성
+    console.log('🔄 병렬 답변 생성 시작...')
+
+    const answerPromises = questions.map(async (question) => {
+      // ⭐️ 재시도 로직 추가 (최대 5번)
+      const maxRetries = 5
+      let attempt = 0
+      let lastError: Error | null = null
+
+      while (attempt < maxRetries) {
+        attempt++
+        
+        try {
+          console.log(`🔹 질문 ${question.question_order}: ${question.question_type} (시도 ${attempt}/${maxRetries})`)
+
+          // ⭐️ 타임아웃 함수 (1분)
+          const fetchWithTimeout = async (url: string, options: any, timeoutMs = 60000) => {
+            const controller = new AbortController()
+            const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+
+            try {
+              const response = await fetch(url, {
+                ...options,
+                signal: controller.signal
+              })
+              clearTimeout(timeoutId)
+              return response
+            } catch (error) {
+              clearTimeout(timeoutId)
+              if (error instanceof Error && error.name === 'AbortError') {
+                throw new Error('API 호출 타임아웃 (1분 초과)')
+              }
+              throw error
+            }
+          }
+
+          let response
+          let data
+
+          if (question.question_type === 'saju') {
+            // 사주 풀이
+            response = await fetchWithTimeout(`${supabaseUrl}/functions/v1/generate-saju-answer`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${supabaseServiceKey}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                title: content.title,
+                description: content.description,
+                questionerInfo: content.questioner_info,
+                questionText: question.question_text,
+                questionId: question.id,
+                birthDate: sajuRecord.birth_date,
+                birthTime: sajuRecord.birth_time,
+                gender: sajuRecord.gender
+              })
+            })
+
+            data = await response.json()
+
+            if (!data.success) {
+              throw new Error(`사주 답변 생성 실패: ${data.error}`)
+            }
+
+            // ⭐️ order_results 테이블에 저장
+            const { error: insertError } = await supabase
+              .from('order_results')
+              .insert({
+                order_id: orderId,
+                question_id: question.id,  // ⭐️ 필수! NOT NULL 컬럼
+                question_order: question.question_order,
+                question_text: question.question_text,
+                gpt_response: data.answerText,
+                question_type: 'saju',  // 질문 타입 추가
+                created_at: new Date().toISOString()
+              })
+
+            if (insertError) {
+              console.error(`❌ order_results 저장 실패 (질문 ${question.question_order}):`, insertError)
+            } else {
+              console.log(`✅ order_results 저장 완료 (질문 ${question.question_order})`)
+            }
+
+            console.log(`✅ 사주 답변 생성 완료 (질문 ${question.question_order})`)
+            return { questionId: question.id, success: true, type: 'saju', attempt }
+
+          } else if (question.question_type === 'tarot') {
+            // 타로 풀이
+            response = await fetchWithTimeout(`${supabaseUrl}/functions/v1/generate-tarot-answer`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${supabaseServiceKey}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                title: content.title,
+                description: content.description,
+                questionerInfo: content.questioner_info,
+                questionText: question.question_text,
+                questionId: question.id,
+                tarotCards: question.tarot_cards || null
+              })
+            })
+
+            data = await response.json()
+            
+            console.log('🎴 [타로] generate-tarot-answer 응답:', data)
+
+            if (!data.success) {
+              throw new Error(`타로 답변 생성 실패: ${data.error}`)
+            }
+
+            // ⭐️ order_results 테이블에 저장
+            const { error: insertError } = await supabase
+              .from('order_results')
+              .insert({
+                order_id: orderId,
+                question_id: question.id,  // ⭐️ 필수! NOT NULL 컬럼
+                question_order: question.question_order,
+                question_text: question.question_text,
+                gpt_response: data.answerText,
+                question_type: 'tarot',  // 질문 타입 추가
+                tarot_card_id: data.tarotCardId || null,  // ⭐ 타로 카드 ID
+                tarot_card_name: data.tarotCard || null,  // ⭐ 타로 카드 이름
+                tarot_card_image_url: data.imageUrl || null,  // ⭐ 타로 카드 이미지 URL
+                created_at: new Date().toISOString()
+              })
+            
+            console.log('🎴 [타로] DB 저장 데이터:', {
+              tarot_card_id: data.tarotCardId,
+              tarot_card_name: data.tarotCard,
+              tarot_card_image_url: data.imageUrl
+            })
+
+            if (insertError) {
+              console.error(`❌ order_results 저장 실패 (질문 ${question.question_order}):`, insertError)
+            } else {
+              console.log(`✅ order_results 저장 완료 (질문 ${question.question_order})`)
+            }
+
+            console.log(`✅ 타로 답변 생성 완료 (질문 ${question.question_order})`)
+            return { questionId: question.id, success: true, type: 'tarot', attempt }
+
+          } else {
+            throw new Error(`알 수 없는 질문 타입: ${question.question_type}`)
+          }
+
+        } catch (error) {
+          lastError = error instanceof Error ? error : new Error(String(error))
+          console.error(`❌ 질문 ${question.question_order} 시도 ${attempt} 실패:`, lastError.message)
+
+          // 마지막 시도가 아니면 재시도
+          if (attempt < maxRetries) {
+            const waitTime = attempt * 2000 // 2초, 4초, 6초, 8초
+            console.log(`⏳ ${waitTime}ms 대기 후 재시도...`)
+            await new Promise(resolve => setTimeout(resolve, waitTime))
+            continue
+          }
+
+          // 최대 재시도 횟수 도달
+          console.error(`❌ 질문 ${question.question_order} 최종 실패 (${maxRetries}번 시도)`)
+          return { 
+            questionId: question.id, 
+            success: false, 
+            error: lastError.message,
+            attempts: attempt
+          }
+        }
+      }
+
+      // 이론상 여기 도달 불가 (while 안에서 return)
+      return { 
+        questionId: question.id, 
+        success: false, 
+        error: lastError?.message || '알 수 없는 오류',
+        attempts: maxRetries
+      }
+    })
+
+    // 모든 답변 생성 완료 대기
+    const results = await Promise.all(answerPromises)
+
+    console.log('🎉 모든 답변 생성 완료')
+    console.log('📊 결과:', results)
+
+    // 실패한 질문 확인
+    const failedQuestions = results.filter(r => !r.success)
+    
+    if (failedQuestions.length > 0) {
+      console.warn('⚠️ 일부 질문 처리 실패:', failedQuestions)
+    }
+
+    // 5. orders 테이블 업데이트 (AI 생성 완료)
+    const { error: orderUpdateError } = await supabase
+      .from('orders')
+      .update({ 
+        ai_generation_completed: true,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', orderId)
+
+    if (orderUpdateError) {
+      console.error('⚠️ orders 테이블 업데이트 실패:', orderUpdateError)
+    } else {
+      console.log('✅ orders 테이블 업데이트 완료')
+    }
+
+    // 7. 알림톡 발송 (실패해도 전체 프로세스 계속 진행)
+    // ⭐️ 알림톡 재시도 정책:
+    // - send-alimtalk Edge Function에서 총 4번 시도 (1회 + 3회 재시도)
+    // - 4번 모두 실패해도 AI 답변은 정상적으로 저장되며, 사용자는 결과를 볼 수 있음
+    // - 알림톡 실패 로그는 alimtalk_logs 테이블에 기록됨
+    try {
+      console.log('📱 알림톡 발송 시작...')
+      
+      const { data: orderInfo, error: orderInfoError } = await supabase
+        .from('orders')
+        .select(`
+          user_id,
+          saju_records!inner(full_name, phone_number)
+        `)
+        .eq('id', orderId)
+        .single()
+
+      if (orderInfoError || !orderInfo) {
+        console.error('❌ 주문 정보 조회 실패:', orderInfoError)
+      } else {
+        const phoneNumber = orderInfo.saju_records?.phone_number
+        const customerName = orderInfo.saju_records?.full_name
+
+        if (!phoneNumber) {
+          console.warn('⚠️ 전화번호 없음, 알림톡 발송 스킵')
+        } else if (!customerName) {
+          console.warn('⚠️ 고객명 없음, 알림톡 발송 스킵')
+        } else {
+          console.log('📞 알림톡 발송 대상:', customerName, phoneNumber)
+          
+          // 알림톡 발송 Edge Function 호출
+          const alimtalkResponse = await fetch(`${supabaseUrl}/functions/v1/send-alimtalk`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${supabaseServiceKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              orderId: orderId,
+              userId: orderInfo.user_id || 'anonymous',  // ⭐️ 방어 코드: user_id가 NULL일 경우 대비
+              mobile: phoneNumber,
+              customerName: customerName,
+              contentId: contentId
+            })
+          })
+
+          const alimtalkResult = await alimtalkResponse.json()
+
+          if (alimtalkResult.success) {
+            console.log('✅ 알림톡 발송 완료:', alimtalkResult.messageId)
+          } else {
+            console.warn('⚠️ 알림톡 발송 실패 (무시하고 계속):', alimtalkResult.error)
+            console.warn('⚠️ 사용자는 여전히 결과를 확인할 수 있습니다.')
+          }
+        }
+      }
+    } catch (alimtalkError) {
+      console.warn('⚠️ 알림톡 발송 오류 (무시하고 계속):', alimtalkError)
+      console.warn('⚠️ 사용자는 여전히 결과를 확인할 수 있습니다.')
+      // 알림톡 실패해도 전체 프로세스는 성공으로 처리
+    }
+
+    console.log('✅ 전체 프로세스 완료!')
+
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        totalQuestions: questions.length,
+        successCount: results.filter(r => r.success).length,
+        failedCount: failedQuestions.length,
+        results 
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
+
+  } catch (error) {
+    console.error('함수 실행 오류:', error)
+    return new Response(
+      JSON.stringify({ 
+        success: false, 
+        error: error instanceof Error ? error.message : '알 수 없는 오류' 
+      }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
+  }
+})

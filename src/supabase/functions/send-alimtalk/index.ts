@@ -1,0 +1,258 @@
+// Supabase Edge Function: 알림톡 발송 (TalkDream API)
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7'
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+}
+
+// TalkDream API 설정
+const TALKDREAM_CONFIG = {
+  authToken: 'tOFI8RZQD2qibU/ggEWvqw==',
+  serverName: 'starsaju1',
+  service: '2500109900', // 알림톡
+  baseUrl: 'https://talkapi.lgcns.com',
+  templateId: 'result_ready_v1'
+}
+
+// 재시도 설정 (총 4번 시도: 1회 + 3회 재시도)
+const RETRY_CONFIG = {
+  maxRetries: 3, // 재시도 횟수 (1번 실패 + 3번 재시도 = 총 4번)
+  delays: [5000, 15000, 30000] // 5초, 15초, 30초
+}
+
+// 재시도 제외 에러 코드
+const NO_RETRY_ERRORS = [
+  'KKO_3016', // 템플릿 불일치
+  'KKO_3018', // 발송 불가
+  'KKO_3020', // 수신 차단
+  'ERR_AUTH'  // 인증 오류
+]
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
+  }
+
+  try {
+    const { 
+      orderId,
+      userId,
+      mobile,
+      customerName,
+      contentId
+    } = await req.json()
+
+    if (!orderId || !userId || !mobile || !customerName || !contentId) {
+      return new Response(
+        JSON.stringify({ success: false, error: '필수 정보가 누락되었습니다.' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    console.log('📱 알림톡 발송 시작')
+    console.log('📦 수신자:', mobile)
+    console.log('📦 주문 ID:', orderId)
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    const supabase = createClient(supabaseUrl, supabaseServiceKey)
+
+    // 1. 알림톡 로그 생성
+    const { data: logData, error: logError } = await supabase
+      .from('alimtalk_logs')
+      .insert({
+        order_id: orderId,
+        user_id: userId,
+        phone_number: mobile,
+        template_code: TALKDREAM_CONFIG.templateId,
+        message_content: null,
+        variables: {
+          customerName: customerName,
+          contentId: contentId
+        },
+        status: 'pending',
+        retry_count: 0
+      })
+      .select()
+      .single()
+
+    if (logError) {
+      console.error('❌ 로그 생성 실패:', logError)
+      throw new Error('알림톡 로그 생성에 실패했습니다.')
+    }
+
+    const logId = logData.id
+
+    // 2. 메시지 본문 구성
+    const message = `${customerName}님, 운세가 준비됐어요 🌱
+
+오늘도 당신답게, 잘하고 있어요
+어떤 하루든 괜찮아요
+천천히 가도 충분하니까요 ✨
+
+이번엔 어떤 가능성이 기다릴까요?
+지금 바로 확인해 보세요`
+
+    // 3. 알림톡 발송 (재시도 로직 포함)
+    // ⭐️ 재시도 정책:
+    // - 총 4번 시도 (1회 + 3회 재시도)
+    // - 재시도 간격: 5초, 15초, 30초
+    // - 재시도 불가능 에러 (템플릿 불일치, 발송 불가, 수신 차단 등)는 즉시 실패 처리
+    let lastError = null
+    let retryCount = 0
+
+    for (let attempt = 0; attempt <= RETRY_CONFIG.maxRetries; attempt++) {
+      try {
+        console.log(`📤 발송 시도 ${attempt + 1}/${RETRY_CONFIG.maxRetries + 1}`)
+
+        // TalkDream API 호출
+        const payload = {
+          authToken: TALKDREAM_CONFIG.authToken,
+          serverName: TALKDREAM_CONFIG.serverName,
+          service: TALKDREAM_CONFIG.service,
+          messageType: 'AT', // 알림톡
+          template: TALKDREAM_CONFIG.templateId,
+          mobile: mobile,
+          message: message,
+          buttons: [{
+            type: 'WL', // 웹링크
+            name: '나만의 이야기 보기',
+            url_mobile: `https://nadaunse.com/content/${contentId}`,
+            url_pc: `https://nadaunse.com/content/${contentId}`
+          }]
+        }
+
+        const response = await fetch(
+          `${TALKDREAM_CONFIG.baseUrl}/request/kakao.json`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json; charset=UTF-8'
+            },
+            body: JSON.stringify(payload)
+          }
+        )
+
+        const result = await response.json()
+
+        console.log('📦 TalkDream 응답:', JSON.stringify(result, null, 2))
+
+        // 성공 처리
+        if (response.ok && result.code === '0000') {
+          console.log('✅ 알림톡 발송 성공')
+
+          await supabase
+            .from('alimtalk_logs')
+            .update({
+              status: 'success',
+              message_content: message,
+              sent_at: new Date().toISOString(),
+              retry_count: retryCount
+            })
+            .eq('id', logId)
+
+          return new Response(
+            JSON.stringify({ 
+              success: true, 
+              messageId: result.messageId,
+              logId: logId 
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+
+        // 에러 처리
+        const errorCode = result.code || 'UNKNOWN'
+        const errorMessage = result.message || '알 수 없는 오류'
+
+        console.error(`❌ 알림톡 발송 실패 (${errorCode}): ${errorMessage}`)
+
+        // 재시도 제외 에러인 경우 즉시 실패 처리
+        if (NO_RETRY_ERRORS.includes(errorCode)) {
+          console.error('⚠️ 재시도 불가능한 에러, 즉시 실패 처리')
+
+          await supabase
+            .from('alimtalk_logs')
+            .update({
+              status: 'failed',
+              error_code: errorCode,
+              error_message: errorMessage,
+              retry_count: retryCount
+            })
+            .eq('id', logId)
+
+          return new Response(
+            JSON.stringify({ 
+              success: false, 
+              error: errorMessage,
+              errorCode: errorCode,
+              logId: logId
+            }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+
+        lastError = { code: errorCode, message: errorMessage }
+        retryCount++
+
+        // 마지막 시도가 아니면 재시도 대기
+        if (attempt < RETRY_CONFIG.maxRetries) {
+          const delay = RETRY_CONFIG.delays[attempt]
+          console.log(`⏳ ${delay / 1000}초 후 재시도...`)
+          await new Promise(resolve => setTimeout(resolve, delay))
+        }
+
+      } catch (error) {
+        console.error(`❌ 발송 오류 (시도 ${attempt + 1}):`, error)
+        lastError = { 
+          code: 'NETWORK_ERROR', 
+          message: error instanceof Error ? error.message : '네트워크 오류' 
+        }
+        retryCount++
+
+        // 마지막 시도가 아니면 재시도 대기
+        if (attempt < RETRY_CONFIG.maxRetries) {
+          const delay = RETRY_CONFIG.delays[attempt]
+          console.log(`⏳ ${delay / 1000}초 후 재시도...`)
+          await new Promise(resolve => setTimeout(resolve, delay))
+        }
+      }
+    }
+
+    // 모든 재시도 실패
+    console.error('❌ 모든 재시도 실패')
+
+    await supabase
+      .from('alimtalk_logs')
+      .update({
+        status: 'failed',
+        error_code: lastError?.code || 'UNKNOWN',
+        error_message: lastError?.message || '알 수 없는 오류',
+        retry_count: retryCount
+      })
+      .eq('id', logId)
+
+    return new Response(
+      JSON.stringify({ 
+        success: false, 
+        error: lastError?.message || '알림톡 발송에 실패했습니다.',
+        errorCode: lastError?.code || 'UNKNOWN',
+        logId: logId
+      }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
+
+  } catch (error) {
+    console.error('함수 실행 오류:', error)
+    return new Response(
+      JSON.stringify({ 
+        success: false, 
+        error: error instanceof Error ? error.message : '알 수 없는 오류' 
+      }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
+  }
+})
