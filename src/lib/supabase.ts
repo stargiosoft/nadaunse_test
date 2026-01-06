@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { projectId, publicAnonKey } from '../utils/supabase/info';
+import { isTestMode, getTestUser, getTestSession } from './testAuth';
 
 const supabaseUrl = `https://${projectId}.supabase.co`;
 const supabaseKey = publicAnonKey;
@@ -205,4 +206,36 @@ export async function saveOrder(data: OrderRecord) {
     console.error('❌ Error in saveOrder:', error);
     throw error;
   }
+}
+
+/**
+ * 🧪 테스트 모드 통합 인증 헬퍼
+ * 테스트 모드에서는 Mock 데이터 반환, 아니면 실제 Supabase 호출
+ */
+export async function getAuthUser() {
+  // 테스트 모드 체크
+  if (isTestMode()) {
+    const testUser = getTestUser();
+    if (testUser) {
+      console.log('🧪 [TestSprite] Mock 유저 반환:', testUser.user_metadata?.name);
+      return { data: { user: testUser }, error: null };
+    }
+  }
+
+  // 실제 Supabase 호출
+  return supabase.auth.getUser();
+}
+
+export async function getAuthSession() {
+  // 테스트 모드 체크
+  if (isTestMode()) {
+    const testSession = getTestSession();
+    if (testSession) {
+      console.log('🧪 [TestSprite] Mock 세션 반환');
+      return { data: { session: testSession }, error: null };
+    }
+  }
+
+  // 실제 Supabase 호출
+  return supabase.auth.getSession();
 }

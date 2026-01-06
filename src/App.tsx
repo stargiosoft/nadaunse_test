@@ -45,6 +45,7 @@ import { supabase } from './lib/supabase';
 import { Toaster } from 'sonner';
 import { prefetchZodiacImages } from './lib/zodiacUtils'; // 🔥 이미지 프리페칭
 import { DEV } from './lib/env'; // ⭐ 프로덕션 환경 체크
+import { initTestMode, isTestMode } from './lib/testAuth'; // 🧪 TestSprite 테스트 모드
 
 // ⚡ 프로덕션 환경 체크 - import.meta.env.DEV 오버라이드
 if (!DEV && import.meta.env.DEV) {
@@ -77,21 +78,30 @@ function GAInit() {
   const location = useLocation();
 
   useEffect(() => {
+    // 🧪 TestSprite 테스트 모드 초기화
+    if (isTestMode()) {
+      initTestMode().then((success) => {
+        if (success) {
+          console.log('🧪 [TestSprite] 테스트 모드로 앱 시작');
+        }
+      });
+    }
+
     // ⚡ 빌드 버전 체크 및 캐시 무효화
     const BUILD_VERSION = '1.4.3'; // Fix dynamic import module fetch error
     const storedVersion = localStorage.getItem('app_build_version');
-    
+
     if (storedVersion !== BUILD_VERSION) {
       console.log(`🔄 새 빌드 감지: ${storedVersion} → ${BUILD_VERSION}`);
       console.log('🗑️ 모든 캐시 삭제 중...');
-      
+
       // 모든 캐시 삭제
       const keysToRemove: string[] = [];
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
         if (key && (
-          key.includes('cache') || 
-          key.includes('_v') || 
+          key.includes('cache') ||
+          key.includes('_v') ||
           key.startsWith('homepage_') ||
           key.startsWith('master_')
         )) {

@@ -295,59 +295,7 @@ export default function SajuAddPage({ onBack, onSaved }: SajuAddPageProps) {
     try {
       console.log('💾 [SajuAddPage] 사주 정보 저장 시작');
 
-      // ⭐ DEV 모드: localStorage에 임시 저장 (프론트 UI 테스트용)
-      if (import.meta.env.DEV) {
-        console.log('🔧 [DEV MODE] localStorage에 임시 저장');
-        
-        const finalRelationship = relationship.trim() || '지인';
-        
-        const newRecord = {
-          id: isEditMode && editingSaju?.id ? editingSaju.id : crypto.randomUUID(),
-          user_id: 'dev-user-mock',
-          full_name: name.trim(),
-          gender: gender,
-          birth_date: new Date(birthDate).toISOString(),
-          birth_time: unknownTime ? '시간 미상' : birthTime,
-          notes: finalRelationship,
-          is_primary: true,
-          created_at: new Date().toISOString(),
-        };
-
-        // localStorage에서 기존 데이터 불러오기
-        const existingData = localStorage.getItem('dev_saju_records');
-        let records = existingData ? JSON.parse(existingData) : [];
-
-        if (isEditMode && editingSaju?.id) {
-          // 수정 모드
-          records = records.map((r: any) => r.id === editingSaju.id ? newRecord : r);
-          console.log('✅ [DEV MODE] 사주 정보 수정 완료:', newRecord);
-          toast.success('수정되었습니다.', { duration: 2200 });
-        } else {
-          // 신규 등록 모드
-          // 기존 대표 사주 해제
-          records = records.map((r: any) => ({ ...r, is_primary: false }));
-          // 새 레코드 추가
-          records.unshift(newRecord);
-          console.log('✅ [DEV MODE] 사주 정보 저장 완료:', newRecord);
-          toast.success('저장되었습니다.', { duration: 2200 });
-        }
-
-        localStorage.setItem('dev_saju_records', JSON.stringify(records));
-
-        // 저장 완료 후 이동
-        setTimeout(() => {
-          if (returnTo) {
-            navigate(returnTo);
-          } else {
-            onSaved();
-          }
-        }, 300);
-
-        setIsSaving(false);
-        return;
-      }
-
-      // ⭐ PRODUCTION 모드: 기존 Supabase 로직
+      // ⭐ 항상 Supabase에 저장 (DEV/PROD 동일)
       // 로그인 확인
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       

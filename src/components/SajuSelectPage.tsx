@@ -58,37 +58,7 @@ export default function SajuSelectPage() {
 
   const loadSajuList = async () => {
     try {
-      // ⭐ DEV 모드: localStorage에서 데이터 로드 (프론트 UI 테스트용)
-      if (import.meta.env.DEV) {
-        console.log('🔧 [DEV MODE] localStorage에서 사주 목록 로드');
-        
-        const existingData = localStorage.getItem('dev_saju_records');
-        const sajuData = existingData ? JSON.parse(existingData) : [];
-        
-        console.log('✅ [DEV MODE] 로드된 사주 목록:', sajuData);
-        
-        setSajuList(sajuData || []);
-        
-        // ⭐ 대표 사주 자동 선택 (is_primary=true → 본인 사주 → 첫 번째 사주 순)
-        const primarySaju = (sajuData || []).find((s: any) => s.is_primary);
-        const mySaju = (sajuData || []).find((s: any) => s.notes === '본인');
-        
-        if (primarySaju) {
-          setSelectedSajuId(primarySaju.id);
-          console.log('✅ [DEV MODE] 대표 사주 자동 선택:', primarySaju.id, primarySaju.full_name);
-        } else if (mySaju) {
-          setSelectedSajuId(mySaju.id);
-          console.log('✅ [DEV MODE] 본인 사주 자동 선택:', mySaju.id);
-        } else if (sajuData && sajuData.length > 0) {
-          setSelectedSajuId(sajuData[0].id);
-          console.log('✅ [DEV MODE] 첫 번째 사주 자동 선택:', sajuData[0].id);
-        }
-        
-        setIsLoading(false);
-        return;
-      }
-
-      // ⭐ PRODUCTION 모드: 기존 Supabase 로직
+      // ⭐ 항상 Supabase에서 데이터 로드 (DEV/PROD 동일)
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
