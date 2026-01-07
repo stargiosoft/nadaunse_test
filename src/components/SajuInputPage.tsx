@@ -37,8 +37,17 @@ export default function SajuInputPage({ onBack, onSaved }: SajuInputPageProps) {
   const isEditMode = !!(sajuInfo || (editMode && sajuData));
   const editingSaju = sajuInfo || sajuData; // 수정할 사주 정보
 
+  // ⭐ 편집 모드일 때 초기 gender 값을 미리 계산 (애니메이션 깜빡임 방지)
+  const getInitialGender = (): 'female' | 'male' => {
+    const dataToLoad = sajuInfo || sajuData;
+    if (dataToLoad?.gender === 'male' || dataToLoad?.gender === 'Male' || dataToLoad?.gender === '남성') {
+      return 'male';
+    }
+    return 'female';
+  };
+
   const [name, setName] = useState('');
-  const [gender, setGender] = useState<'female' | 'male'>('female');
+  const [gender, setGender] = useState<'female' | 'male'>(getInitialGender());
   const [birthDate, setBirthDate] = useState('');
   const [birthTime, setBirthTime] = useState('');
   const [unknownTime, setUnknownTime] = useState(false);
