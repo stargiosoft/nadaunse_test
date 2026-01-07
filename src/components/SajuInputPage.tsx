@@ -71,9 +71,15 @@ export default function SajuInputPage({ onBack, onSaved }: SajuInputPageProps) {
     
     if (dataToLoad) {
       console.log('✏️ [편집모드] 기존 데이터 로드:', dataToLoad);
-      
+
       setName(dataToLoad.full_name || '');
-      setGender(dataToLoad.gender || 'female');
+      // ⭐ gender 값 정규화 (DB에서 'male', 'Male', '남성' 등 다양한 형식 가능)
+      const normalizedGender: 'female' | 'male' =
+        dataToLoad.gender === 'male' || dataToLoad.gender === 'Male' || dataToLoad.gender === '남성'
+          ? 'male'
+          : 'female';
+      console.log('📌 [편집모드] gender 원본:', dataToLoad.gender, '→ 정규화:', normalizedGender);
+      setGender(normalizedGender);
       
       // birth_date 파싱: "1991-12-25T00:00:00Z" → "1991-12-25"
       const birthDateOnly = dataToLoad.birth_date?.split('T')[0] || '';
