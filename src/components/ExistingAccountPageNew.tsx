@@ -353,6 +353,13 @@ export default function ExistingAccountPageNew({ provider, onBack, onLoginWithCo
   const [accountInfo, setAccountInfo] = useState<{ email: string; created_at: string } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // 페이지 마운트 시 스크롤 최상단으로 리셋 (iOS Safari 호환)
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, []);
+
   useEffect(() => {
     const fetchAccountInfo = async () => {
       try {
