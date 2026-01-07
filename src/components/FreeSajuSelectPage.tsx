@@ -427,7 +427,7 @@ export default function FreeSajuSelectPage({ productId, onBack }: FreeSajuSelect
         </div>
 
         {/* Content */}
-        <div className="pt-[115px] pb-[120px] px-[20px]">
+        <div className="pt-[68px] pb-[120px] px-[20px]">
           {/* 내 사주 섹션 */}
           {mySaju && (
             <div className="content-stretch flex flex-col gap-[8px] items-start relative shrink-0 w-full">
