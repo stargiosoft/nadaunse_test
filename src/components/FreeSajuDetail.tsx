@@ -185,8 +185,8 @@ export default function FreeSajuDetail({
   }
 
   return (
-    <div className="bg-white relative min-h-screen w-full flex justify-center">
-      <div className="w-full max-w-[440px] relative">
+    <div className="bg-white relative min-h-screen w-full flex justify-center overscroll-none">
+      <div className="w-full max-w-[440px] relative overscroll-none">
         {/* Top Bar */}
         <div className="bg-white h-[52px] relative shrink-0 w-full">
           <div className="flex flex-col justify-center size-full">
@@ -215,7 +215,7 @@ export default function FreeSajuDetail({
         </div>
 
         {/* Content Area */}
-        <div className="px-0 pb-[120px] pt-[12px]">
+        <div className="px-0 pb-[100px] pt-[12px]">
           <motion.div 
             className="content-stretch flex flex-col gap-[40px] items-start relative shrink-0 w-full"
             variants={containerVariants}

@@ -53,8 +53,8 @@ export default function SajuDetail({ recordId, onClose }: SajuDetailProps) {
   };
 
   return (
-    <div className="bg-white relative min-h-screen w-full flex justify-center">
-      <div className="w-full max-w-[390px] relative">
+    <div className="bg-white relative min-h-screen w-full flex justify-center overscroll-none">
+      <div className="w-full max-w-[390px] relative overscroll-none">
       {/* Top Navigation Container */}
       <div className="content-stretch flex flex-col items-start w-full">
         
@@ -90,7 +90,7 @@ export default function SajuDetail({ recordId, onClose }: SajuDetailProps) {
       </div>
 
       {/* Content Area */}
-      <div className="px-[20px] pb-[120px]">
+      <div className="px-[20px] pb-[100px]">
         <div className="bg-[#f9f9f9] relative rounded-[16px] shrink-0 w-full">
           <div className="flex flex-row justify-center size-full">
             <div className="box-border content-stretch flex items-start justify-center px-[20px] py-[28px] relative w-full">
