@@ -290,9 +290,9 @@ export default function SajuResultPage() {
   }
 
   return (
-    <div className="bg-white relative min-h-screen w-full max-w-[440px] mx-auto overscroll-none">
+    <div className="fixed inset-0 bg-white flex flex-col w-full max-w-[440px] mx-auto left-1/2 -translate-x-1/2">
       {/* Top Navigation */}
-      <div className="bg-white h-[52px] relative shrink-0 w-full sticky top-0 z-20">
+      <div className="bg-white h-[52px] shrink-0 w-full z-20">
         <div className="flex items-center justify-between px-[12px] h-full w-full">
           <div className="w-[44px] h-[44px] opacity-0" />
           <h1 className="font-['Pretendard_Variable:SemiBold',sans-serif] font-semibold text-[18px] leading-[25.5px] tracking-[-0.36px] text-black text-center flex-1">
@@ -307,11 +307,13 @@ export default function SajuResultPage() {
         </div>
       </div>
 
-      {/* Spacer */}
-      <div className="h-[8px] shrink-0 w-full" />
+      {/* Scrollable Content Area */}
+      <div className="flex-1 overflow-y-auto overscroll-contain">
+        {/* Spacer */}
+        <div className="h-[8px] shrink-0 w-full" />
 
-      {/* Content Area - Scrollable */}
-      <div className="px-[20px] pb-[200px] w-full">
+        {/* Content Area */}
+        <div className="px-[20px] pb-[200px] w-full">
         {currentAnswer ? (
           <div className="bg-[#f9f9f9] rounded-[16px] p-[20px] w-full">
             {/* Header */}
@@ -377,9 +379,10 @@ export default function SajuResultPage() {
             <p className="text-[#999999]">풀이 결과를 불러올 수 없습니다.</p>
           </div>
         )}
+        </div>
       </div>
 
-      {/* Bottom Navigation - Fixed */}
+      {/* Bottom Navigation */}
       <BottomNavigation
         currentStep={currentPage}
         totalSteps={totalPages}

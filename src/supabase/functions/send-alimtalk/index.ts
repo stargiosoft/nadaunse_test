@@ -12,9 +12,10 @@ const corsHeaders = {
 const TALKDREAM_CONFIG = {
   authToken: 'tOFI8RZQD2qibU/ggEWvqw==',
   serverName: 'starsaju1',
+  paymentType: 'P', // 선불충전회원 파라미터 (필수)
   service: '2500109900', // 알림톡
   baseUrl: 'https://talkapi.lgcns.com',
-  templateId: 'result_ready_v1'
+  templateId: '10002' // 구매 결과 안내 템플릿
 }
 
 // 재시도 설정 (총 4번 시도: 1회 + 3회 재시도)
@@ -86,15 +87,20 @@ serve(async (req) => {
 
     const logId = logData.id
 
-    // 2. 메시지 본문 구성
-    const message = `${customerName}님, 운세가 준비됐어요 🌱
+    // 2. 메시지 본문 구성 (검수된 템플릿과 정확히 일치해야 함)
+    const message = `${customerName}님, 구매하신 운세가 준비됐어요 🌱
 
 오늘도 당신답게, 잘하고 있어요
 어떤 하루든 괜찮아요
 천천히 가도 충분하니까요 ✨
 
 이번엔 어떤 가능성이 기다릴까요?
-지금 바로 확인해 보세요`
+지금 바로 확인해 보세요
+
+*본 메시지는 알림톡 수신에 동의하신 분께 발송되는 정보성 메시지입니다.
+
+스타지오소프트
+010-7442-1815`
 
     // 3. 알림톡 발송 (재시도 로직 포함)
     // ⭐️ 재시도 정책:
@@ -112,17 +118,24 @@ serve(async (req) => {
         const payload = {
           authToken: TALKDREAM_CONFIG.authToken,
           serverName: TALKDREAM_CONFIG.serverName,
+          paymentType: TALKDREAM_CONFIG.paymentType,
           service: TALKDREAM_CONFIG.service,
           messageType: 'AT', // 알림톡
           template: TALKDREAM_CONFIG.templateId,
           mobile: mobile,
           message: message,
-          buttons: [{
-            type: 'WL', // 웹링크
-            name: '나만의 이야기 보기',
-            url_mobile: `https://nadaunse.com/content/${contentId}`,
-            url_pc: `https://nadaunse.com/content/${contentId}`
-          }]
+          buttons: [
+            {
+              type: 'AC', // 채널추가
+              name: '채널 추가'
+            },
+            {
+              type: 'WL', // 웹링크
+              name: '나만의 이야기 보기',
+              url_mobile: `https://nadaunse.com/master/content/detail/${contentId}`,
+              url_pc: `https://nadaunse.com/master/content/detail/${contentId}`
+            }
+          ]
         }
 
         const response = await fetch(
