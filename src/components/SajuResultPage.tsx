@@ -290,7 +290,7 @@ export default function SajuResultPage() {
   }
 
   return (
-    <div className="bg-white relative min-h-screen w-full max-w-[440px] mx-auto">
+    <div className="bg-white relative min-h-screen w-full max-w-[440px] mx-auto overscroll-none">
       {/* Top Navigation */}
       <div className="bg-white h-[52px] relative shrink-0 w-full sticky top-0 z-20">
         <div className="flex items-center justify-between px-[12px] h-full w-full">

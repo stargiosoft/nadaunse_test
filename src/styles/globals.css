@@ -195,6 +195,12 @@
 
 html {
   font-size: var(--font-size);
+  overscroll-behavior: none;
+}
+
+html, body {
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: auto; /* iOS Safari 바운스 방지 */
 }
 
 /* Hide scrollbar for horizontal sliders */
