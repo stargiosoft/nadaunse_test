@@ -391,13 +391,6 @@ export default function SajuSelectPage() {
     return images[index % images.length];
   };
 
-  // 띠 계산 (간단 버전 - 생년 기준)
-  const getChineseZodiac = (birthDate: string): string => {
-    const year = parseInt(birthDate.split('-')[0] || birthDate.substring(0, 4));
-    const zodiacs = ['원숭이띠', '닭띠', '개띠', '돼지띠', '쥐띠', '소띠', '호랑이띠', '토끼띠', '용띠', '뱀띠', '말띠', '양띠'];
-    return zodiacs[year % 12];
-  };
-
   /**
    * 케밥 버튼 클릭 핸들러
    */

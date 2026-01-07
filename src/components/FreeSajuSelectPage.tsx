@@ -60,8 +60,25 @@ export default function FreeSajuSelectPage({ productId, onBack }: FreeSajuSelect
     document.body.scrollTop = 0;
   }, []);
 
+  // ⭐ iOS Safari bfcache 복원 시 케밥 메뉴 닫기
+  useEffect(() => {
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) {
+        console.log('🔄 [FreeSajuSelectPage] bfcache 복원 감지 → 케밥 메뉴 닫기');
+        setKebabMenuOpen(false);
+        setSelectedSajuForKebab(null);
+      }
+    };
+
+    window.addEventListener('pageshow', handlePageShow);
+    return () => window.removeEventListener('pageshow', handlePageShow);
+  }, []);
+
   // 사주 정보 로드
   useEffect(() => {
+    // ⭐ 페이지 진입/복귀 시 케밥 메뉴 닫기
+    setKebabMenuOpen(false);
+    setSelectedSajuForKebab(null);
     const loadSajuRecords = async () => {
       console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
       console.log('📋 [FreeSajuSelectPage] 사주 정보 로드 시작');

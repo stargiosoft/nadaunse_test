@@ -83,6 +83,23 @@ export default function SajuManagementPage({ onBack, onNavigateToInput, onNaviga
     window.scrollTo(0, 0);
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
+    // ⭐ 페이지 진입 시 케밥 메뉴 닫기
+    setKebabMenuOpen(false);
+    setSelectedSajuForKebab(null);
+  }, []);
+
+  // ⭐ iOS Safari bfcache 복원 시 케밥 메뉴 닫기
+  useEffect(() => {
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) {
+        console.log('🔄 [SajuManagementPage] bfcache 복원 감지 → 케밥 메뉴 닫기');
+        setKebabMenuOpen(false);
+        setSelectedSajuForKebab(null);
+      }
+    };
+
+    window.addEventListener('pageshow', handlePageShow);
+    return () => window.removeEventListener('pageshow', handlePageShow);
   }, []);
 
   // 세션 체크
