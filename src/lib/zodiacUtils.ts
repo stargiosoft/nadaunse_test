@@ -3,10 +3,10 @@
  * 이미지 프리페칭 & 캐싱 기능 포함
  */
 
-import { projectId } from '../utils/supabase/info';
+import { storageBaseUrl } from '../utils/supabase/info';
 
-// Supabase Storage URL (환경에 따라 동적 생성)
-const SUPABASE_STORAGE_URL = `https://${projectId}.supabase.co/storage/v1/object/public`;
+// Supabase Storage URL (스테이징 Storage 공용 사용)
+const SUPABASE_STORAGE_URL = storageBaseUrl;
 
 // 띠 이미지 매핑 (Supabase Storage)
 const ZODIAC_IMAGE_MAP: Record<string, string> = {
@@ -63,7 +63,7 @@ export async function prefetchZodiacImages(): Promise<void> {
           return;
         }
 
-        const url = `${SUPABASE_STORAGE_URL}/assets/monthly-images/${fileName}?width=240&height=240&quality=85`;
+        const url = `${SUPABASE_STORAGE_URL}/assets/monthly-images/${fileName}`;
         
         // Fetch image as blob
         const response = await fetch(url, { 
@@ -114,11 +114,11 @@ export function getZodiacImageUrl(zodiac: string): string {
   if (!fileName) {
     console.warn(`⚠️ 알 수 없는 띠: ${zodiac}`);
     // 기본 이미지 반환
-    return `${SUPABASE_STORAGE_URL}/assets/monthly-images/rat.webp?width=240&height=240&quality=85`;
+    return `${SUPABASE_STORAGE_URL}/assets/monthly-images/rat.webp`;
   }
   
-  // Supabase Storage Transform으로 썸네일 생성 (240x240 Retina 대응)
-  const url = `${SUPABASE_STORAGE_URL}/assets/monthly-images/${fileName}?width=240&height=240&quality=85`;
+  // Supabase Storage에서 원본 이미지 사용
+  const url = `${SUPABASE_STORAGE_URL}/assets/monthly-images/${fileName}`;
   
   // 🔥 Step 3: 백그라운드에서 이미지 캐싱 (다음번에는 캐시 사용)
   cacheImageInBackground(zodiac, url);

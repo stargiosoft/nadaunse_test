@@ -1,6 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 import { projectId, publicAnonKey } from '../utils/supabase/info';
 import { isTestMode, getTestUser, getTestSession } from './testAuth';
+import { logger } from './logger';
+import { fetchWithRetry } from './fetchWithRetry';
 
 const supabaseUrl = `https://${projectId}.supabase.co`;
 const supabaseKey = publicAnonKey;
@@ -42,25 +44,13 @@ function getSupabaseClient() {
         'x-client-info': 'fortune-app',
       },
       fetch: (url, options = {}) => {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 60000);
-        
-        return fetch(url, { 
-          ...options, 
-          signal: controller.signal 
-        })
-          .then(response => {
-            clearTimeout(timeoutId);
-            return response;
-          })
-          .catch(error => {
-            clearTimeout(timeoutId);
-            if (error.name === 'AbortError') {
-              console.error('❌ [Supabase] 요청 타임아웃 (60초 초과):', url);
-              throw new Error('요청 시간이 초과되었습니다. 네트워크 연결을 확인해주세요.');
-            }
-            throw error;
-          });
+        // Exponential Backoff 재시도 로직 사용
+        return fetchWithRetry(url, options, {
+          maxRetries: 3,
+          initialDelayMs: 1000,
+          timeoutMs: 60000,
+          retryableStatuses: [500, 502, 503, 504],
+        });
       },
     },
     realtime: {
@@ -88,25 +78,23 @@ export const supabase = new Proxy({} as ReturnType<typeof createClient>, {
 // 🔍 DB 연결 테스트
 export async function testConnection() {
   try {
-    console.log('🔍 Supabase 연결 테스트 시작...');
-    console.log('📍 URL:', supabaseUrl);
-    console.log('🔑 Key:', publicAnonKey.substring(0, 20) + '...');
-    
+    logger.debug('Supabase 연결 테스트 시작...');
+
     const { data, error } = await supabase
       .from('master_contents')
       .select('count')
       .limit(1)
       .single();
-    
+
     if (error) {
-      console.error('❌ DB 연결 실패:', error);
+      logger.error('DB 연결 실패:', error.message);
       return false;
     }
-    
-    console.log('✅ DB 연결 성공!');
+
+    logger.info('DB 연결 성공');
     return true;
   } catch (error) {
-    console.error('❌ DB 연결 테스트 실패:', error);
+    logger.error('DB 연결 테스트 실패:', error);
     return false;
   }
 }
@@ -157,37 +145,32 @@ export async function saveSajuRecord(data: SajuRecord) {
     }
 
     // Return object with id to match component expectation
-    return { 
-      id: result.recordId, 
-      ...result 
+    return {
+      id: result.recordId,
+      ...result
     };
   } catch (error) {
-    console.error('Error in saveSajuRecord:', error);
+    logger.error('saveSajuRecord 실패:', error);
     throw error;
   }
 }
 
 export async function saveOrder(data: OrderRecord) {
   try {
-    console.log('💾 주문 저장 시작 (입력 데이터):', data);
-    
+    logger.debug('주문 저장 시작');
+
     // Supabase 세션 확인 및 user_id 자동 설정
     const { data: { session } } = await supabase.auth.getSession();
-    
+
     if (!session?.user?.id) {
       throw new Error('인증되지 않은 사용자입니다. 로그인이 필요합니다.');
     }
-    
-    console.log('🔐 현재 세션 user_id:', session.user.id);
-    console.log('📦 입력받은 user_id:', data.user_id);
-    
+
     // ⭐️ 보안: 항상 세션의 user_id 사용 (localStorage 값 무시)
     const orderData = {
       ...data,
       user_id: session.user.id  // 세션 user_id로 강제 덮어쓰기
     };
-    
-    console.log('✅ 최종 저장 데이터:', orderData);
     
     const { data: savedOrder, error } = await supabase
       .from('orders')
@@ -196,14 +179,14 @@ export async function saveOrder(data: OrderRecord) {
       .single();
 
     if (error) {
-      console.error('❌ 주문 저장 실패:', error);
+      logger.error('주문 저장 실패:', error.message);
       throw error;
     }
 
-    console.log('✅ 주문 저장 성공:', savedOrder);
+    logger.info('주문 저장 성공');
     return savedOrder;
   } catch (error) {
-    console.error('❌ Error in saveOrder:', error);
+    logger.error('saveOrder 실패:', error);
     throw error;
   }
 }
@@ -217,7 +200,7 @@ export async function getAuthUser() {
   if (isTestMode()) {
     const testUser = getTestUser();
     if (testUser) {
-      console.log('🧪 [TestSprite] Mock 유저 반환:', testUser.user_metadata?.name);
+      logger.debug('[TestSprite] Mock 유저 반환');
       return { data: { user: testUser }, error: null };
     }
   }
@@ -231,7 +214,7 @@ export async function getAuthSession() {
   if (isTestMode()) {
     const testSession = getTestSession();
     if (testSession) {
-      console.log('🧪 [TestSprite] Mock 세션 반환');
+      logger.debug('[TestSprite] Mock 세션 반환');
       return { data: { session: testSession }, error: null };
     }
   }

@@ -1,5 +1,6 @@
 import { Component, ReactNode } from 'react';
 import ErrorPage from './ErrorPage';
+import { captureError } from '../lib/sentry';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -66,17 +67,10 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    // Sentry 등 에러 로깅 서비스 연동 시 활용
-    console.error('[ErrorBoundary] 상세 정보:', {
-      error: {
-        name: error.name,
-        message: error.message,
-        stack: error.stack,
-      },
-      errorInfo: {
-        componentStack: errorInfo.componentStack,
-      },
+    // Sentry로 에러 전송
+    captureError(error, {
       errorType: this.state.errorType,
+      componentStack: errorInfo.componentStack,
     });
   }
 

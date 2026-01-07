@@ -1041,7 +1041,12 @@ export default function MasterContentDetailPage({ contentId }: MasterContentDeta
                                   if (!isLoggedIn && welcomeCouponDiscount !== null) {
                                     const finalPrice = Math.max(0, (content.price_discount || 0) - welcomeCouponDiscount);
                                     return (
-                                      <div className="content-stretch flex gap-[6px] items-center relative shrink-0 w-full">
+                                      <motion.div
+                                        initial={{ opacity: 0, y: 8 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ duration: 0.4, ease: "easeOut", delay: 0.1 }}
+                                        className="content-stretch flex gap-[6px] items-center relative shrink-0 w-full"
+                                      >
                                         <p className="font-bold leading-[32.5px] not-italic relative shrink-0 text-[#48b2af] text-[22px] text-nowrap tracking-[-0.22px] whitespace-pre">
                                           {finalPrice.toLocaleString()}원
                                         </p>
@@ -1050,7 +1055,7 @@ export default function MasterContentDetailPage({ contentId }: MasterContentDeta
                                             첫 구매 혜택가
                                           </p>
                                         </div>
-                                      </div>
+                                      </motion.div>
                                     );
                                   }
 
@@ -1188,7 +1193,10 @@ export default function MasterContentDetailPage({ contentId }: MasterContentDeta
                         if (!isLoggedIn && welcomeCouponDiscount !== null) {
                           const finalPrice = Math.max(0, (content.price_discount || 0) - welcomeCouponDiscount);
                           return (
-                            <button
+                            <motion.button
+                              initial={{ opacity: 0, y: 8 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ duration: 0.4, ease: "easeOut", delay: 0.2 }}
                               onClick={handleLoginRedirect}
                               onTouchStart={() => {}}
                               className="bg-[#f0f8f8] relative rounded-[12px] shrink-0 w-full border-none cursor-pointer p-0 group transition-colors duration-150 ease-out active:bg-[#e0f0f0]"
@@ -1232,7 +1240,7 @@ export default function MasterContentDetailPage({ contentId }: MasterContentDeta
                                   </div>
                                 </div>
                               </motion.div>
-                            </button>
+                            </motion.button>
                           );
                         }
 

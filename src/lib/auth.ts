@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { logger } from './logger';
 
 /**
  * 카카오 로그인 (Kakao SDK → Supabase Auth)
@@ -26,12 +27,13 @@ export const signInWithKakao = async () => {
           window.Kakao.API.request({
             url: '/v2/user/me',
             success: async (kakaoUser: any) => {
-              console.log('카카오 사용자 정보:', kakaoUser);
+              logger.debug('카카오 로그인 성공 - kakaoId:', kakaoUser.id);
 
               // Supabase 계정 이메일 생성
               const email = kakaoUser.kakao_account?.email || `kakao_${kakaoUser.id}@temp.fortune.app`;
-              // 카카오 ID를 기반으로 고유한 비밀번호 생성 (환경 변수 대신 고정 시크릿 사용)
-              const password = `kakao_${kakaoUser.id}_nadaunse_secret_2025`;
+              // 카카오 ID를 기반으로 고유한 비밀번호 생성 (환경변수 사용)
+              const kakaoAuthSecret = import.meta.env.VITE_KAKAO_AUTH_SECRET || 'nadaunse_secret_2025';
+              const password = `kakao_${kakaoUser.id}_${kakaoAuthSecret}`;
 
               // 1. 먼저 로그인 시도
               let { data, error } = await supabase.auth.signInWithPassword({
@@ -41,7 +43,7 @@ export const signInWithKakao = async () => {
 
               // 2. 계정이 없으면 생성
               if (error?.message?.includes('Invalid login credentials')) {
-                console.log('신규 사용자 - 계정 생성 중...');
+                logger.info('신규 사용자 - 계정 생성 중...');
                 const signUpResult = await supabase.auth.signUp({
                   email,
                   password,
@@ -61,16 +63,16 @@ export const signInWithKakao = async () => {
                 });
 
                 if (signUpResult.error) {
-                  console.error('회원가입 에러:', signUpResult.error);
+                  logger.error('회원가입 에러:', signUpResult.error.message);
                   reject(signUpResult.error);
                   return;
                 }
 
-                console.log('✅ 신규 계정 생성 완료!');
+                logger.info('신규 계정 생성 완료');
 
                 // 회원가입 후 세션이 없으면 자동 로그인 시도
                 if (!signUpResult.data.session) {
-                  console.log('⚠️ 세션이 없음. 자동 로그인 시도...');
+                  logger.warn('세션이 없음. 자동 로그인 시도...');
                   const loginResult = await supabase.auth.signInWithPassword({
                     email,
                     password
@@ -80,35 +82,35 @@ export const signInWithKakao = async () => {
                   error = loginResult.error;
 
                   if (!error) {
-                    console.log('✅ 자동 로그인 성공!');
+                    logger.info('자동 로그인 성공');
                   }
                 } else {
                   data = signUpResult.data;
                   error = signUpResult.error;
                 }
               } else if (!error) {
-                console.log('✅ 기존 계정 로그인 성공!');
+                logger.info('기존 계정 로그인 성공');
               }
 
               if (error) {
-                console.error('Supabase Auth 에러:', error);
+                logger.error('Supabase Auth 에러:', error.message);
                 reject(error);
               } else {
                 resolve(data);
               }
             },
-            fail: (err: any) => {
-              console.error('카카오 사용자 정보 요청 실패:', err);
+            fail: (err: unknown) => {
+              logger.error('카카오 사용자 정보 요청 실패:', err);
               reject(err);
             }
           });
         } catch (err) {
-          console.error('카카오 로그인 처리 중 에러:', err);
+          logger.error('카카오 로그인 처리 중 에러:', err);
           reject(err);
         }
       },
-      fail: (err: any) => {
-        console.error('카카오 로그인 실패:', err);
+      fail: (err: unknown) => {
+        logger.error('카카오 로그인 실패:', err);
         reject(err);
       }
     });
@@ -120,8 +122,8 @@ export const signInWithKakao = async () => {
  */
 export const signInWithGoogle = async () => {
   const redirectUrl = `${window.location.origin}/auth/callback`;
-  console.log('🔗 구글 OAuth redirectTo:', redirectUrl);
-  
+  logger.debug('구글 OAuth redirectTo:', redirectUrl);
+
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
@@ -133,14 +135,12 @@ export const signInWithGoogle = async () => {
     }
   });
 
-  console.log('📦 signInWithOAuth 결과:', data);
-  console.log('❌ signInWithOAuth 에러:', error);
-
   if (error) {
-    console.error('구글 로그인 에러:', error);
+    logger.error('구글 로그인 에러:', error.message);
     throw error;
   }
 
+  logger.info('구글 OAuth 시작');
   return data;
 };
 
@@ -154,14 +154,14 @@ export const signOut = async () => {
   // 카카오 로그아웃
   if (window.Kakao?.Auth?.getAccessToken()) {
     window.Kakao.Auth.logout(() => {
-      console.log('카카오 로그아웃 완료');
+      logger.debug('카카오 로그아웃 완료');
     });
   }
 
   // 기존 localStorage 정리
   localStorage.removeItem('user');
-  
-  console.log('✅ 로그아웃 완료');
+
+  logger.info('로그아웃 완료');
 };
 
 /**
@@ -169,9 +169,9 @@ export const signOut = async () => {
  */
 export const getCurrentUser = async () => {
   const { data: { user }, error } = await supabase.auth.getUser();
-  
+
   if (error) {
-    console.error('사용자 정보 가져오기 실패:', error);
+    logger.error('사용자 정보 가져오기 실패:', error.message);
     return null;
   }
 
@@ -191,9 +191,9 @@ export const isAuthenticated = async () => {
  */
 export const refreshSession = async () => {
   const { data, error } = await supabase.auth.refreshSession();
-  
+
   if (error) {
-    console.error('세션 갱신 실패:', error);
+    logger.error('세션 갱신 실패:', error.message);
     return null;
   }
 

@@ -1,3 +1,5 @@
+import { storageBaseUrl } from '../utils/supabase/info';
+
 /**
  * 78장 타로 덱 (영문 카드명)
  */
@@ -64,19 +66,20 @@ export function getCardFileName(cardName: string): string {
 /**
  * 타로 카드 이미지 URL을 가져옵니다.
  * @param cardName 타로 카드명
- * @param supabaseUrl Supabase 프로젝트 URL
+ * @param _supabaseUrl (deprecated) 무시됨 - 스테이징 Storage 공용 사용
  * @returns 타로 카드 이미지 Public URL
- * 
+ *
  * @example
- * getTarotCardImageUrl("King of Wands (완드 왕)", "https://xxx.supabase.co")
- * // "https://xxx.supabase.co/storage/v1/object/public/assets/tarot%20cards/King%20of%20Wands.webp"
+ * getTarotCardImageUrl("King of Wands (완드 왕)")
+ * // "https://hyltbeewxaqashyivilu.supabase.co/storage/v1/object/public/assets/tarot%20cards/King%20of%20Wands.webp"
  */
-export function getTarotCardImageUrl(cardName: string, supabaseUrl: string): string {
+export function getTarotCardImageUrl(cardName: string, _supabaseUrl?: string): string {
   const fileName = getCardFileName(cardName);
-  
+
   // URL 인코딩 (공백 → %20)
   const encodedFileName = encodeURIComponent(fileName);
   const encodedFolder = encodeURIComponent('tarot cards');
-  
-  return `${supabaseUrl}/storage/v1/object/public/assets/${encodedFolder}/${encodedFileName}`;
+
+  // 스테이징 Storage 공용 사용
+  return `${storageBaseUrl}/${encodedFolder}/${encodedFileName}`;
 }
