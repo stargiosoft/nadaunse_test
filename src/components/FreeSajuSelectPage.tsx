@@ -70,18 +70,37 @@ export default function FreeSajuSelectPage({ productId, onBack }: FreeSajuSelect
       }
     };
 
-    const handlePageShow = () => {
-      console.log('🔄 [FreeSajuSelectPage] pageshow → 케밥 메뉴 닫기');
+    // ⭐ pageshow: bfcache 복원 시 (event.persisted=true) 바텀시트 닫기
+    const handlePageShow = (event: PageTransitionEvent) => {
+      console.log('🔄 [FreeSajuSelectPage] pageshow → persisted:', event.persisted);
+      setKebabMenuOpen(false);
+      setSelectedSajuForKebab(null);
+    };
+
+    // ⭐ popstate: 브라우저 뒤로가기/앞으로가기 시 바텀시트 닫기
+    const handlePopState = () => {
+      console.log('🔄 [FreeSajuSelectPage] popstate → 케밥 메뉴 닫기');
+      setKebabMenuOpen(false);
+      setSelectedSajuForKebab(null);
+    };
+
+    // ⭐ focus: 윈도우가 포커스를 받을 때 바텀시트 닫기 (iOS Safari 추가 보호)
+    const handleFocus = () => {
+      console.log('🔄 [FreeSajuSelectPage] focus → 케밥 메뉴 닫기');
       setKebabMenuOpen(false);
       setSelectedSajuForKebab(null);
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('pageshow', handlePageShow);
+    window.addEventListener('popstate', handlePopState);
+    window.addEventListener('focus', handleFocus);
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('pageshow', handlePageShow);
+      window.removeEventListener('popstate', handlePopState);
+      window.removeEventListener('focus', handleFocus);
     };
   }, []);
 
@@ -240,24 +259,30 @@ export default function FreeSajuSelectPage({ productId, onBack }: FreeSajuSelect
 
   /**
    * 정보 수정 핸들러
+   * ⭐ iOS Safari bfcache 대응: 바텀시트가 완전히 닫힌 후 네비게이션
    */
   const handleEditSaju = () => {
     if (!selectedSajuForKebab) return;
-    
+
     console.log('✏️ [FreeSajuSelectPage] 수정 시작:', selectedSajuForKebab);
-    
-    // 케밥 메뉴 닫기
-    setKebabMenuOpen(false);
-    
-    // 현재 페이지 경로 (사주 정보 선택 페이지)
+
+    // 네비게이션에 필요한 데이터 미리 저장 (클로저)
+    const sajuToEdit = selectedSajuForKebab;
     const currentPath = location.pathname + location.search;
-    
-    // 프로필 사주 입력 페이지로 이동 (편집 모드)
-    if (selectedSajuForKebab.notes === '본인') {
-      navigate('/saju/input', { state: { sajuInfo: selectedSajuForKebab, returnTo: currentPath } });
-    } else {
-      navigate('/saju/add', { state: { sajuInfo: selectedSajuForKebab, returnTo: currentPath } });
-    }
+
+    // ⭐ 케밥 메뉴(바텀시트) 상태 즉시 초기화
+    setKebabMenuOpen(false);
+    setSelectedSajuForKebab(null);
+
+    // ⭐ setTimeout 150ms: 바텀시트 닫힘 애니메이션 완료 + React 렌더링 대기
+    // iOS Safari bfcache에 바텀시트가 닫힌 상태로 저장됨
+    setTimeout(() => {
+      if (sajuToEdit.notes === '본인') {
+        navigate('/saju/input', { state: { sajuInfo: sajuToEdit, returnTo: currentPath } });
+      } else {
+        navigate('/saju/add', { state: { sajuInfo: sajuToEdit, returnTo: currentPath } });
+      }
+    }, 150);
   };
 
   /**
