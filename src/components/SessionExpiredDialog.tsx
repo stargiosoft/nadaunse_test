@@ -13,7 +13,6 @@ export function SessionExpiredDialog({ isOpen, onClose }: SessionExpiredDialogPr
   const navigate = useNavigate();
 
   if (!isOpen) return null;
-  return null; // 작업 편의를 위해 강제 비활성화
 
   const handleLogin = () => {
     navigate('/login');
