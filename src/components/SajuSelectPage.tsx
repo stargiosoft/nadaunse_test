@@ -149,16 +149,40 @@ export default function SajuSelectPage() {
 
       // 진행 중인 주문 조회 (가장 중요!)
       console.log('🔍 [사주선택] 진행 중인 주문 조회...');
-      const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
-      
-      const { data: orders, error: ordersError } = await supabase
-        .from('orders')
-        .select('id, content_id, ai_generation_completed')
-        .eq('user_id', user.id)
-        .eq('ai_generation_completed', false)
-        .gte('created_at', tenMinutesAgo)
-        .order('created_at', { ascending: false })
-        .limit(1);
+
+      // ⭐ localStorage에 pendingOrderId가 있으면 해당 주문 직접 조회 (구매내역에서 재접속한 경우)
+      const pendingOrderId = localStorage.getItem('pendingOrderId');
+      let orders: any[] = [];
+      let ordersError: any = null;
+
+      if (pendingOrderId) {
+        console.log('🔍 [사주선택] pendingOrderId로 직접 조회:', pendingOrderId);
+        const { data, error } = await supabase
+          .from('orders')
+          .select('id, content_id, ai_generation_completed')
+          .eq('id', pendingOrderId)
+          .eq('user_id', user.id)
+          .single();
+
+        orders = data ? [data] : [];
+        ordersError = error;
+      } else {
+        // 일반적인 경우: 최근 10분 이내의 미완료 주문 조회
+        console.log('🔍 [사주선택] 최근 미완료 주문 조회...');
+        const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+
+        const { data, error } = await supabase
+          .from('orders')
+          .select('id, content_id, ai_generation_completed')
+          .eq('user_id', user.id)
+          .eq('ai_generation_completed', false)
+          .gte('created_at', tenMinutesAgo)
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        orders = data || [];
+        ordersError = error;
+      }
 
       if (ordersError) {
         console.error('❌ [사주선택] 주문 조회 실패:', ordersError);
