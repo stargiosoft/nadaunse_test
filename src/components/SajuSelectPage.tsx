@@ -680,22 +680,26 @@ export default function SajuSelectPage() {
                           <p className="font-['Pretendard_Variable:Regular','Noto_Sans_JP:Regular',sans-serif] font-normal leading-[16px] overflow-ellipsis overflow-hidden relative shrink-0 text-[#848484] text-[12px] text-nowrap tracking-[-0.24px]">
                             양력 {saju.birth_date.substring(0, 10).replace(/-/g, '.')}
                           </p>
-                          <div className="content-stretch flex gap-[8px] items-center relative rounded-[12px] shrink-0 w-full">
+                          <div className="content-stretch flex gap-[6px] items-center relative rounded-[12px] shrink-0 w-full">
                             <p className="font-['Pretendard_Variable:Regular',sans-serif] font-normal leading-[16px] overflow-ellipsis overflow-hidden relative shrink-0 text-[#848484] text-[12px] text-nowrap tracking-[-0.24px]">
                               {getChineseZodiac(saju.birth_date)}
                             </p>
-                            <div className="h-[6px] relative shrink-0 w-0">
-                              <svg className="absolute inset-[-8.33%_-0.5px]" fill="none" preserveAspectRatio="none" viewBox="0 0 1 7">
-                                <path d="M0.5 0.5V6.5" stroke="#D4D4D4" strokeLinecap="round" />
-                              </svg>
+                            <div className="h-[6px] relative shrink-0 w-[1px]">
+                              <div className="absolute inset-[-8.33%_-0.4px]">
+                                <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 1 7">
+                                  <path d="M0.5 0.5V6.5" stroke="#D4D4D4" strokeLinecap="round" />
+                                </svg>
+                              </div>
                             </div>
                             <p className="font-['Pretendard_Variable:Regular',sans-serif] font-normal leading-[16px] overflow-ellipsis overflow-hidden relative shrink-0 text-[#848484] text-[12px] text-nowrap tracking-[-0.24px]">
                               {getConstellation(saju.birth_date)}
                             </p>
-                            <div className="h-[6px] relative shrink-0 w-0">
-                              <svg className="absolute inset-[-8.33%_-0.5px]" fill="none" preserveAspectRatio="none" viewBox="0 0 1 7">
-                                <path d="M0.5 0.5V6.5" stroke="#D4D4D4" strokeLinecap="round" />
-                              </svg>
+                            <div className="h-[6px] relative shrink-0 w-[1px]">
+                              <div className="absolute inset-[-8.33%_-0.4px]">
+                                <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 1 7">
+                                  <path d="M0.5 0.5V6.5" stroke="#D4D4D4" strokeLinecap="round" />
+                                </svg>
+                              </div>
                             </div>
                             <p className="font-['Pretendard_Variable:Regular',sans-serif] font-normal leading-[16px] overflow-ellipsis overflow-hidden relative shrink-0 text-[#848484] text-[12px] text-nowrap tracking-[-0.24px]">
                               {saju.gender === 'female' ? '여성' : '남성'}
@@ -795,14 +799,16 @@ export default function SajuSelectPage() {
                           <p className="font-['Pretendard_Variable:Regular','Noto_Sans_JP:Regular',sans-serif] font-normal leading-[16px] overflow-ellipsis overflow-hidden relative shrink-0 text-[#848484] text-[12px] text-nowrap tracking-[-0.24px]">
                             양력 {saju.birth_date.substring(0, 10).replace(/-/g, '.')}
                           </p>
-                          <div className="content-stretch flex gap-[8px] items-center relative rounded-[12px] shrink-0 w-full">
+                          <div className="content-stretch flex gap-[6px] items-center relative rounded-[12px] shrink-0 w-full">
                             <p className="font-['Pretendard_Variable:Regular',sans-serif] font-normal leading-[16px] overflow-ellipsis overflow-hidden relative shrink-0 text-[#848484] text-[12px] text-nowrap tracking-[-0.24px]">
                               {getChineseZodiac(saju.birth_date)}
                             </p>
-                            <div className="h-[6px] relative shrink-0 w-0">
-                              <svg className="absolute inset-[-8.33%_-0.5px]" fill="none" preserveAspectRatio="none" viewBox="0 0 1 7">
-                                <path d="M0.5 0.5V6.5" stroke="#D4D4D4" strokeLinecap="round" />
-                              </svg>
+                            <div className="h-[6px] relative shrink-0 w-[1px]">
+                              <div className="absolute inset-[-8.33%_-0.4px]">
+                                <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 1 7">
+                                  <path d="M0.5 0.5V6.5" stroke="#D4D4D4" strokeLinecap="round" />
+                                </svg>
+                              </div>
                             </div>
                             <p className="font-['Pretendard_Variable:Regular',sans-serif] font-normal leading-[16px] overflow-ellipsis overflow-hidden relative shrink-0 text-[#848484] text-[12px] text-nowrap tracking-[-0.24px]">
                               {(() => {
@@ -811,10 +817,12 @@ export default function SajuSelectPage() {
                                 return getConstellation(parseInt(month), parseInt(day));
                               })()}
                             </p>
-                            <div className="h-[6px] relative shrink-0 w-0">
-                              <svg className="absolute inset-[-8.33%_-0.5px]" fill="none" preserveAspectRatio="none" viewBox="0 0 1 7">
-                                <path d="M0.5 0.5V6.5" stroke="#D4D4D4" strokeLinecap="round" />
-                              </svg>
+                            <div className="h-[6px] relative shrink-0 w-[1px]">
+                              <div className="absolute inset-[-8.33%_-0.4px]">
+                                <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 1 7">
+                                  <path d="M0.5 0.5V6.5" stroke="#D4D4D4" strokeLinecap="round" />
+                                </svg>
+                              </div>
                             </div>
                             <p className="font-['Pretendard_Variable:Regular',sans-serif] font-normal leading-[16px] overflow-ellipsis overflow-hidden relative shrink-0 text-[#848484] text-[12px] text-nowrap tracking-[-0.24px]">
                               {saju.gender === 'female' ? '여성' : '남성'}
