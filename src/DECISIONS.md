@@ -15,6 +15,79 @@
 
 ---
 
+## 2026-01-07
+
+### iOS 스와이프 뒤로가기: 회원가입 플로우 히스토리 관리
+**결정**: 회원가입 관련 페이지(로그인, 약관, 환영쿠폰)에 상태 기반 리다이렉트 로직 추가
+**배경**:
+- iOS Safari/Chrome에서 스와이프 뒤로가기 시 이미 완료된 회원가입 페이지로 돌아가는 버그
+- 구글 OAuth 플로우는 외부 URL 리다이렉트를 거치면서 브라우저 히스토리에 여러 항목 생성
+- `navigate(..., { replace: true })`만으로는 OAuth 이전의 히스토리 항목(로그인 페이지 등)은 제거 불가
+
+**문제 시나리오**:
+```
+1. 로그인 페이지 (push)
+2. 구글 OAuth (외부 리다이렉트)
+3. /auth/callback (replace)
+4. /signup/terms (replace)
+5. /welcome-coupon (replace)
+6. / 홈 (replace)
+
+→ 여러 번 뒤로가기하면 1번 로그인 페이지로 돌아감
+```
+
+**해결 방법**:
+각 페이지에서 마운트 시 상태를 확인하고, 적절한 페이지로 리다이렉트
+
+```typescript
+// 1. LoginPageNewWrapper - 이미 로그인된 상태면 홈으로
+useEffect(() => {
+  const user = localStorage.getItem('user');
+  if (user) {
+    console.log('🔄 [LoginPage] 이미 로그인된 상태 → 홈으로 리다이렉트');
+    navigate('/', { replace: true });
+  }
+}, [navigate]);
+
+// 2. TermsPageWrapper - 회원가입 완료면 홈으로, tempUser 없으면 로그인으로
+useEffect(() => {
+  const user = localStorage.getItem('user');
+  const tempUser = localStorage.getItem('tempUser');
+
+  if (user) {
+    navigate('/', { replace: true });
+  } else if (!tempUser) {
+    navigate('/login/new', { replace: true });
+  }
+}, [navigate]);
+
+// 3. WelcomeCouponPageWrapper - 이미 환영 페이지를 봤으면 홈으로
+useEffect(() => {
+  const welcomed = sessionStorage.getItem('welcomePageViewed');
+  if (welcomed) {
+    navigate('/', { replace: true });
+  }
+}, [navigate]);
+
+// 버튼 클릭 시 플래그 설정
+const handleClose = () => {
+  sessionStorage.setItem('welcomePageViewed', 'true');
+  navigate('/', { replace: true });
+};
+```
+
+**핵심 원리**:
+- 뒤로가기로 해당 페이지에 도달해도 상태 확인 후 즉시 리다이렉트
+- `localStorage.user`: 회원가입 완료 여부
+- `localStorage.tempUser`: OAuth 인증 완료 후 약관 동의 대기 상태
+- `sessionStorage.welcomePageViewed`: 환영 페이지 확인 여부 (세션 동안만 유지)
+
+**영향**: `/App.tsx` (LoginPageNewWrapper, TermsPageWrapper, WelcomeCouponPageWrapper)
+**적용 범위**: 구글/카카오 OAuth 회원가입 플로우 전체
+**테스트**: iOS Safari, iOS Chrome에서 스와이프 뒤로가기 테스트 완료
+
+---
+
 ## 2026-01-06
 
 ### Supabase 환경변수 기반 설정: Staging/Production 분리
