@@ -17,7 +17,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { motion, PanInfo, useDragControls } from 'motion/react';
+import { motion, AnimatePresence, PanInfo, useDragControls } from 'motion/react';
 import { ChevronRight } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
@@ -95,9 +95,9 @@ export default function TableOfContentsBottomSheet({
     }
   }, [isOpen]);
 
-  // 질문 리스트 조회
+  // 질문 리스트 조회 (isOpen과 무관하게 미리 로드 → 애니메이션 끊김 방지)
   useEffect(() => {
-    if (!isOpen || !orderId) return;
+    if (!orderId) return;
 
     const fetchQuestions = async () => {
       try {
@@ -127,11 +127,11 @@ export default function TableOfContentsBottomSheet({
     };
 
     fetchQuestions();
-  }, [isOpen, orderId]);
+  }, [orderId]);
 
-  // 콘텐츠 정보 조회
+  // 콘텐츠 정보 조회 (isOpen과 무관하게 미리 로드 → 애니메이션 끊김 방지)
   useEffect(() => {
-    if (!isOpen || !contentId) return;
+    if (!contentId) return;
 
     const fetchContentInfo = async () => {
       try {
@@ -157,7 +157,7 @@ export default function TableOfContentsBottomSheet({
     };
 
     fetchContentInfo();
-  }, [isOpen, contentId]);
+  }, [contentId]);
 
   // 질문 클릭 핸들러
   const handleQuestionClick = (question: Question) => {
@@ -186,174 +186,178 @@ export default function TableOfContentsBottomSheet({
     }
   };
 
-  if (!isOpen) return null;
-
   return createPortal(
-    <>
-      {/* 딤 배경 */}
-      <motion.div
-        className="fixed top-0 left-0 w-screen h-[100dvh] bg-black/50 z-40"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        onClick={onClose}
-        // ⭐ 터치 무브 방지로 모바일 스크롤 방지 보완
-        style={{ touchAction: 'none' }} 
-      />
-
-      {/* 바텀시트 */}
-      <motion.div
-        ref={sheetRef}
-        className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[440px] z-50"
-        initial={{ y: '100%' }}
-        animate={{ y: 0 }}
-        exit={{ y: '100%' }}
-        transition={{ type: 'spring', stiffness: 250, damping: 30 }}
-      >
-        <motion.div
-          className="bg-white rounded-t-[20px] shadow-[0px_-8px_16px_0px_rgba(0,0,0,0.1)] flex flex-col max-h-[85vh]"
-          drag="y"
-          dragListener={false}
-          dragControls={dragControls}
-          dragConstraints={{ top: 0, bottom: 0 }}
-          dragElastic={{ top: 0.1, bottom: 0.2 }}
-          onDragEnd={handleDragEnd}
-        >
-          {/* 드래그 핸들 */}
-          <div 
-            className="bg-white relative shrink-0 w-full rounded-t-[20px] cursor-grab active:cursor-grabbing"
-            onPointerDown={(e) => dragControls.start(e)}
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          {/* 딤 배경 */}
+          <motion.div
+            key="toc-backdrop"
+            className="fixed top-0 left-0 w-screen h-[100dvh] bg-black/50 z-40"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            onClick={onClose}
             style={{ touchAction: 'none' }}
+          />
+
+          {/* 바텀시트 - 단일 motion.div로 통합 */}
+          <motion.div
+            key="toc-sheet"
+            ref={sheetRef}
+            className="fixed bottom-0 left-0 right-0 mx-auto w-full max-w-[440px] z-50 bg-white rounded-t-[20px] shadow-[0px_-8px_16px_0px_rgba(0,0,0,0.1)] flex flex-col max-h-[85vh]"
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={{
+              type: 'spring',
+              damping: 28,
+              stiffness: 380,
+              mass: 0.8
+            }}
+            drag="y"
+            dragListener={false}
+            dragControls={dragControls}
+            dragConstraints={{ top: 0, bottom: 0 }}
+            dragElastic={{ top: 0.03, bottom: 0.2 }}
+            onDragEnd={handleDragEnd}
+            style={{ willChange: 'transform' }}
           >
-            <div className="flex flex-col items-center justify-center size-full">
-              <div className="content-stretch flex flex-col items-center justify-center px-[10px] py-[12px] relative w-full">
-                <div className="bg-[#d4d4d4] h-[4px] rounded-[999px] shrink-0 w-[48px]" />
-              </div>
+        {/* 드래그 핸들 */}
+        <div
+          className="relative shrink-0 w-full rounded-t-[20px] cursor-grab active:cursor-grabbing"
+          onPointerDown={(e) => dragControls.start(e)}
+          style={{ touchAction: 'none' }}
+        >
+          <div className="flex flex-col items-center justify-center size-full">
+            <div className="content-stretch flex flex-col items-center justify-center px-[10px] py-[12px] relative w-full">
+              <div className="bg-[#d4d4d4] h-[4px] rounded-[999px] shrink-0 w-[48px]" />
             </div>
           </div>
+        </div>
 
-          {/* 헤더 */}
-          <div className="bg-white relative shrink-0 w-full">
-            <div className="flex flex-row items-center size-full">
-              <div className="content-stretch flex items-center px-[24px] py-[16px] relative w-full">
-                <p className="font-['Pretendard_Variable:SemiBold',sans-serif] font-semibold leading-[28px] relative shrink-0 text-[20px] text-black text-nowrap tracking-[-0.2px]">
-                  목차
-                </p>
-              </div>
+        {/* 헤더 */}
+        <div className="relative shrink-0 w-full">
+          <div className="flex flex-row items-center size-full">
+            <div className="content-stretch flex items-center px-[24px] py-[16px] relative w-full">
+              <p className="font-['Pretendard_Variable:SemiBold',sans-serif] font-semibold leading-[28px] relative shrink-0 text-[20px] text-black text-nowrap tracking-[-0.2px]">
+                목차
+              </p>
             </div>
           </div>
+        </div>
 
-          {/* 질문 리스트 (스크롤 가능) */}
-          <div 
-            className="bg-white flex-1 overflow-y-auto relative w-full min-h-0"
-            style={{ WebkitOverflowScrolling: 'touch' }}
-          >
-            <div className="w-full">
-              {contentInfo && (
-                <div className="bg-[#f7f8f9] relative shrink-0 w-full">
-                  <div className="size-full">
-                    <div className="content-stretch flex flex-col items-start px-[20px] py-[12px] relative w-full">
-                      <div className="content-stretch flex gap-[12px] items-start relative shrink-0 w-full">
-                        {contentInfo.thumbnail_url && (
-                          <div className="h-[54px] relative rounded-[12px] shrink-0 w-[80px] overflow-hidden">
-                            <img
-                              src={contentInfo.thumbnail_url}
-                              alt={contentInfo.title}
-                              className="absolute inset-0 w-full h-full object-cover rounded-[12px]"
-                            />
-                            <div className="absolute border border-[#f9f9f9] border-solid inset-[-1px] rounded-[13px] pointer-events-none" />
-                          </div>
-                        )}
-                        <div className="basis-0 content-stretch flex flex-col gap-[2px] grow items-start min-h-px min-w-px relative shrink-0">
-                          <div className="bg-[#f0f8f8] content-stretch flex items-center justify-center relative shrink-0 px-[6px] py-[2px] rounded-[4px]">
-                            <p className="font-['Pretendard_Variable:Medium',sans-serif] font-medium leading-[16px] relative shrink-0 text-[#41a09e] text-[12px] text-nowrap tracking-[-0.24px]">
-                              심화 해석판
-                            </p>
-                          </div>
-                          <div className="relative shrink-0 w-full">
-                            <div className="flex flex-row items-center justify-center size-full">
-                              <div className="content-stretch flex items-center justify-center px-[2px] py-0 relative w-full">
-                                <p className="basis-0 font-['Pretendard_Variable:Medium',sans-serif] font-medium grow leading-[25.5px] min-h-px min-w-px relative shrink-0 text-[15px] pl-[2px] text-black tracking-[-0.3px] line-clamp-2">
-                                  {contentInfo.title}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
+        {/* 질문 리스트 (스크롤 가능) */}
+        <div
+          className="flex-1 overflow-y-auto relative w-full min-h-0"
+          style={{ WebkitOverflowScrolling: 'touch' }}
+        >
+          <div className="w-full">
+            {contentInfo && (
+              <div className="bg-[#f7f8f9] relative shrink-0 w-full">
+                <div className="size-full">
+                  <div className="content-stretch flex flex-col items-start px-[20px] py-[12px] relative w-full">
+                    <div className="content-stretch flex gap-[12px] items-start relative shrink-0 w-full">
+                      {contentInfo.thumbnail_url && (
+                        <div className="h-[54px] relative rounded-[12px] shrink-0 w-[80px] overflow-hidden">
+                          <img
+                            src={contentInfo.thumbnail_url}
+                            alt={contentInfo.title}
+                            className="absolute inset-0 w-full h-full object-cover rounded-[12px]"
+                          />
+                          <div className="absolute border border-[#f9f9f9] border-solid inset-[-1px] rounded-[13px] pointer-events-none" />
                         </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-              <div 
-                className="flex flex-col items-start px-[20px] py-[12px] relative w-full pt-[12px] pr-[20px] pb-[62px] pl-[20px]"
-              >
-                <div className="flex flex-col relative shrink-0 w-full">
-                  {(questions || []).map((question, index, array) => (
-                    <div key={question.id} className="w-full flex flex-col">
-                      <div
-                        role="button"
-                        onClick={() => handleQuestionClick(question as any)}
-                        className="min-h-[56px] h-auto relative rounded-[12px] shrink-0 w-full flex items-center cursor-pointer"
-                      >
-                        <div className="flex items-start w-full px-[12px] py-[12px] gap-[10px]">
-                          <p className="font-['Pretendard_Variable:Medium',sans-serif] font-medium shrink-0 text-[#b7b7b7] w-[24px] text-[15px] tracking-[-0.3px] text-left leading-normal">
-                            {String(question.question_order).padStart(2, '0')}
+                      )}
+                      <div className="basis-0 content-stretch flex flex-col gap-[2px] grow items-start min-h-px min-w-px relative shrink-0">
+                        <div className="bg-[#f0f8f8] content-stretch flex items-center justify-center relative shrink-0 px-[6px] py-[2px] rounded-[4px]">
+                          <p className="font-['Pretendard_Variable:Medium',sans-serif] font-medium leading-[16px] relative shrink-0 text-[#41a09e] text-[12px] text-nowrap tracking-[-0.24px]">
+                            심화 해석판
                           </p>
-                          <p
-                            className={`grow text-[15px] tracking-[-0.3px] text-left leading-normal ${
-                              question.question_order === currentQuestionOrder
-                                ? "font-['Pretendard_Variable:SemiBold',sans-serif] font-semibold text-black"
-                                : "font-['Pretendard_Variable:Regular',sans-serif] font-normal text-black"
-                            }`}
-                          >
-                            {question.question_text}
-                          </p>
-                          {question.question_order === currentQuestionOrder && (
-                            <div className="mt-[1px] bg-[#f0f8f8] flex items-center justify-center shrink-0 px-[8px] py-[4px] rounded-[8px]">
-                              <p className="font-['Pretendard_Variable:Medium',sans-serif] font-medium text-[#41a09e] text-[12px] pt-[2px] text-nowrap tracking-[-0.24px] leading-none">
-                                보는 중
+                        </div>
+                        <div className="relative shrink-0 w-full">
+                          <div className="flex flex-row items-center justify-center size-full">
+                            <div className="content-stretch flex items-center justify-center px-[2px] py-0 relative w-full">
+                              <p className="basis-0 font-['Pretendard_Variable:Medium',sans-serif] font-medium grow leading-[25.5px] min-h-px min-w-px relative shrink-0 text-[15px] pl-[2px] text-black tracking-[-0.3px] line-clamp-2">
+                                {contentInfo.title}
                               </p>
                             </div>
-                          )}
-                          <ChevronRight className="w-[16px] h-[16px] mt-[3px] text-[#b7b7b7] shrink-0" strokeWidth={1.7} />
+                          </div>
                         </div>
                       </div>
-                      {index < array.length - 1 && (
-                        <div className="h-px w-[calc(100%_+_24px)] -mx-[12px] bg-[#F3F3F3]" />
-                      )}
                     </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* 하단 버튼 - 고정 */}
-          <div className="content-stretch flex flex-col items-start relative shadow-[0px_-8px_16px_0px_rgba(255,255,255,0.76)] shrink-0 w-full bg-white">
-            <div className="content-stretch flex flex-col items-start relative shrink-0 w-full">
-              <div className="bg-white relative shrink-0 w-full">
-                <div className="flex flex-col items-center justify-center size-full">
-                  <div className="content-stretch flex flex-col items-center justify-center px-[20px] py-[12px] relative w-full">
-                    <button
-                      onClick={onClose}
-                      className="bg-[#f0f8f8] content-stretch flex h-[56px] items-center justify-center px-[12px] py-0 relative rounded-[16px] shrink-0 w-full transition-transform transform-gpu active:scale-96 active:bg-[#E4F7F7]"
-                    >
-                      <div className="content-stretch flex gap-[4px] items-center relative shrink-0">
-                        <p className="font-['Pretendard_Variable:Medium',sans-serif] font-medium leading-[25px] relative shrink-0 text-[#48b2af] text-[16px] text-nowrap tracking-[-0.32px]">
-                          목차 닫기
-                        </p>
-                      </div>
-                    </button>
                   </div>
                 </div>
               </div>
+            )}
+            <div className="flex flex-col items-start px-[20px] py-[12px] relative w-full pt-[12px] pr-[20px] pb-[62px] pl-[20px]">
+              <div className="flex flex-col relative shrink-0 w-full">
+                {(questions || []).map((question, index, array) => (
+                  <div key={question.id} className="w-full flex flex-col">
+                    <div
+                      role="button"
+                      onClick={() => handleQuestionClick(question as any)}
+                      className="min-h-[56px] h-auto relative rounded-[12px] shrink-0 w-full flex items-center cursor-pointer"
+                    >
+                      <div className="flex items-start w-full px-[12px] py-[12px] gap-[10px]">
+                        <p className="font-['Pretendard_Variable:Medium',sans-serif] font-medium shrink-0 text-[#b7b7b7] w-[24px] text-[15px] tracking-[-0.3px] text-left leading-normal">
+                          {String(question.question_order).padStart(2, '0')}
+                        </p>
+                        <p
+                          className={`grow text-[15px] tracking-[-0.3px] text-left leading-normal ${
+                            question.question_order === currentQuestionOrder
+                              ? "font-['Pretendard_Variable:SemiBold',sans-serif] font-semibold text-black"
+                              : "font-['Pretendard_Variable:Regular',sans-serif] font-normal text-black"
+                          }`}
+                        >
+                          {question.question_text}
+                        </p>
+                        {question.question_order === currentQuestionOrder && (
+                          <div className="mt-[1px] bg-[#f0f8f8] flex items-center justify-center shrink-0 px-[8px] py-[4px] rounded-[8px]">
+                            <p className="font-['Pretendard_Variable:Medium',sans-serif] font-medium text-[#41a09e] text-[12px] pt-[2px] text-nowrap tracking-[-0.24px] leading-none">
+                              보는 중
+                            </p>
+                          </div>
+                        )}
+                        <ChevronRight className="w-[16px] h-[16px] mt-[3px] text-[#b7b7b7] shrink-0" strokeWidth={1.7} />
+                      </div>
+                    </div>
+                    {index < array.length - 1 && (
+                      <div className="h-px w-[calc(100%_+_24px)] -mx-[12px] bg-[#F3F3F3]" />
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
-            <HomeIndicatorLight />
           </div>
+        </div>
+
+        {/* 하단 버튼 - 고정 */}
+        <div className="content-stretch flex flex-col items-start relative shadow-[0px_-8px_16px_0px_rgba(255,255,255,0.76)] shrink-0 w-full bg-white rounded-b-none">
+          <div className="content-stretch flex flex-col items-start relative shrink-0 w-full">
+            <div className="bg-white relative shrink-0 w-full">
+              <div className="flex flex-col items-center justify-center size-full">
+                <div className="content-stretch flex flex-col items-center justify-center px-[20px] py-[12px] relative w-full">
+                  <button
+                    onClick={onClose}
+                    className="bg-[#f0f8f8] content-stretch flex h-[56px] items-center justify-center px-[12px] py-0 relative rounded-[16px] shrink-0 w-full transition-transform transform-gpu active:scale-96 active:bg-[#E4F7F7]"
+                  >
+                    <div className="content-stretch flex gap-[4px] items-center relative shrink-0">
+                      <p className="font-['Pretendard_Variable:Medium',sans-serif] font-medium leading-[25px] relative shrink-0 text-[#48b2af] text-[16px] text-nowrap tracking-[-0.32px]">
+                        목차 닫기
+                      </p>
+                    </div>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <HomeIndicatorLight />
+        </div>
         </motion.div>
-      </motion.div>
-    </>,
+        </>
+      )}
+    </AnimatePresence>,
     document.body
   );
 }

@@ -413,8 +413,8 @@ export default function TarotResultPage() {
         disablePrevious={questionOrder === 1}
       />
 
-      {/* Table of Contents Bottom Sheet */}
-      {showTableOfContents && orderId && (contentIdState || contentId) && (
+      {/* Table of Contents Bottom Sheet - 내부에 AnimatePresence가 있으므로 외부 제거 */}
+      {orderId && (contentIdState || contentId) && (
         <TableOfContentsBottomSheet
           isOpen={showTableOfContents}
           onClose={() => setShowTableOfContents(false)}

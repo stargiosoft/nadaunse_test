@@ -151,6 +151,7 @@ export default function MasterContentDetailPage({ contentId }: MasterContentDeta
   const [isLoading, setIsLoading] = useState(false); // ⭐ 초기값 false (무료 콘텐츠는 스켈레톤 사용)
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isFreeContent, setIsFreeContent] = useState<boolean | null>(null); // ⭐ 무료 콘텐츠 여부 (초기 판별용)
+  const [welcomeCouponDiscount, setWelcomeCouponDiscount] = useState<number | null>(null); // ⭐ 로그아웃 유저용 welcome 쿠폰 할인 금액
   
   // ⭐ 타로 카드 선택 상태
   const [isTarotCardSelectionComplete, setIsTarotCardSelectionComplete] = useState(false);
@@ -468,8 +469,25 @@ export default function MasterContentDetailPage({ contentId }: MasterContentDeta
           setIsCheckingAnswers(false);
         }
       } else {
-        // 로그아웃 상태면 답변 체�� 불필요
+        // 로그아웃 상태면 답변 체크 불필요
         setIsCheckingAnswers(false);
+
+        // ⭐ 로그아웃 상태에서도 welcome 쿠폰 금액 조회 (혜택가 표시용)
+        try {
+          const { data: welcomeCouponData } = await supabase
+            .from('coupons')
+            .select('discount_amount')
+            .eq('coupon_type', 'welcome')
+            .eq('is_active', true)
+            .single();
+
+          if (welcomeCouponData) {
+            setWelcomeCouponDiscount(welcomeCouponData.discount_amount);
+            console.log('💰 [로그아웃] welcome 쿠폰 할인 금액:', welcomeCouponData.discount_amount);
+          }
+        } catch (couponError) {
+          console.warn('⚠️ [로그아웃] welcome 쿠폰 조회 실패:', couponError);
+        }
       }
       
       // 💾 새 캐시 저장 (최신 데이터로 덮어쓰기)
@@ -972,19 +990,15 @@ export default function MasterContentDetailPage({ contentId }: MasterContentDeta
                                 
                                 {/* 최종 혜택가 (조건부 표시) */}
                                 {(() => {
-                                  // ⭐ coupon_type으로 정확히 구분 (name 대신 type 사용)
-                                  const hasRevisitCoupon = userCoupons.some(c => c.coupons.coupon_type === 'revisit' && !c.is_used);
-                                  const hasWelcomeCoupon = userCoupons.some(c => c.coupons.coupon_type === 'welcome' && !c.is_used);
+                                  // ⭐ coupon_type으로 정확히 구분 + 실제 할인 금액 사용
+                                  const revisitCoupon = userCoupons.find(c => c.coupons.coupon_type === 'revisit' && !c.is_used);
+                                  const welcomeCoupon = userCoupons.find(c => c.coupons.coupon_type === 'welcome' && !c.is_used);
                                   const hasAnyCoupon = userCoupons.length > 0;
-                                
-                                  // ⭐ 쿠폰이 없으면 혜택가 영역 전체를 숨김
-                                  if (!hasAnyCoupon) {
-                                    return null;
-                                  }
-                                
-                                  // Case 1: 재방문쿠폰 보유 (우선순위 1)
-                                  if (hasRevisitCoupon) {
-                                    const finalPrice = (content.price_discount || 0) - 3000;
+
+                                  // Case 1: 로그인 + 재방문쿠폰 보유 (우선순위 1)
+                                  if (isLoggedIn && revisitCoupon) {
+                                    const discountAmount = revisitCoupon.coupons.discount_amount || 3000;
+                                    const finalPrice = Math.max(0, (content.price_discount || 0) - discountAmount);
                                     return (
                                       <div className="content-stretch flex gap-[8px] items-center relative shrink-0 w-full">
                                         <p className="font-bold leading-[32.5px] not-italic relative shrink-0 text-[#48b2af] text-[22px] text-nowrap tracking-[-0.22px] whitespace-pre">
@@ -998,10 +1012,11 @@ export default function MasterContentDetailPage({ contentId }: MasterContentDeta
                                       </div>
                                     );
                                   }
-                                
-                                  // Case 2: 웰컴쿠폰 보유 (우선순위 2)
-                                  if (hasWelcomeCoupon) {
-                                    const finalPrice = (content.price_discount || 0) - 5000;
+
+                                  // Case 2: 로그인 + 웰컴쿠폰 보유 (우선순위 2)
+                                  if (isLoggedIn && welcomeCoupon) {
+                                    const discountAmount = welcomeCoupon.coupons.discount_amount || 5000;
+                                    const finalPrice = Math.max(0, (content.price_discount || 0) - discountAmount);
                                     return (
                                       <div className="content-stretch flex gap-[6px] items-center relative shrink-0 w-full">
                                         <p className="font-bold leading-[32.5px] not-italic relative shrink-0 text-[#48b2af] text-[22px] text-nowrap tracking-[-0.22px] whitespace-pre">
@@ -1015,8 +1030,25 @@ export default function MasterContentDetailPage({ contentId }: MasterContentDeta
                                       </div>
                                     );
                                   }
-                                  
-                                  // Case 3: 그 외 쿠폰 (기타 쿠폰)
+
+                                  // Case 3: 로그아웃 상태 + welcomeCouponDiscount 있음 → 첫 구매 혜택가 표시
+                                  if (!isLoggedIn && welcomeCouponDiscount !== null) {
+                                    const finalPrice = Math.max(0, (content.price_discount || 0) - welcomeCouponDiscount);
+                                    return (
+                                      <div className="content-stretch flex gap-[6px] items-center relative shrink-0 w-full">
+                                        <p className="font-bold leading-[32.5px] not-italic relative shrink-0 text-[#48b2af] text-[22px] text-nowrap tracking-[-0.22px] whitespace-pre">
+                                          {finalPrice.toLocaleString()}원
+                                        </p>
+                                        <div className="content-stretch flex gap-[4px] items-center relative shrink-0">
+                                          <p className="font-medium leading-[22px] not-italic relative shrink-0 text-[#48b2af] text-[13px] text-nowrap whitespace-pre">
+                                            첫 구매 혜택가
+                                          </p>
+                                        </div>
+                                      </div>
+                                    );
+                                  }
+
+                                  // Case 4: 로그인 + 쿠폰 없음 → 혜택가 미표시
                                   return null;
                                 })()}
                               </div>
@@ -1026,19 +1058,23 @@ export default function MasterContentDetailPage({ contentId }: MasterContentDeta
 
                       {/* 쿠폰 안내 버튼 (조건부 렌더링) */}
                       {(() => {
-                        // ⭐ coupon_type으로 정확히 구분
-                        const hasRevisitCoupon = userCoupons.some(c => c.coupons.coupon_type === 'revisit' && !c.is_used);
-                        const hasWelcomeCoupon = userCoupons.some(c => c.coupons.coupon_type === 'welcome' && !c.is_used);
+                        // ⭐ coupon_type으로 정확히 구분 + 실제 할인 금액 사용
+                        const revisitCoupon = userCoupons.find(c => c.coupons.coupon_type === 'revisit' && !c.is_used);
+                        const welcomeCoupon = userCoupons.find(c => c.coupons.coupon_type === 'welcome' && !c.is_used);
                         const hasAnyCoupon = userCoupons.length > 0;
-                        
-                        // ⭐ 쿠폰이 없으면 버튼 전체를 숨김
-                        if (!hasAnyCoupon) {
-                          return null;
-                        }
-                        
-                        // Case 1: 재방문쿠폰 보유 (우선순위 1)
-                        if (hasRevisitCoupon) {
-                          const finalPrice = (content.price_discount || 0) - 3000;
+
+                        // ⭐ 로그아웃 상태에서 로그인 페이지로 이동
+                        const handleLoginRedirect = () => {
+                          const paymentUrl = `/master/content/detail/${content.id}`;
+                          localStorage.setItem('redirectAfterLogin', paymentUrl);
+                          navigate('/login/new');
+                        };
+
+                        // Case 1: 로그인 + 재방문쿠폰 보유 (우선순위 1)
+                        if (isLoggedIn && revisitCoupon) {
+                          // ✅ 쿠폰의 실제 할인 금액 사용 (하드코딩 제거)
+                          const discountAmount = revisitCoupon.coupons.discount_amount || 3000;
+                          const finalPrice = Math.max(0, (content.price_discount || 0) - discountAmount);
                           return (
                             <button 
                               onClick={onPurchase}
@@ -1088,9 +1124,11 @@ export default function MasterContentDetailPage({ contentId }: MasterContentDeta
                           );
                         }
                         
-                        // Case 2: 웰컴쿠폰 보유 (우선순위 2)
-                        if (hasWelcomeCoupon) {
-                          const finalPrice = (content.price_discount || 0) - 5000;
+                        // Case 2: 로그인 + 웰컴쿠폰 보유 (우선순위 2)
+                        if (isLoggedIn && welcomeCoupon) {
+                          // ✅ 쿠폰의 실제 할인 금액 사용 (하드코딩 제거)
+                          const discountAmount = welcomeCoupon.coupons.discount_amount || 5000;
+                          const finalPrice = Math.max(0, (content.price_discount || 0) - discountAmount);
                           return (
                             <button 
                               onClick={onPurchase}
@@ -1140,7 +1178,59 @@ export default function MasterContentDetailPage({ contentId }: MasterContentDeta
                           );
                         }
                         
-                        // Case 3: 그 외 쿠폰 (기타 쿠폰)
+                        // Case 3: 로그아웃 상태 + welcomeCouponDiscount 있음 → 첫 구매 버튼 (로그인 유도)
+                        if (!isLoggedIn && welcomeCouponDiscount !== null) {
+                          const finalPrice = Math.max(0, (content.price_discount || 0) - welcomeCouponDiscount);
+                          return (
+                            <button
+                              onClick={handleLoginRedirect}
+                              onTouchStart={() => {}}
+                              className="bg-[#f0f8f8] relative rounded-[12px] shrink-0 w-full border-none cursor-pointer p-0 group transition-colors duration-150 ease-out active:bg-[#e0f0f0]"
+                            >
+                              <div aria-hidden="true" className="absolute border border-[#7ed4d2] border-solid inset-0 pointer-events-none rounded-[12px]" />
+                              <motion.div
+                                whileTap={{ scale: 0.96 }}
+                                transition={{ duration: 0.1 }}
+                                className="flex flex-col items-center justify-center size-full transform-gpu"
+                              >
+                                <div className="box-border content-stretch flex flex-col gap-[10px] items-center justify-center px-[16px] py-[12px] relative w-full">
+                                  <div className="content-stretch flex gap-[8px] items-center justify-center relative shrink-0 w-full">
+                                    <div className="basis-0 content-stretch flex gap-[8px] grow items-center justify-center min-h-px min-w-px relative shrink-0">
+                                      <div className="relative shrink-0 size-[20px] flex items-center justify-center pt-[1px]">
+                                        <svg className="block w-[20px] h-[17px]" fill="none" preserveAspectRatio="none" viewBox="0 0 20 17">
+                                          <g id="Group">
+                                            <path clipRule="evenodd" d={svgPathsDetail.p364966f0} fill="var(--fill-0, #48B2AF)" fillRule="evenodd" />
+                                            <path clipRule="evenodd" d={svgPathsDetail.p978f000} fill="var(--fill-0, white)" fillRule="evenodd" />
+                                          </g>
+                                        </svg>
+                                      </div>
+                                      <div className="content-stretch flex gap-[4px] items-center relative shrink-0">
+                                        <p className="font-medium leading-[22px] not-italic relative shrink-0 text-[0px] text-[14px] text-black text-nowrap tracking-[-0.42px] whitespace-pre">
+                                          첫 구매 쿠폰 받고<span className="text-[#48b2af]"> </span>
+                                          <span className="font-bold text-[#48b2af]">{finalPrice.toLocaleString()}원으로</span>
+                                          <span>{` 풀이 보기`}</span>
+                                        </p>
+                                        <motion.div
+                                          className="relative shrink-0 size-[12px]"
+                                          animate={{ x: [0, 3, 0] }}
+                                          transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                                        >
+                                          <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 12 12">
+                                            <g id="arrow-right">
+                                              <path d={svgPathsDetail.p3117bd00} stroke="var(--stroke-0, #525252)" strokeLinecap="round" strokeLinejoin="round" strokeMiterlimit="10" strokeWidth="1.7" />
+                                            </g>
+                                          </svg>
+                                        </motion.div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </motion.div>
+                            </button>
+                          );
+                        }
+
+                        // Case 4: 로그인 + 쿠폰 없음 → 버튼 미표시
                         return null;
                       })()}
                     </div>

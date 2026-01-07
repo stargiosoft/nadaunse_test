@@ -88,6 +88,7 @@
 6. **DATABASE_SCHEMA.md** - DB 스키마
 7. **supabase/EDGE_FUNCTIONS_GUIDE.md** - Edge Functions
 8. **supabase/DATABASE_TRIGGERS_AND_FUNCTIONS.md** - Triggers/Functions
+9. **supabase/RLS_POLICIES.md** - RLS 정책 (26개)
 
 ---
 

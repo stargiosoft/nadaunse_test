@@ -7,6 +7,7 @@ import React, { useState, useEffect } from 'react';
 import svgPaths from "../imports/svg-b51v8udqqu";
 import emptyStateSvgPaths from "../imports/svg-297vu4q7h0"; // Empty State 아이콘
 import { supabase } from '../lib/supabase';
+import { DEV } from '../lib/env';
 import { toast } from '../lib/toast';
 import { SessionExpiredDialog } from './SessionExpiredDialog';
 import { PrimarySajuChangeDialog } from './PrimarySajuChangeDialog';
@@ -80,13 +81,15 @@ export default function SajuManagementPage({ onBack, onNavigateToInput, onNaviga
   // 세션 체크
   useEffect(() => {
     const checkSession = async () => {
-      // ⭐️ [DEV] 개발용 유저 감지 시 세션 체크 건너뛰기
-      const localUserJson = localStorage.getItem('user');
-      if (localUserJson) {
-        try {
-          const localUser = JSON.parse(localUserJson);
-          if (localUser.provider === 'dev') return;
-        } catch {}
+      // ⭐️ [DEV] 개발 환경에서만 개발용 유저 감지 시 세션 체크 건너뛰기
+      if (DEV) {
+        const localUserJson = localStorage.getItem('user');
+        if (localUserJson) {
+          try {
+            const localUser = JSON.parse(localUserJson);
+            if (localUser.provider === 'dev') return;
+          } catch {}
+        }
       }
 
       const { data: { user } } = await supabase.auth.getUser();
@@ -100,84 +103,86 @@ export default function SajuManagementPage({ onBack, onNavigateToInput, onNaviga
   const loadSajuList = async () => {
     setIsLoading(true);
     try {
-      // ⭐️ [DEV] 개발용 유저 감지 시 localStorage에서 데이터 로드
-      const localUserJson = localStorage.getItem('user');
-      if (localUserJson) {
-        try {
-          const localUser = JSON.parse(localUserJson);
-          if (localUser.provider === 'dev') {
-            console.log('⚡ [SajuManagement] Dev User Detected - Loading from localStorage');
-            
-            // 1. 내 사주: localStorage의 'saju_info'에서 읽기
-            const mySajuJson = localStorage.getItem('saju_info');
-            let mySajuData: SajuInfo | null = null;
-            
-            if (mySajuJson) {
-              try {
-                const parsed = JSON.parse(mySajuJson);
+      // ⭐️ [DEV] 개발 환경에서만 개발용 유저 감지 시 localStorage에서 데이터 로드
+      if (DEV) {
+        const localUserJson = localStorage.getItem('user');
+        if (localUserJson) {
+          try {
+            const localUser = JSON.parse(localUserJson);
+            if (localUser.provider === 'dev') {
+              console.log('⚡ [SajuManagement] Dev User Detected - Loading from localStorage');
+
+              // 1. 내 사주: localStorage의 'saju_info'에서 읽기
+              const mySajuJson = localStorage.getItem('saju_info');
+              let mySajuData: SajuInfo | null = null;
+
+              if (mySajuJson) {
+                try {
+                  const parsed = JSON.parse(mySajuJson);
+                  mySajuData = {
+                    id: 'my_saju',
+                    full_name: parsed.full_name || parsed.name || '',
+                    gender: parsed.gender || 'female',
+                    birth_date: parsed.birth_date || '',
+                    birth_time: parsed.birth_time || '',
+                    notes: '본인',
+                    is_primary: true,
+                    calendar_type: parsed.calendar_type || 'solar',
+                    zodiac: parsed.zodiac || ''
+                  };
+                  console.log('✅ [DEV] 내 사주 로드 완료:', mySajuData.full_name);
+                } catch (e) {
+                  console.error('❌ [DEV] saju_info 파싱 실패:', e);
+                }
+              }
+
+              // ⭐ [DEV] saju_info가 없으면 테스트용 임시 데이터 생성
+              if (!mySajuData) {
                 mySajuData = {
-                  id: 'my_saju',
-                  full_name: parsed.full_name || parsed.name || '',
-                  gender: parsed.gender || 'female',
-                  birth_date: parsed.birth_date || '',
-                  birth_time: parsed.birth_time || '',
+                  id: 'my_saju_dev_temp',
+                  full_name: '별빛 속에 피어난 작은 꿈',
+                  gender: 'female',
+                  birth_date: '1994-07-23T14:00:00+09:00',
+                  birth_time: '14:00',
                   notes: '본인',
                   is_primary: true,
-                  calendar_type: parsed.calendar_type || 'solar',
-                  zodiac: parsed.zodiac || ''
+                  calendar_type: 'solar',
+                  zodiac: '개띠'
                 };
-                console.log('✅ [DEV] 내 사주 로드 완료:', mySajuData.full_name);
-              } catch (e) {
-                console.error('❌ [DEV] saju_info 파싱 실패:', e);
+                console.log('⚡ [DEV] saju_info 없음 → 테스트용 임시 데이터 생성');
               }
-            }
-            
-            // ⭐ [DEV] saju_info가 없으면 테스트용 임시 데이터 생성
-            if (!mySajuData) {
-              mySajuData = {
-                id: 'my_saju_dev_temp',
-                full_name: '별빛 속에 피어난 작은 꿈',
-                gender: 'female',
-                birth_date: '1994-07-23T14:00:00+09:00',
-                birth_time: '14:00',
-                notes: '본인',
-                is_primary: true,
-                calendar_type: 'solar',
-                zodiac: '개띠'
-              };
-              console.log('⚡ [DEV] saju_info 없음 → 테스트용 임시 데이터 생성');
-            }
-            
-            // 2. 함께 보는 사주: localStorage의 'dev_saju_records'에서 읽기
-            const devRecordsJson = localStorage.getItem('dev_saju_records');
-            let otherSajuData: SajuInfo[] = [];
-            
-            if (devRecordsJson) {
-              try {
-                otherSajuData = JSON.parse(devRecordsJson);
-                console.log('✅ [DEV] 함께 보는 사주 로드 완료:', otherSajuData.length, '건');
-              } catch (e) {
-                console.error('❌ [DEV] dev_saju_records 파싱 실패:', e);
+
+              // 2. 함께 보는 사주: localStorage의 'dev_saju_records'에서 읽기
+              const devRecordsJson = localStorage.getItem('dev_saju_records');
+              let otherSajuData: SajuInfo[] = [];
+
+              if (devRecordsJson) {
+                try {
+                  otherSajuData = JSON.parse(devRecordsJson);
+                  console.log('✅ [DEV] 함께 보는 사주 로드 완료:', otherSajuData.length, '건');
+                } catch (e) {
+                  console.error('❌ [DEV] dev_saju_records 파싱 실패:', e);
+                }
               }
+
+              // 3. UI 업데이트
+              setMySaju(mySajuData);
+              setOtherSajuList(otherSajuData);
+
+              // 4. 대표 사주 선택
+              if (mySajuData) {
+                setSelectedSajuId(mySajuData.id);
+              } else if (otherSajuData.length > 0) {
+                const primarySaju = otherSajuData.find(s => s.is_primary);
+                setSelectedSajuId(primarySaju?.id || otherSajuData[0].id);
+              }
+
+              setIsLoading(false);
+              return;
             }
-            
-            // 3. UI 업데이트
-            setMySaju(mySajuData);
-            setOtherSajuList(otherSajuData);
-            
-            // 4. 대표 사주 선택
-            if (mySajuData) {
-              setSelectedSajuId(mySajuData.id);
-            } else if (otherSajuData.length > 0) {
-              const primarySaju = otherSajuData.find(s => s.is_primary);
-              setSelectedSajuId(primarySaju?.id || otherSajuData[0].id);
-            }
-            
-            setIsLoading(false);
-            return;
+          } catch (e) {
+            console.error('JSON parse error', e);
           }
-        } catch (e) {
-          console.error('JSON parse error', e);
         }
       }
 
@@ -590,7 +595,7 @@ export default function SajuManagementPage({ onBack, onNavigateToInput, onNaviga
               <motion.div className="content-stretch flex flex-col gap-[6px] items-center relative shrink-0 w-full" variants={itemVariants}>
                 <div className="content-stretch flex items-center justify-between relative shrink-0 w-full">
                   <div className="basis-0 content-stretch flex grow items-center justify-center min-h-px min-w-px relative shrink-0">
-                    <p className="basis-0 grow leading-[24px] min-h-px min-w-px relative shrink-0 text-[17px] text-black tracking-[-0.34px] font-semibold">
+                    <p className="basis-0 grow leading-[24px] min-h-px min-w-px relative shrink-0 text-[17px] text-black tracking-[-0.34px]">
                       내 사주
                     </p>
                   </div>
@@ -692,7 +697,7 @@ export default function SajuManagementPage({ onBack, onNavigateToInput, onNaviga
               <motion.div className="content-stretch flex flex-col gap-[6px] items-center relative shrink-0 w-full mb-[-4px]" variants={itemVariants}>
                 <div className="content-stretch flex items-center justify-between relative shrink-0 w-full">
                   <div className="basis-0 content-stretch flex grow items-center justify-center min-h-px min-w-px relative shrink-0">
-                    <p className="basis-0 grow leading-[24px] min-h-px min-w-px relative shrink-0 text-[17px] text-black tracking-[-0.34px] font-semibold">
+                    <p className="basis-0 grow leading-[24px] min-h-px min-w-px relative shrink-0 text-[17px] text-black tracking-[-0.34px]">
                       함께 보는 사주
                     </p>
                   </div>
@@ -762,7 +767,7 @@ export default function SajuManagementPage({ onBack, onNavigateToInput, onNaviga
                     {/* Info Container */}
                     <div className="basis-0 content-stretch flex flex-col grow items-start min-h-px min-w-px relative shrink-0">
                       <div className="content-stretch flex items-center justify-between relative shrink-0 w-full -mb-[3px]">
-                        <p className="overflow-hidden relative text-[15px] text-black tracking-[-0.45px] font-medium line-clamp-2">
+                        <p className="overflow-hidden relative text-[15px] text-black tracking-[-0.45px] line-clamp-2">
                           {saju.full_name} {saju.notes && `(${saju.notes})`}
                         </p>
                         <div 

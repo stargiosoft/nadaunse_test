@@ -106,12 +106,12 @@ export default function LoadingPage() {
     fetchContentTitle();
   }, [contentId]);
 
-  // ⭐ 무료 콘텐츠 로드 (인기도 순)
+  // ⭐ 무료 콘텐츠 로드 (인기도 순 - weekly_clicks 기준)
   useEffect(() => {
     const fetchFreeContents = async () => {
       try {
         console.log('🔍 [무료콘텐츠] 로드 시작');
-        
+
         // 캐시 확인
         const cachedData = localStorage.getItem(FREE_CONTENTS_CACHE_KEY);
         if (cachedData) {
@@ -120,7 +120,7 @@ export default function LoadingPage() {
           if (now - timestamp < CACHE_EXPIRY) {
             console.log('✅ [무료콘텐츠] 캐시 사용:', contents.length, '개');
             setFreeContents(contents);
-            
+
             // 🚀 캐시 데이터 사용 시에도 이미지 프리로드
             const thumbnails = contents
               .slice(0, 3)
@@ -134,16 +134,12 @@ export default function LoadingPage() {
           }
         }
 
-        // 일주일 전 날짜 계산
-        const oneWeekAgo = new Date();
-        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-        const oneWeekAgoStr = oneWeekAgo.toISOString();
-
-        // 1. master_contents에서 무료 콘텐츠 조회
+        // ⭐ master_contents에서 무료 콘텐츠 조회 (weekly_clicks 내림차순 정렬)
         const { data: contents, error: contentsError } = await supabase
           .from('master_contents')
-          .select('id, title, thumbnail_url')
-          .eq('content_type', 'free');
+          .select('id, title, thumbnail_url, weekly_clicks')
+          .eq('content_type', 'free')
+          .order('weekly_clicks', { ascending: false });
 
         if (contentsError) throw contentsError;
         if (!contents || contents.length === 0) {
@@ -151,42 +147,18 @@ export default function LoadingPage() {
           return;
         }
 
-        console.log('✅ [무료콘텐츠] master_contents 조회:', contents.length, '개');
+        console.log('✅ [무료콘텐츠] 인기순 정렬 완료:', contents.map(c => `${c.title}(${c.weekly_clicks})`));
 
-        // 2. 각 콘텐츠의 주간 클릭수 계산
-        const contentsWithClicks = await Promise.all(
-          contents.map(async (content) => {
-            const { count, error } = await supabase
-              .from('orders')
-              .select('*', { count: 'exact', head: true })
-              .eq('content_id', content.id)
-              .gte('created_at', oneWeekAgoStr);
-
-            if (error) {
-              console.error(`❌ [무료콘텐츠] ${content.title} 클릭수 조회 실패:`, error);
-              return { ...content, weekly_clicks: 0 };
-            }
-
-            console.log(`📊 [무료콘텐츠] ${content.title}: ${count}회`);
-            return { ...content, weekly_clicks: count || 0 };
-          })
-        );
-
-        // 3. 인기도 순으로 정렬
-        const sorted = contentsWithClicks.sort((a, b) => b.weekly_clicks - a.weekly_clicks);
-        
-        console.log('✅ [무료콘텐츠] 정렬 완료:', sorted.map(c => `${c.title}(${c.weekly_clicks})`));
-        
-        setFreeContents(sorted);
+        setFreeContents(contents);
 
         // 캐시 저장
         localStorage.setItem(FREE_CONTENTS_CACHE_KEY, JSON.stringify({
-          contents: sorted,
+          contents: contents,
           timestamp: Date.now()
         }));
 
         // 🚀 처음 3개 썸네일 우선 프리로드
-        const thumbnails = sorted
+        const thumbnails = contents
           .slice(0, 3)
           .map(c => c.thumbnail_url)
           .filter(Boolean) as string[];
@@ -196,7 +168,7 @@ export default function LoadingPage() {
         }
 
         // 🚀 4-6번째 썸네일 백그라운드 프리페칭 (low priority)
-        const remainingThumbnails = sorted
+        const remainingThumbnails = contents
           .slice(3, 6)
           .map(c => c.thumbnail_url)
           .filter(Boolean) as string[];

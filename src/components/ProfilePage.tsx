@@ -137,33 +137,35 @@ export default function ProfilePage({
 
   useEffect(() => {
     const loadUser = async () => {
-      // ⭐️ 개발용 우회 로직: localStorage에 개발 유저가 있으면 Supabase 체크 건너뜀
-      const localUserJson = localStorage.getItem('user');
-      if (localUserJson) {
-        try {
-          const localUser = JSON.parse(localUserJson);
-          if (localUser.provider === 'dev') {
-            console.log('⚡ [ProfilePage] 개발용 유저 감지 → Supabase 체크 우회');
-            setUser(localUser);
-            // setIsMaster(localUser.role === 'master'); // 개발 유저는 마스터 권한 없음으로 설정 가능
-            
-            // 더미 사주 데이터 로드 (화면 표시용)
-            setPrimarySaju({
-              id: 'dev_saju_1',
-              full_name: localUser.nickname || '개발자',
-              notes: '본인',
-              birth_date: '1990-01-01T12:00:00',
-              birth_time: '오시',
-              calendar_type: 'solar',
-              gender: 'male',
-              zodiac: '말띠',
-              is_primary: true
-            });
-            setIsLoadingSaju(false);
-            return;
+      // ⭐️ 개발용 우회 로직: 개발 환경에서만 localStorage 개발 유저 사용
+      if (DEV) {
+        const localUserJson = localStorage.getItem('user');
+        if (localUserJson) {
+          try {
+            const localUser = JSON.parse(localUserJson);
+            if (localUser.provider === 'dev') {
+              console.log('⚡ [ProfilePage] 개발용 유저 감지 → Supabase 체크 우회');
+              setUser(localUser);
+              // setIsMaster(localUser.role === 'master'); // 개발 유저는 마스터 권한 없음으로 설정 가능
+
+              // 더미 사주 데이터 로드 (화면 표시용)
+              setPrimarySaju({
+                id: 'dev_saju_1',
+                full_name: localUser.nickname || '개발자',
+                notes: '본인',
+                birth_date: '1990-01-01T12:00:00',
+                birth_time: '오시',
+                calendar_type: 'solar',
+                gender: 'male',
+                zodiac: '말띠',
+                is_primary: true
+              });
+              setIsLoadingSaju(false);
+              return;
+            }
+          } catch (e) {
+            console.error('JSON parse error', e);
           }
-        } catch (e) {
-          console.error('JSON parse error', e);
         }
       }
 

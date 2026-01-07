@@ -212,7 +212,7 @@ export const publicAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "<product
 <summary><b>유료 콘텐츠 (심화 해석판)</b></summary>
 
 ```
-/components/ProductDetail.tsx           → 유료 상세
+/components/MasterContentDetailPage.tsx → 유료 상세 (메인)
 /components/PaymentNew.tsx              → 결제
 /components/BirthInfoInput.tsx          → 사주 입력
 /components/SajuSelectPage.tsx          → 사주 선택
@@ -319,7 +319,7 @@ export const publicAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "<product
 /components/FreeSajuDetail.tsx          → 무료 결과
 
 # 유료 콘텐츠
-/components/ProductDetail.tsx           → 유료 콘텐츠 상세
+/components/MasterContentDetailPage.tsx → 유료 콘텐츠 상세 (메인)
 /components/PaymentNew.tsx              → 결제 페이지
 /components/BirthInfoInput.tsx          → 유료 사주 입력
 /components/SajuSelectPage.tsx          → 유료 사주 선택
@@ -552,7 +552,7 @@ AI 생성 요청 (Edge Function)
 ### 2. 유료 콘텐츠 플로우 (심화 해석판)
 
 ```
-홈 → 심화해석판 상세 (ProductDetail) → "구매하기" 클릭
+홈 → 심화해석판 상세 (MasterContentDetailPage) → "구매하기" 클릭
     ↓
 로그인 필수 체크
     ↓
@@ -599,7 +599,7 @@ AI 생성 요청 (Edge Function)
 ```
 
 **주요 파일**:
-- `/components/ProductDetail.tsx` - 유료 상세 페이지
+- `/components/MasterContentDetailPage.tsx` - 유료 상세 페이지 (메인)
 - `/components/PaymentNew.tsx` - 결제 페이지
 - `/components/CouponBottomSheetNew.tsx` - 쿠폰 선택
 - `/components/BirthInfoInput.tsx` - 사주 입력 (결제 후)

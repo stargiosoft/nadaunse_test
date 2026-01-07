@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, useNavigate, useParams, useLocation, Navigate } from 'react-router-dom';
-import ProductDetail from './components/ProductDetail';
+// ProductDetail은 MasterContentDetailPage로 대체됨 (2026-01-07 백업 처리)
 import FreeProductDetail from './components/FreeProductDetail';
 import PaymentNew from './components/PaymentNew';
 import BirthInfoInput from './components/BirthInfoInput';
@@ -382,11 +382,10 @@ function ProductDetailPage() {
     );
   }
 
+  // ProductDetail → MasterContentDetailPage로 대체 (2026-01-07)
   return (
-    <ProductDetail
-      product={product}
-      onBack={() => navigate('/')}
-      onPurchase={handlePurchase}
+    <MasterContentDetailPage
+      contentId={product.id.toString()}
     />
   );
 }

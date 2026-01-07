@@ -4,6 +4,7 @@ import svgPaths from "../imports/svg-h2fyyvfh8o";
 import { imgGroup, imgGroup1, imgGroup2, imgGroup3 } from "../imports/svg-cp95o";
 import { supabase } from '../lib/supabase';
 import { signInWithKakao, signInWithGoogle } from '../lib/auth';
+import { isDevelopment } from '../lib/env';
 
 declare global {
   interface Window {
@@ -447,26 +448,28 @@ export default function ExistingAccountPageNew({ provider, onBack, onLoginWithCo
   return (
     <div className="bg-white relative w-full h-[100vh] flex justify-center overflow-hidden" data-name="기가입자 안내">
       {/* 개발용 임시 버튼: 마이페이지로 이동 */}
-      <button
-        onClick={() => {
-           // 로그인 처리 (localStorage 설정)
-           const mockUser = {
-             id: '00000000-0000-0000-0000-000000000000',
-             email: email || 'dev@test.com',
-             nickname: '개발자',
-             provider: provider,
-             profile_image: ''
-           };
-           localStorage.setItem('user', JSON.stringify(mockUser));
-           document.cookie = `last_login_provider=${provider}; max-age=${60 * 60 * 24 * 365}; path=/`;
+      {isDevelopment() && (
+        <button
+          onClick={() => {
+             // 로그인 처리 (localStorage 설정)
+             const mockUser = {
+               id: '00000000-0000-0000-0000-000000000000',
+               email: email || 'dev@test.com',
+               nickname: '개발자',
+               provider: provider,
+               profile_image: ''
+             };
+             localStorage.setItem('user', JSON.stringify(mockUser));
+             document.cookie = `last_login_provider=${provider}; max-age=${60 * 60 * 24 * 365}; path=/`;
 
-           // 마이페이지로 강제 이동
-           window.location.href = '/profile';
-        }}
-        className="fixed top-24 right-4 z-[9999] bg-blue-500 text-white px-3 py-1 rounded-full text-xs shadow-lg opacity-70 hover:opacity-100 transition-opacity"
-      >
-        마이페이지 이동 (개발용)
-      </button>
+             // 마이페이지로 강제 이동
+             window.location.href = '/profile';
+          }}
+          className="fixed top-24 right-4 z-[9999] bg-blue-500 text-white px-3 py-1 rounded-full text-xs shadow-lg opacity-70 hover:opacity-100 transition-opacity"
+        >
+          마이페이지 이동 (개발용)
+        </button>
+      )}
 
       <div className="relative w-full max-w-[440px] h-full flex flex-col bg-white overflow-hidden">
         <Frame onBack={onBack} />

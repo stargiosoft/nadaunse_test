@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { X } from 'lucide-react';
+import { AnimatePresence } from 'motion/react';
 import svgPaths from "../imports/svg-ir0ch2bhrx";
 import { BottomNavigation } from './BottomNavigation';
 import { TarotGame } from './TarotGame';
@@ -222,18 +223,22 @@ export default function TarotShufflePage() {
            navigate(-1); // Simple fallback
         }}
         onNext={() => {
-           // ... logic ...
+          // 타로 결과 페이지로 이동
+          const fromParam = from ? `&from=${from}` : '';
+          const contentIdParamStr = contentIdState ? `&contentId=${contentIdState}` : '';
+          navigate(`/result/tarot?orderId=${orderId}&questionOrder=${questionOrder}${contentIdParamStr}${fromParam}`);
         }}
         onToggleList={handleToggleList}
         disablePrevious={questionOrder === 1}
       />
 
-      {showTableOfContents && orderId && contentIdState && (
+      {/* TableOfContentsBottomSheet 내부에 AnimatePresence가 있으므로 외부 AnimatePresence 제거 */}
+      {orderId && contentIdState && (
         <TableOfContentsBottomSheet
           isOpen={showTableOfContents}
           onClose={() => setShowTableOfContents(false)}
           orderId={orderId}
-          contentId={contentIdState}
+          contentId={contentIdState.toString()}
           currentQuestionOrder={questionOrder}
         />
       )}

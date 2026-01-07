@@ -265,9 +265,9 @@ export default function SajuResultPage() {
   const handleClose = () => {
     // ⭐ 출처에 따라 분기 처리
     if (from === 'purchase') {
-      // 구매내역에서 접근한 경우 → 뒤로가기 (replace로 이미 처리됨)
-      console.log('✅ [SajuResultPage] 구매내역에서 접근 → 뒤로가기');
-      navigate(-1); // ⭐ 뒤로가기로 변경 (replace로 왔으므로 프로필로 이동)
+      // 구매내역에서 접근한 경우 → 구매내역으로 명시적 이동
+      console.log('✅ [SajuResultPage] 구매내역에서 접근 → /purchase-history로 이동');
+      navigate('/purchase-history');
     } else {
       // 결제 후 바로 접근한 경우 → 홈으로 이동
       console.log('✅ [SajuResultPage] 결제 후 접근 → 홈으로 이동');

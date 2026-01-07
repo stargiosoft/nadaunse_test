@@ -1,7 +1,7 @@
 # Components Inventory
 
 > **최종 업데이트**: 2026-01-06
-> **총 컴포넌트 수**: 51개 (활성화)
+> **총 컴포넌트 수**: 50개 (활성화)
 > **UI 컴포넌트 (shadcn/ui)**: 48개
 > **프로젝트**: 타로/사주 운세 모바일 웹 서비스
 > **필수 문서**: [CLAUDE.md](../CLAUDE.md) - 개발 규칙
@@ -18,10 +18,10 @@
 - [사주 정보 관리 (9개)](#사주-정보-관리)
 - [타로 콘텐츠 (4개)](#타로-콘텐츠)
 - [프로필 및 구매 내역 (4개)](#프로필-및-구매-내역)
-- [유틸리티 컴포넌트 (3개)](#유틸리티-컴포넌트)
+- [유틸리티 컴포넌트 (2개)](#유틸리티-컴포넌트)
 - [약관 페이지 (3개)](#약관-페이지)
 - [에러 처리 (2개)](#에러-처리)
-- [백업 컴포넌트 (5개)](#백업된-컴포넌트-사용-중지)
+- [백업 컴포넌트 (6개)](#백업된-컴포넌트-사용-중지)
 
 ---
 
@@ -522,15 +522,6 @@
   - **버그 수정**: 하드코딩 더미 데이터 제거 (2025-12-31)
 - **파일 경로**: `/components/TableOfContentsBottomSheet.tsx`
 
-### ProductDetail.tsx
-- **역할**: 상품 상세 페이지 (유료 콘텐츠)
-- **사용처**: App.tsx ProductDetailPage (type === 'paid')
-- **타입**: Page Component
-- **주요 기능**: 
-  - 유료 콘텐츠 소개
-  - 가격 정보
-  - "구매하기" 결제 버튼
-- **파일 경로**: `/components/ProductDetail.tsx`
 
 ---
 
@@ -618,14 +609,20 @@
 - **백업 날짜**: 2026-01-06
 - **파일 경로**: `/components/_backup/ProgressiveImage.tsx`
 
+### ProductDetail.tsx
+- **상태**: 백업됨 (`/components/_backup/`)
+- **사유**: MasterContentDetailPage.tsx로 대체됨 (유료 콘텐츠 상세 페이지)
+- **백업 날짜**: 2026-01-06
+- **파일 경로**: `/components/_backup/ProductDetail.tsx`
+
 ---
 
 ## 📊 통계
 
-- **총 컴포넌트**: 51개
+- **총 컴포넌트**: 50개
 - **���이지 컴포넌트**: 38개
-- **UI/유틸리티 컴포넌트**: 14개
-- **백업된 컴포넌트**: 5개
+- **UI/유틸리티 컴포넌트**: 13개
+- **백업된 컴포넌트**: 6개
 
 ### 카테고리별 분포
 - UI 컴포넌트: 8개
@@ -636,7 +633,7 @@
 - 사주 정보 관리: 9개
 - 타로 콘텐츠: 4개 (NEW!)
 - 프로필 및 구매: 4개
-- 유틸리티: 3개
+- 유틸리티: 2개
 - 약관: 3개
 - 에러 처리: 2개
 
@@ -698,6 +695,7 @@
 - **미사용 컴포넌트 정리**
   - ProfileImage.tsx → `_backup` 폴더로 이동 (import만 존재, JSX 미사용)
   - ProgressiveImage.tsx → `_backup` 폴더로 이동 (import/JSX 모두 없음)
+  - ProductDetail.tsx → `_backup` 폴더로 이동 (MasterContentDetailPage.tsx로 대체)
   - App.tsx에서 FreeSajuAddPage import 제거
   - ProfilePage.tsx에서 ProfileImage import 제거
 - **타로 서비스 통합**
@@ -708,8 +706,8 @@
 - **에러 처리 섹션 신규 추가**
   - ErrorPage.tsx, ErrorBoundary.tsx 문서화
 - **통계 및 카테고리 업데이트**
-  - 총 51개 컴포넌트 (변동 없음)
-  - 백업된 컴포넌트: 3개 → 5개
+  - 총 50개 컴포넌트 (51 → 50, ProductDetail 백업)
+  - 백업된 컴포넌트: 3개 → 6개
 
 ### 2025-12-31
 - LoadingPage.tsx: 무료 콘텐츠 이미지 프리로딩 최적화 적용 반영
