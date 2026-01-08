@@ -80,22 +80,29 @@ function LoginToast() {
   const location = useLocation();
 
   useEffect(() => {
-    // sessionStorage에서 로그인 토스트 플래그 확인
-    const showLoginToast = sessionStorage.getItem('show_login_toast');
+    // 페이지 로드 후 약간의 딜레이를 주어 안정적으로 토스트 표시
+    const timer = setTimeout(() => {
+      // sessionStorage에서 로그인 토스트 플래그 확인
+      const showLoginToast = sessionStorage.getItem('show_login_toast');
 
-    if (showLoginToast === 'true') {
-      // 플래그 즉시 삭제 (중복 표시 방지)
-      sessionStorage.removeItem('show_login_toast');
+      console.log('🔍 [LoginToast] 플래그 체크:', showLoginToast, 'pathname:', location.pathname);
 
-      // 토스트 표시 (2.2초간)
-      toast.custom(
-        () => <Toast type="positive" message="로그인 되었어요, 반가워요" />,
-        { duration: 2200 }
-      );
+      if (showLoginToast === 'true') {
+        // 플래그 즉시 삭제 (중복 표시 방지)
+        sessionStorage.removeItem('show_login_toast');
 
-      console.log('🎉 [LoginToast] 로그인 성공 토스트 표시');
-    }
-  }, [location.pathname]); // 페이지 이동 시마다 체크
+        // 토스트 표시 (2.2초간)
+        toast.custom(
+          () => <Toast type="positive" message="로그인 되었어요, 반가워요" />,
+          { duration: 2200 }
+        );
+
+        console.log('🎉 [LoginToast] 로그인 성공 토스트 표시');
+      }
+    }, 100); // 100ms 딜레이
+
+    return () => clearTimeout(timer);
+  }, [location.key]); // location.key로 페이지 이동 감지 (더 정확함)
 
   return null;
 }
