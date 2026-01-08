@@ -5,6 +5,7 @@ import svgPaths from "../imports/svg-b5r0yb3uuf";
 import { supabase } from '../lib/supabase';
 import MasterContentLoadingPage from './MasterContentLoadingPage';
 import { getTarotCardsForQuestions } from '../lib/tarotCards';
+import { SessionExpiredDialog } from './SessionExpiredDialog';
 
 interface BirthInfoInputProps {
   productId: string;
@@ -36,6 +37,7 @@ export default function BirthInfoInput({ productId, onBack, onComplete }: BirthI
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [isBirthDateFocused, setIsBirthDateFocused] = useState(false);
+  const [isSessionExpired, setIsSessionExpired] = useState(false);
   
   // ⭐ Refs for auto-focus on Enter key
   const nameInputRef = useRef<HTMLInputElement>(null);
@@ -56,8 +58,28 @@ export default function BirthInfoInput({ productId, onBack, onComplete }: BirthI
     const timer = setTimeout(() => {
       nameInputRef.current?.focus();
     }, 100);
-    
+
     return () => clearTimeout(timer);
+  }, []);
+
+  // ⭐ 세션 체크 - 로그아웃 상태면 다이얼로그 표시
+  useEffect(() => {
+    const checkSession = async () => {
+      // DEV 모드 우회
+      if (import.meta.env.DEV) {
+        const localUserJson = localStorage.getItem('user');
+        if (localUserJson) {
+          const localUser = JSON.parse(localUserJson);
+          if (localUser.provider === 'dev') return;
+        }
+      }
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setIsSessionExpired(true);
+      }
+    };
+    checkSession();
   }, []);
 
   // 사주 정보 저장 함수
@@ -974,6 +996,7 @@ export default function BirthInfoInput({ productId, onBack, onComplete }: BirthI
           </div>
         </div>
       </div>
+      <SessionExpiredDialog isOpen={isSessionExpired} />
     </div>
   );
 }

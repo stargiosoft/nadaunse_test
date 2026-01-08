@@ -10,6 +10,7 @@ import { getTarotCardsForQuestions } from '../lib/tarotCards';
 import { SajuKebabMenu } from './SajuKebabMenu';
 import { ConfirmDialog } from './ConfirmDialog';
 import SajuCard, { SajuCardData } from './SajuCard';
+import { SessionExpiredDialog } from './SessionExpiredDialog';
 
 interface SajuRecord {
   id: string;
@@ -43,6 +44,7 @@ export default function SajuSelectPage() {
   
   // ⭐ 삭제 확인 다이얼로그 상태
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isSessionExpired, setIsSessionExpired] = useState(false);
 
   // 페이지 마운트 시 스크롤 최상단으로 리셋 (iOS Safari 호환)
   // useLayoutEffect 사용: 화면 렌더링 전에 동기적으로 실행
@@ -95,6 +97,26 @@ export default function SajuSelectPage() {
       window.removeEventListener('popstate', handlePopState);
       window.removeEventListener('focus', handleFocus);
     };
+  }, []);
+
+  // ⭐ 세션 체크 - 로그아웃 상태면 다이얼로그 표시
+  useEffect(() => {
+    const checkSession = async () => {
+      // DEV 모드 우회
+      if (import.meta.env.DEV) {
+        const localUserJson = localStorage.getItem('user');
+        if (localUserJson) {
+          const localUser = JSON.parse(localUserJson);
+          if (localUser.provider === 'dev') return;
+        }
+      }
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setIsSessionExpired(true);
+      }
+    };
+    checkSession();
   }, []);
 
   useEffect(() => {
@@ -870,6 +892,8 @@ export default function SajuSelectPage() {
           onConfirm={handleConfirmDelete}
           onCancel={() => setIsDeleteDialogOpen(false)}
         />
+
+        <SessionExpiredDialog isOpen={isSessionExpired} />
       </div>
     </div>
   );

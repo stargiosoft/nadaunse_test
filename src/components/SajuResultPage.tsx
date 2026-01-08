@@ -7,6 +7,7 @@ import { supabase, supabaseUrl } from '../lib/supabase';
 import { getCachedTarotImage } from '../lib/tarotImageCache';
 import { getTarotCardImageUrl } from '../lib/tarotCards';
 import TableOfContentsBottomSheet from './TableOfContentsBottomSheet';
+import { SessionExpiredDialog } from './SessionExpiredDialog';
 
 interface Answer {
   question_order: number;
@@ -36,8 +37,29 @@ export default function SajuResultPage() {
   const [tarotImageUrl, setTarotImageUrl] = useState<string | null>(null); // ⭐ 타로 이미지 URL state
   const [imageLoading, setImageLoading] = useState(false); // ⭐ 이미지 로딩 state
   const scrollContainerRef = useRef<HTMLDivElement>(null); // ⭐ 스크롤 컨테이너 ref
+  const [isSessionExpired, setIsSessionExpired] = useState(false);
 
   console.log('🔍 [SajuResultPage] 초기화:', { orderId, contentId, startPage, currentPage });
+
+  // ⭐ 세션 체크 - 로그아웃 상태면 다이얼로그 표시
+  useEffect(() => {
+    const checkSession = async () => {
+      // DEV 모드 우회
+      if (import.meta.env.DEV) {
+        const localUserJson = localStorage.getItem('user');
+        if (localUserJson) {
+          const localUser = JSON.parse(localUserJson);
+          if (localUser.provider === 'dev') return;
+        }
+      }
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setIsSessionExpired(true);
+      }
+    };
+    checkSession();
+  }, []);
 
   // 🔝 페이지 진입 시 스크롤을 최상단으로 이동
   useEffect(() => {
@@ -430,6 +452,8 @@ export default function SajuResultPage() {
           currentQuestionOrder={currentPage}
         />
       )}
+
+      <SessionExpiredDialog isOpen={isSessionExpired} />
     </div>
   );
 }

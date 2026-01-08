@@ -8,6 +8,7 @@ import { getTarotCardImageUrl } from '../lib/tarotCards';
 import { getCachedTarotImage, cacheTarotImage } from '../lib/tarotImageCache';
 import TableOfContentsBottomSheet from './TableOfContentsBottomSheet';
 import { BottomNavigation } from './BottomNavigation';
+import { SessionExpiredDialog } from './SessionExpiredDialog';
 
 interface TarotResult {
   question_order: number;
@@ -36,6 +37,27 @@ export default function TarotResultPage() {
   const [contentIdState, setContentIdState] = useState<string | null>(contentId);
   const [cardImageUrl, setCardImageUrl] = useState<string>('');
   const [imageLoading, setImageLoading] = useState(true);
+  const [isSessionExpired, setIsSessionExpired] = useState(false);
+
+  // ⭐ 세션 체크 - 로그아웃 상태면 다이얼로그 표시
+  useEffect(() => {
+    const checkSession = async () => {
+      // DEV 모드 우회
+      if (import.meta.env.DEV) {
+        const localUserJson = localStorage.getItem('user');
+        if (localUserJson) {
+          const localUser = JSON.parse(localUserJson);
+          if (localUser.provider === 'dev') return;
+        }
+      }
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setIsSessionExpired(true);
+      }
+    };
+    checkSession();
+  }, []);
 
   // ⭐ 애니메이션 방향 상태 관리
   const prevOrderRef = useRef<number>(questionOrder);
@@ -438,6 +460,8 @@ export default function TarotResultPage() {
           currentQuestionOrder={questionOrder}
         />
       )}
+
+      <SessionExpiredDialog isOpen={isSessionExpired} />
     </div>
   );
 }

@@ -9,6 +9,7 @@ import { supabase } from '../lib/supabase';
 import img3 from "figma:asset/f494ca2b3b180a2d66b2960718e3e515db3248a2.png";
 import imgAvocado from "figma:asset/e1537c8771a828aa09f2f853176e35c41217f557.png";
 import TableOfContentsBottomSheet from './TableOfContentsBottomSheet';
+import { SessionExpiredDialog } from './SessionExpiredDialog';
 
 interface TarotResult {
   question_order: number;
@@ -39,6 +40,27 @@ export default function TarotShufflePage() {
   const [contentIdState, setContentIdState] = useState<string | null>(null);
   const [showTableOfContents, setShowTableOfContents] = useState(false);
   const [allResults, setAllResults] = useState<TarotResult[]>([]);
+  const [isSessionExpired, setIsSessionExpired] = useState(false);
+
+  // ⭐ 세션 체크 - 로그아웃 상태면 다이얼로그 표시
+  useEffect(() => {
+    const checkSession = async () => {
+      // DEV 모드 우회
+      if (import.meta.env.DEV) {
+        const localUserJson = localStorage.getItem('user');
+        if (localUserJson) {
+          const localUser = JSON.parse(localUserJson);
+          if (localUser.provider === 'dev') return;
+        }
+      }
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setIsSessionExpired(true);
+      }
+    };
+    checkSession();
+  }, []);
 
   // DB에서 데이터 가져오기
   useEffect(() => {
@@ -258,6 +280,8 @@ export default function TarotShufflePage() {
           currentQuestionOrder={questionOrder}
         />
       )}
+
+      <SessionExpiredDialog isOpen={isSessionExpired} />
     </div>
   );
 }

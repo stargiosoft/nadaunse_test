@@ -5,6 +5,7 @@ import { supabase, supabaseUrl } from '../lib/supabase';
 import ArrowLeft from './ArrowLeft';
 import svgPathsEmpty from '../imports/svg-q49yf219uv';
 import { preloadTarotImages } from '../lib/tarotImageCache'; // ⭐ 타로 캐시 추가
+import { SessionExpiredDialog } from './SessionExpiredDialog';
 
 interface PurchaseItem {
   id: string;
@@ -57,6 +58,27 @@ export default function PurchaseHistoryPage() {
   const [purchases, setPurchases] = useState<PurchaseItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isSessionExpired, setIsSessionExpired] = useState(false);
+
+  // ⭐ 세션 체크 - 로그아웃 상태면 다이얼로그 표시
+  useEffect(() => {
+    const checkSession = async () => {
+      // DEV 모드 우회
+      if (import.meta.env.DEV) {
+        const localUserJson = localStorage.getItem('user');
+        if (localUserJson) {
+          const localUser = JSON.parse(localUserJson);
+          if (localUser.provider === 'dev') return;
+        }
+      }
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setIsSessionExpired(true);
+      }
+    };
+    checkSession();
+  }, []);
 
   useEffect(() => {
     loadPurchaseHistory();
@@ -595,6 +617,7 @@ export default function PurchaseHistoryPage() {
 
       {/* Home Indicator */}
 
+      <SessionExpiredDialog isOpen={isSessionExpired} />
     </div>
   );
 }

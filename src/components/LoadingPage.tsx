@@ -7,6 +7,7 @@ import { supabase, supabaseUrl } from '../lib/supabase';
 import { preloadTarotImages } from '../lib/tarotImageCache';
 import { preloadImages } from '../lib/imagePreloader';
 import { motion } from "motion/react";
+import { SessionExpiredDialog } from './SessionExpiredDialog';
 
 // ⭐ 무료 콘텐츠 인터페이스
 interface FreeContent {
@@ -81,6 +82,27 @@ export default function LoadingPage() {
   // ⭐ 무료 콘텐츠 state
   const [freeContents, setFreeContents] = useState<FreeContent[]>([]);
   const [displayCount, setDisplayCount] = useState(6); // 초기 6개 표시
+  const [isSessionExpired, setIsSessionExpired] = useState(false);
+
+  // ⭐ 세션 체크 - 로그아웃 상태면 다이얼로그 표시
+  useEffect(() => {
+    const checkSession = async () => {
+      // DEV 모드 우회
+      if (import.meta.env.DEV) {
+        const localUserJson = localStorage.getItem('user');
+        if (localUserJson) {
+          const localUser = JSON.parse(localUserJson);
+          if (localUser.provider === 'dev') return;
+        }
+      }
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setIsSessionExpired(true);
+      }
+    };
+    checkSession();
+  }, []);
 
   // 콘텐츠 정보 로드
   useEffect(() => {
@@ -571,6 +593,7 @@ export default function LoadingPage() {
           </div>
         </div>
 
+        <SessionExpiredDialog isOpen={isSessionExpired} />
       </div>
     </div>
   );

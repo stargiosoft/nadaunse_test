@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import img3 from "figma:asset/f494ca2b3b180a2d66b2960718e3e515db3248a2.png"; // 타로 카드 뒷면
 import imgCharacter from "figma:asset/e1537c8771a828aa09f2f853176e35c41217f557.png"; // 오리 캐릭터
+import { supabase } from '../lib/supabase';
+import { SessionExpiredDialog } from './SessionExpiredDialog';
 
 export function TarotCardSelection({ 
   title,
@@ -16,6 +18,27 @@ export function TarotCardSelection({
   const [step, setStep] = useState<Step>('initial');
   const [selectedCard, setSelectedCard] = useState<number | null>(null);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [isSessionExpired, setIsSessionExpired] = useState(false);
+
+  // ⭐ 세션 체크 - 로그아웃 상태면 다이얼로그 표시
+  useEffect(() => {
+    const checkSession = async () => {
+      // DEV 모드 우회
+      if (import.meta.env.DEV) {
+        const localUserJson = localStorage.getItem('user');
+        if (localUserJson) {
+          const localUser = JSON.parse(localUserJson);
+          if (localUser.provider === 'dev') return;
+        }
+      }
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setIsSessionExpired(true);
+      }
+    };
+    checkSession();
+  }, []);
 
   // 카드 데이터 (78장의 타로 카드)
   const cards = Array.from({ length: 78 }, (_, i) => ({
@@ -292,6 +315,7 @@ export function TarotCardSelection({
           </button>
         </div>
       </div>
+      <SessionExpiredDialog isOpen={isSessionExpired} />
     </div>
   );
 }
