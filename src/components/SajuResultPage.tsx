@@ -220,6 +220,7 @@ export default function SajuResultPage() {
 
   const handlePrevious = () => {
     if (currentPage > 1) {
+      window.scrollTo({ top: 0, behavior: 'instant' }); // ⭐ 즉시 스크롤 최상단 이동
       setCurrentPage(currentPage - 1);
     }
   };
@@ -259,6 +260,7 @@ export default function SajuResultPage() {
     
     // ⭐ 다음 질문이 사주면 → 다음 페이지로 이동
     console.log('➡️ [SajuResultPage] 다음 질문이 사주 → 다음 페이지로 이동:', currentPage + 1);
+    window.scrollTo({ top: 0, behavior: 'instant' }); // ⭐ 즉시 스크롤 최상단 이동
     setCurrentPage(currentPage + 1);
   };
 
