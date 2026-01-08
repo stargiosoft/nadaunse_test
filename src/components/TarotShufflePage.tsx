@@ -15,7 +15,7 @@ interface TarotResult {
   question_text: string;
   card_image_url?: string;
   card_name?: string;
-  content_id?: number;
+  content_id?: string;
   question_type?: 'tarot' | 'saju';
 }
 
@@ -36,7 +36,7 @@ export default function TarotShufflePage() {
   const [fanCardPositions, setFanCardPositions] = useState<Array<{ inset: string; rotate: number; skewX: number }>>([]);
   const [questionText, setQuestionText] = useState<string>('');
   const [totalQuestions, setTotalQuestions] = useState<number>(1);
-  const [contentIdState, setContentIdState] = useState<number | null>(null);
+  const [contentIdState, setContentIdState] = useState<string | null>(null);
   const [showTableOfContents, setShowTableOfContents] = useState(false);
   const [allResults, setAllResults] = useState<TarotResult[]>([]);
 
@@ -47,15 +47,16 @@ export default function TarotShufflePage() {
 
       try {
         // 1. orders 테이블에서 content_id 가져오기 (없으면 URL 파라미터 사용)
-        let contentId = contentIdParam ? parseInt(contentIdParam) : null;
-        
+        // ⭐ UUID이므로 parseInt 사용하지 않음
+        let contentId: string | null = contentIdParam || null;
+
         if (!contentId) {
           const { data: orderData, error: orderError } = await supabase
             .from('orders')
             .select('content_id')
             .eq('id', orderId)
             .single();
-          
+
           if (orderError) throw orderError;
           contentId = orderData.content_id;
         }
@@ -182,7 +183,22 @@ export default function TarotShufflePage() {
   };
 
   const handleClose = () => {
-    navigate(-1);
+    // ⭐ 디버깅: from 파라미터 값 확인
+    console.log('🔍 [TarotShufflePage] handleClose 호출');
+    console.log('🔍 [TarotShufflePage] from 파라미터:', from);
+    console.log('🔍 [TarotShufflePage] location.search:', location.search);
+    console.log('🔍 [TarotShufflePage] 전체 URL:', window.location.href);
+
+    // ⭐ from 파라미터에 따라 분기 처리
+    if (from === 'purchase') {
+      // 구매내역에서 접근한 경우 → 구매내역으로 이동
+      console.log('✅ [TarotShufflePage] 구매내역에서 접근 → /purchase-history로 이동');
+      navigate('/purchase-history', { replace: true });
+    } else {
+      // 결제 후 바로 접근한 경우 → 홈으로 이동
+      console.log('✅ [TarotShufflePage] 결제 후 접근 (from=' + from + ') → 홈으로 이동');
+      navigate('/');
+    }
   };
   
   const handleToggleList = () => {
@@ -238,7 +254,7 @@ export default function TarotShufflePage() {
           isOpen={showTableOfContents}
           onClose={() => setShowTableOfContents(false)}
           orderId={orderId}
-          contentId={contentIdState.toString()}
+          contentId={contentIdState}
           currentQuestionOrder={questionOrder}
         />
       )}

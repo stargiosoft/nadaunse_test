@@ -50,6 +50,7 @@ interface SajuInfo {
   is_primary?: boolean;
   calendar_type?: string;
   zodiac?: string;
+  created_at?: string;
 }
 
 interface SajuManagementPageProps {
@@ -155,7 +156,8 @@ export default function SajuManagementPage({ onBack, onNavigateToInput, onNaviga
   }, []);
 
   const loadSajuList = async () => {
-    setIsLoading(true);
+    // ⭐ setIsLoading(true) 제거 - 삭제 후 새로고침 시 로딩 화면 방지
+    // 초기 상태가 useState(true)이므로 첫 로드 시에는 로딩이 보임
     try {
       // ⭐️ [DEV] 개발 환경에서만 개발용 유저 감지 시 localStorage에서 데이터 로드
       if (DEV) {
@@ -251,7 +253,7 @@ export default function SajuManagementPage({ onBack, onNavigateToInput, onNaviga
         .from('saju_records')
         .select('*')
         .eq('user_id', user.id)
-        .order('created_at', { ascending: true });
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
 
@@ -282,9 +284,20 @@ export default function SajuManagementPage({ onBack, onNavigateToInput, onNaviga
     // notes가 "본인"인 것을 내 사주로 분류
     const ownerSaju = data.find(s => s.notes === '본인');
     const others = data.filter(s => s.notes !== '본인');
-    
+
+    // ⭐ 최신순 정렬 (created_at 기준 내림차순, 같으면 id로 정렬)
+    const sortedOthers = [...others].sort((a, b) => {
+      const dateA = new Date(a.created_at || 0).getTime();
+      const dateB = new Date(b.created_at || 0).getTime();
+      if (dateB !== dateA) {
+        return dateB - dateA; // 최신순 (내림차순)
+      }
+      // created_at이 같으면 id로 정렬 (일관성 유지)
+      return (b.id || '').localeCompare(a.id || '');
+    });
+
     setMySaju(ownerSaju || null);
-    setOtherSajuList(others);
+    setOtherSajuList(sortedOthers);
     
     // ⭐ is_primary가 true인 사주를 대표 사주로 선택
     const primarySaju = data.find(s => s.is_primary === true);

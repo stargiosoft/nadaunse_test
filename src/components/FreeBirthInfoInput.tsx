@@ -629,6 +629,7 @@ export default function FreeBirthInfoInput({ productId, onBack }: FreeBirthInfoI
                 <input
                   ref={birthDateInputRef}
                   type="text"
+                  inputMode="numeric"
                   value={birthDate}
                   onChange={(e) => handleBirthDateChange(e.target.value)}
                   onKeyDown={(e) => {
@@ -684,6 +685,7 @@ export default function FreeBirthInfoInput({ productId, onBack }: FreeBirthInfoI
                   <input
                     ref={birthTimeInputRef}
                     type="text"
+                    inputMode="numeric"
                     value={birthTime}
                     onChange={(e) => handleBirthTimeChange(e.target.value)}
                     onKeyDown={(e) => {
@@ -697,8 +699,8 @@ export default function FreeBirthInfoInput({ productId, onBack }: FreeBirthInfoI
                     placeholder={unknownTime ? "오후 12:00" : "예: 21:00"}
                     disabled={unknownTime}
                     className={`flex-1 text-[16px] leading-[20px] tracking-[-0.45px] outline-none bg-transparent min-w-0 ${
-                      unknownTime 
-                        ? 'text-[#b7b7b7] placeholder:text-[#b7b7b7]' 
+                      unknownTime
+                        ? 'text-[#b7b7b7] placeholder:text-[#b7b7b7]'
                         : 'text-[#151515] placeholder:text-[#b7b7b7]'
                     }`}
                   />

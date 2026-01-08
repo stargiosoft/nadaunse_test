@@ -215,15 +215,19 @@ export default function TarotResultPage() {
   const handlePrevious = () => {
     window.scrollTo({ top: 0, behavior: 'instant' });
     const prevResult = allResults.find(r => r.question_order === questionOrder - 1);
-    
+
     if (!prevResult) return;
-    
+
+    // ⭐ from 파라미터 유지
+    const fromParam = from ? `&from=${from}` : '';
+    const contentIdParam = contentIdState || contentId ? `&contentId=${contentIdState || contentId}` : '';
+
     if (prevResult.question_type === 'tarot') {
-      navigate(`/result/tarot?orderId=${orderId}&questionOrder=${prevResult.question_order}`);
+      navigate(`/result/tarot?orderId=${orderId}&questionOrder=${prevResult.question_order}${contentIdParam}${fromParam}`);
       return;
     }
-    
-    navigate(`/result/saju?orderId=${orderId}&startPage=${prevResult.question_order}`);
+
+    navigate(`/result/saju?orderId=${orderId}&startPage=${prevResult.question_order}${fromParam}`);
   };
 
   const handleNext = () => {
@@ -252,9 +256,17 @@ export default function TarotResultPage() {
   };
 
   const handleClose = () => {
+    // ⭐ 디버깅: from 파라미터 값 확인
+    console.log('🔍 [TarotResultPage] handleClose 호출');
+    console.log('🔍 [TarotResultPage] from 파라미터:', from);
+    console.log('🔍 [TarotResultPage] location.search:', location.search);
+    console.log('🔍 [TarotResultPage] 전체 URL:', window.location.href);
+
     if (from === 'purchase') {
+      console.log('✅ [TarotResultPage] 구매내역에서 접근 → /purchase-history로 이동');
       navigate('/purchase-history', { replace: true });
     } else {
+      console.log('✅ [TarotResultPage] 결제 후 접근 (from=' + from + ') → 홈으로 이동');
       navigate('/');
     }
   };

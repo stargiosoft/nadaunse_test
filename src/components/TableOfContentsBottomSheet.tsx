@@ -16,7 +16,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence, PanInfo, useDragControls } from 'motion/react';
 import { ChevronRight } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -62,10 +62,15 @@ export default function TableOfContentsBottomSheet({
   currentQuestionOrder,
 }: TableOfContentsBottomSheetProps) {
   const navigate = useNavigate();
+  const location = useLocation();
   const [questions, setQuestions] = useState<Question[]>([]);
   const [contentInfo, setContentInfo] = useState<ContentInfo | null>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
   const dragControls = useDragControls();
+
+  // ⭐ from 파라미터 추출 (URL 쿼리 파라미터에서)
+  const searchParams = new URLSearchParams(location.search);
+  const from = searchParams.get('from');
 
   // ⭐ 바텀시트가 열렸을 때 body 스크롤 막기 및 상태바 색상 변경
   useEffect(() => {
@@ -162,10 +167,14 @@ export default function TableOfContentsBottomSheet({
   // 질문 클릭 핸들러
   const handleQuestionClick = (question: Question) => {
     onClose();
+    // ⭐ from 파라미터 유지
+    const fromParam = from ? `&from=${from}` : '';
+    const contentIdParam = contentId ? `&contentId=${contentId}` : '';
+
     if (question.question_type === 'tarot') {
-      navigate(`/result/tarot?orderId=${orderId}&questionOrder=${question.question_order}`);
+      navigate(`/result/tarot?orderId=${orderId}&questionOrder=${question.question_order}${contentIdParam}${fromParam}`);
     } else {
-      navigate(`/result/saju?orderId=${orderId}&startPage=${question.question_order}`);
+      navigate(`/result/saju?orderId=${orderId}&startPage=${question.question_order}${fromParam}`);
     }
   };
 
