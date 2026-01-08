@@ -7,6 +7,7 @@
 
 import { useState, useEffect, useLayoutEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { motion } from 'motion/react';
 import { supabase } from '../lib/supabase';
 import svgPaths from "../imports/svg-b51v8udqqu"; // ⭐️ SajuManagementPage와 동일한 SVG 사용
 import emptyStateSvgPaths from "../imports/svg-hw6oxtisye"; // Empty State 아이콘
@@ -558,9 +559,12 @@ export default function FreeSajuSelectPage({ productId, onBack }: FreeSajuSelect
                 {/* Button Group - 사주 정보 추가 + 다음 */}
                 <div className="content-stretch flex gap-[12px] items-start relative shrink-0 w-full">
                   {/* 사주 정보 추가 버튼 */}
-                  <div
+                  <motion.button
                     onClick={handleAddSaju}
-                    className="basis-0 grow h-[56px] min-h-px min-w-px relative rounded-[16px] shrink-0 bg-[#f0f8f8] cursor-pointer hover:bg-[#e0f0f0] transition-colors"
+                    onTouchStart={() => {}}
+                    whileTap={{ scale: 0.96 }}
+                    transition={{ duration: 0.1 }}
+                    className="basis-0 grow h-[56px] min-h-px min-w-px relative rounded-[16px] shrink-0 bg-[#f0f8f8] cursor-pointer border-none transition-colors duration-150 active:bg-[#e0f0f0]"
                   >
                     <div className="flex flex-row items-center justify-center size-full">
                       <div className="content-stretch flex items-center justify-center px-[12px] py-0 relative size-full">
@@ -571,12 +575,15 @@ export default function FreeSajuSelectPage({ productId, onBack }: FreeSajuSelect
                         </div>
                       </div>
                     </div>
-                  </div>
+                  </motion.button>
 
                   {/* 다음 버튼 */}
-                  <div
+                  <motion.button
                     onClick={handleNext}
-                    className="basis-0 grow h-[56px] min-h-px min-w-px relative rounded-[16px] shrink-0 bg-[#48b2af] cursor-pointer hover:bg-[#3a9794] transition-colors"
+                    onTouchStart={() => {}}
+                    whileTap={{ scale: 0.96 }}
+                    transition={{ duration: 0.1 }}
+                    className="basis-0 grow h-[56px] min-h-px min-w-px relative rounded-[16px] shrink-0 bg-[#48b2af] cursor-pointer border-none transition-colors duration-150 active:bg-[#3a9693]"
                   >
                     <div className="flex flex-row items-center justify-center size-full">
                       <div className="content-stretch flex items-center justify-center px-[12px] py-0 relative size-full">
@@ -587,7 +594,7 @@ export default function FreeSajuSelectPage({ productId, onBack }: FreeSajuSelect
                         </div>
                       </div>
                     </div>
-                  </div>
+                  </motion.button>
                 </div>
               </div>
             </div>

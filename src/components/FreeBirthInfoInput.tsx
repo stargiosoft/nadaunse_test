@@ -745,14 +745,15 @@ export default function FreeBirthInfoInput({ productId, onBack }: FreeBirthInfoI
           <div className="px-[20px] pt-[12px] pb-[12px]">
             <motion.button
               onClick={handleSubmit}
+              onTouchStart={() => {}}
               disabled={!isFormValid() || isSubmitting}
-              className={`w-full h-[56px] rounded-[16px] flex items-center justify-center overflow-hidden transition-all ${
+              className={`w-full h-[56px] rounded-[16px] flex items-center justify-center overflow-hidden border-none transition-colors duration-150 ${
                 isFormValid() && !isSubmitting
-                  ? 'bg-[#48b2af] text-white cursor-pointer'
+                  ? 'bg-[#48b2af] text-white cursor-pointer active:bg-[#3a9693]'
                   : 'bg-[#f8f8f8] text-[#b7b7b7] cursor-not-allowed'
               }`}
-              whileTap={isFormValid() && !isSubmitting ? { scale: 0.96, backgroundColor: "#36908f" } : undefined}
-              transition={{ type: "spring", stiffness: 400, damping: 17 }}
+              whileTap={isFormValid() && !isSubmitting ? { scale: 0.96 } : undefined}
+              transition={{ duration: 0.1 }}
             >
               <span className="text-[16px] font-medium leading-[25px] tracking-[-0.32px]">
                 {isSubmitting ? '처리 중...' : '다음'}
