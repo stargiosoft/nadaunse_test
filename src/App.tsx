@@ -112,6 +112,32 @@ function GAInit() {
   const location = useLocation();
 
   useEffect(() => {
+    // 🔐 세션 자동 갱신 (앱 시작 시)
+    const refreshUserSession = async () => {
+      const userJson = localStorage.getItem('user');
+      if (!userJson) return; // 로그인 안 된 상태면 스킵
+
+      try {
+        console.log('🔄 [Session] 세션 갱신 시도...');
+        const { data, error } = await supabase.auth.refreshSession();
+
+        if (error) {
+          console.warn('⚠️ [Session] 세션 갱신 실패:', error.message);
+          // 세션 갱신 실패해도 localStorage user는 유지 (오프라인 대응)
+          // 실제 API 호출 시 401 에러가 나면 그때 로그아웃 처리
+          return;
+        }
+
+        if (data.session) {
+          console.log('✅ [Session] 세션 갱신 성공');
+        }
+      } catch (err) {
+        console.error('❌ [Session] 세션 갱신 중 에러:', err);
+      }
+    };
+
+    refreshUserSession();
+
     // 🧪 TestSprite 테스트 모드 초기화
     if (isTestMode()) {
       initTestMode().then((success) => {
