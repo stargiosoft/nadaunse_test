@@ -106,75 +106,69 @@ export default function FreeSajuSelectPage({ productId, onBack }: FreeSajuSelect
     };
   }, []);
 
+  // ⭐ 사주 목록 로드 함수 (외부에서 호출 가능)
+  const loadSajuRecords = async () => {
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('📋 [FreeSajuSelectPage] 사주 정보 로드 시작');
+
+    try {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+      if (userError || !user) {
+        console.error('❌ [FreeSajuSelectPage] 로그인 필요');
+        navigate(`/product/${productId}/birthinfo`);
+        return;
+      }
+
+      console.log('✅ [FreeSajuSelectPage] 로그인 확인:', user.email);
+
+      const { data: records, error } = await supabase
+        .from('saju_records')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: true });
+
+      if (error) {
+        console.error('❌ [FreeSajuSelectPage] 사주 정보 조회 실패:', error);
+        throw error;
+      }
+
+      console.log('✅ [FreeSajuSelectPage] 사주 정보 로드 완료:', records?.length);
+
+      if (!records || records.length === 0) {
+        console.log('⚠️ [FreeSajuSelectPage] 사주 정보 없음 → 입력 페이지로 이동');
+        navigate(`/product/${productId}/birthinfo`);
+        return;
+      }
+
+      setSajuRecords(records);
+
+      // 대표 사주 자동 선택
+      const primarySaju = records.find(r => r.is_primary);
+      const mySaju = records.find(r => r.notes === '본인');
+
+      if (primarySaju) {
+        setSelectedSajuId(primarySaju.id);
+      } else if (mySaju) {
+        setSelectedSajuId(mySaju.id);
+      } else {
+        setSelectedSajuId(records[0].id);
+      }
+    } catch (error) {
+      console.error('❌ [FreeSajuSelectPage] 에러:', error);
+      alert('사주 정보를 불러올 수 없습니다.');
+      onBack();
+    } finally {
+      setIsLoading(false);
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    }
+  };
+
   // 사주 정보 로드
   useEffect(() => {
     // ⭐ 페이지 진입/복귀 시 케밥 메뉴 닫기
     setKebabMenuOpen(false);
     setSelectedSajuForKebab(null);
-    const loadSajuRecords = async () => {
-      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      console.log('📋 [FreeSajuSelectPage] 사주 정보 로드 시작');
-
-      try {
-        // ⭐ 항상 Supabase에서 데이터 로드 (DEV/PROD 동일)
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
-        
-        if (userError || !user) {
-          console.error('❌ [FreeSajuSelectPage] 로그인 필요');
-          navigate(`/product/${productId}/birthinfo`);
-          return;
-        }
-
-        console.log('✅ [FreeSajuSelectPage] 로그인 확인:', user.email);
-
-        // ⭐️ 모든 사주 정보 조회 (본인 + 함께 보는 사주)
-        const { data: records, error } = await supabase
-          .from('saju_records')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: true });
-
-        if (error) {
-          console.error('❌ [FreeSajuSelectPage] 사주 정보 조회 실패:', error);
-          throw error;
-        }
-
-        console.log('✅ [FreeSajuSelectPage] 사주 정보 로드 완료:', records?.length);
-        console.log('📌 [FreeSajuSelectPage] 사주 목록:', records);
-
-        if (!records || records.length === 0) {
-          console.log('⚠️ [FreeSajuSelectPage] 사주 정보 없음 → 입력 페이지로 이동');
-          navigate(`/product/${productId}/birthinfo`);
-          return;
-        }
-
-        setSajuRecords(records);
-        
-        // ⭐ 대표 사주 자동 선택 (is_primary=true → 본인 사주 → 첫 번째 사주 순)
-        const primarySaju = records.find(r => r.is_primary);
-        const mySaju = records.find(r => r.notes === '본인');
-        
-        if (primarySaju) {
-          setSelectedSajuId(primarySaju.id);
-          console.log('✅ [FreeSajuSelectPage] ��표 사주 자동 선택:', primarySaju.id, primarySaju.full_name);
-        } else if (mySaju) {
-          setSelectedSajuId(mySaju.id);
-          console.log('✅ [FreeSajuSelectPage] 본인 사주 자동 선택:', mySaju.id);
-        } else {
-          setSelectedSajuId(records[0].id);
-          console.log('✅ [FreeSajuSelectPage] 첫 번째 사주 자동 선택:', records[0].id);
-        }
-
-      } catch (error) {
-        console.error('❌ [FreeSajuSelectPage] 에러:', error);
-        alert('사주 정보를 불러올 수 없습니다.');
-        onBack();
-      } finally {
-        setIsLoading(false);
-        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      }
-    };
-
     loadSajuRecords();
   }, [productId, navigate, onBack]);
 
@@ -411,10 +405,13 @@ export default function FreeSajuSelectPage({ productId, onBack }: FreeSajuSelect
         }
       }
 
-      // 4단계: 목록 새로고침 - 페이지 새로고침으로 대체
-      window.location.reload();
+      // 4단계: 토스트 + 목록 새로고침
+      toast.success('삭제되었습니다.');
+      await loadSajuRecords();
+      setSelectedSajuForKebab(null);
     } catch (error) {
       console.error('❌ [FreeSajuSelectPage] 삭제 실패:', error);
+      toast.error('삭제에 실패했습니다.');
     } finally {
       setIsDeleting(false);
     }
