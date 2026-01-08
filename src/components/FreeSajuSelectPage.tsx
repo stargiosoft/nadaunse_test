@@ -427,7 +427,14 @@ export default function FreeSajuSelectPage({ productId, onBack }: FreeSajuSelect
 
   // 본인 사주와 함께 보는 사주 분리
   const mySaju = sajuRecords.find(r => r.notes === '본인');
-  const otherSajus = sajuRecords.filter(r => r.notes !== '본인');
+  // ⭐ 최신순 정렬 (created_at 기준 내림차순)
+  const otherSajus = sajuRecords
+    .filter(r => r.notes !== '본인')
+    .sort((a, b) => {
+      const dateA = new Date(a.created_at || 0).getTime();
+      const dateB = new Date(b.created_at || 0).getTime();
+      return dateB - dateA;
+    });
   const hasOtherSaju = otherSajus.length > 0;
 
   return (

@@ -50,6 +50,7 @@ interface SajuInfo {
   is_primary?: boolean;
   calendar_type?: string;
   zodiac?: string;
+  created_at?: string;
 }
 
 interface SajuManagementPageProps {
@@ -283,9 +284,16 @@ export default function SajuManagementPage({ onBack, onNavigateToInput, onNaviga
     // notes가 "본인"인 것을 내 사주로 분류
     const ownerSaju = data.find(s => s.notes === '본인');
     const others = data.filter(s => s.notes !== '본인');
-    
+
+    // ⭐ 최신순 정렬 (created_at 기준 내림차순)
+    const sortedOthers = [...others].sort((a, b) => {
+      const dateA = new Date(a.created_at || 0).getTime();
+      const dateB = new Date(b.created_at || 0).getTime();
+      return dateB - dateA; // 최신순 (내림차순)
+    });
+
     setMySaju(ownerSaju || null);
-    setOtherSajuList(others);
+    setOtherSajuList(sortedOthers);
     
     // ⭐ is_primary가 true인 사주를 대표 사주로 선택
     const primarySaju = data.find(s => s.is_primary === true);
