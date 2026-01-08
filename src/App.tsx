@@ -759,18 +759,14 @@ function FreeResultPage() {
   const userName = location.state?.userName;
   const contentId = location.state?.contentId || id;
   
-  // ⭐️ Fallback: resultKey가 없으면 localStorage에서 최신 결과 찾기
-  if (!recordId && id) {
-    console.log('🔍 [FreeResultPage] resultKey 없음 → localStorage 검색');
-    const keys = Object.keys(localStorage);
-    const matchingKeys = keys.filter(key => key.startsWith(`free_content_${id}_`));
-    
-    if (matchingKeys.length > 0) {
-      // 가장 최근 결 사용
-      recordId = matchingKeys[matchingKeys.length - 1];
-      console.log('✅ [FreeResultPage] localStorage에서 발견:', recordId);
+  // ⭐️ resultKey가 없으면 로딩 페이지로 리다이렉트 (Edge Function 호출 필수)
+  useEffect(() => {
+    if (!recordId && id) {
+      console.log('⚠️ [FreeResultPage] resultKey 없음 → 로딩 페이지로 리다이렉트');
+      console.log('📌 [FreeResultPage] localStorage fallback 제거됨 - Edge Function 필수 호출');
+      navigate(`/product/${id}/loading/free`, { replace: true });
     }
-  }
+  }, [recordId, id, navigate]);
   
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log('📋 [FreeResultPage] 컴포넌트 마운트');
