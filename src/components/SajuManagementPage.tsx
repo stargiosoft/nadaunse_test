@@ -155,7 +155,8 @@ export default function SajuManagementPage({ onBack, onNavigateToInput, onNaviga
   }, []);
 
   const loadSajuList = async () => {
-    setIsLoading(true);
+    // ⭐ setIsLoading(true) 제거 - 삭제 후 새로고침 시 로딩 화면 방지
+    // 초기 상태가 useState(true)이므로 첫 로드 시에는 로딩이 보임
     try {
       // ⭐️ [DEV] 개발 환경에서만 개발용 유저 감지 시 localStorage에서 데이터 로드
       if (DEV) {
