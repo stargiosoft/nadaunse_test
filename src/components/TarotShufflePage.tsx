@@ -182,7 +182,16 @@ export default function TarotShufflePage() {
   };
 
   const handleClose = () => {
-    navigate(-1);
+    // ⭐ from 파라미터에 따라 분기 처리
+    if (from === 'purchase') {
+      // 구매내역에서 접근한 경우 → 구매내역으로 이동
+      console.log('✅ [TarotShufflePage] 구매내역에서 접근 → /purchase-history로 이동');
+      navigate('/purchase-history', { replace: true });
+    } else {
+      // 결제 후 바로 접근한 경우 → 홈으로 이동
+      console.log('✅ [TarotShufflePage] 결제 후 접근 → 홈으로 이동');
+      navigate('/');
+    }
   };
   
   const handleToggleList = () => {

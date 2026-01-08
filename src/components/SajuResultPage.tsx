@@ -259,9 +259,11 @@ export default function SajuResultPage() {
     
     // ⭐ 다음 질문이 타로면 → 타로 셔플 페이지
     if (nextAnswer.question_type === 'tarot') {
+      const fromParam = from ? `&from=${from}` : '';
+      const contentIdParam = contentId ? `&contentId=${contentId}` : '';
       console.log('🎴 [SajuResultPage] 다음 질문이 타로 → 타로 셔플 페이지로 이동');
-      console.log('🎴 [SajuResultPage] 이동 URL:', `/tarot/shuffle?orderId=${orderId}&questionOrder=${nextAnswer.question_order}`);
-      navigate(`/tarot/shuffle?orderId=${orderId}&questionOrder=${nextAnswer.question_order}`);
+      console.log('🎴 [SajuResultPage] 이동 URL:', `/tarot/shuffle?orderId=${orderId}&questionOrder=${nextAnswer.question_order}${contentIdParam}${fromParam}`);
+      navigate(`/tarot/shuffle?orderId=${orderId}&questionOrder=${nextAnswer.question_order}${contentIdParam}${fromParam}`);
       return;
     }
     

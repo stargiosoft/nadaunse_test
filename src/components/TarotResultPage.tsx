@@ -215,15 +215,19 @@ export default function TarotResultPage() {
   const handlePrevious = () => {
     window.scrollTo({ top: 0, behavior: 'instant' });
     const prevResult = allResults.find(r => r.question_order === questionOrder - 1);
-    
+
     if (!prevResult) return;
-    
+
+    // ⭐ from 파라미터 유지
+    const fromParam = from ? `&from=${from}` : '';
+    const contentIdParam = contentIdState || contentId ? `&contentId=${contentIdState || contentId}` : '';
+
     if (prevResult.question_type === 'tarot') {
-      navigate(`/result/tarot?orderId=${orderId}&questionOrder=${prevResult.question_order}`);
+      navigate(`/result/tarot?orderId=${orderId}&questionOrder=${prevResult.question_order}${contentIdParam}${fromParam}`);
       return;
     }
-    
-    navigate(`/result/saju?orderId=${orderId}&startPage=${prevResult.question_order}`);
+
+    navigate(`/result/saju?orderId=${orderId}&startPage=${prevResult.question_order}${fromParam}`);
   };
 
   const handleNext = () => {
