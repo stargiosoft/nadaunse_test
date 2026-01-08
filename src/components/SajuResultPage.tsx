@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ChevronLeft, X } from 'lucide-react';
 import svgPaths from "../imports/svg-ir0ch2bhrx"; // ⭐ 타로와 동일한 SVG 사용
@@ -35,12 +35,13 @@ export default function SajuResultPage() {
   const [contentId, setContentId] = useState<string | null>(contentIdParam); // ⭐ contentId state 추가
   const [tarotImageUrl, setTarotImageUrl] = useState<string | null>(null); // ⭐ 타로 이미지 URL state
   const [imageLoading, setImageLoading] = useState(false); // ⭐ 이미지 로딩 state
+  const scrollContainerRef = useRef<HTMLDivElement>(null); // ⭐ 스크롤 컨테이너 ref
 
   console.log('🔍 [SajuResultPage] 초기화:', { orderId, contentId, startPage, currentPage });
 
   // 🔝 페이지 진입 시 스크롤을 최상단으로 이동
   useEffect(() => {
-    window.scrollTo(0, 0);
+    scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'instant' });
   }, [orderId]); // orderId가 바뀔 때마다 최상단으로
 
   // ⭐ URL의 startPage가 변경되면 currentPage 업데이트
@@ -51,7 +52,13 @@ export default function SajuResultPage() {
   
   // 🔝 currentPage 변경 시 스크롤을 최상단으로 이동
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'instant' });
+    // requestAnimationFrame을 사용하여 DOM 업데이트 후 스크롤 실행
+    // iOS Safari에서 즉시 scrollTo가 무시되는 문제 해결
+    requestAnimationFrame(() => {
+      scrollContainerRef.current?.scrollTo(0, 0);
+      // window.scrollTo도 함께 호출하여 확실하게 처리
+      window.scrollTo(0, 0);
+    });
   }, [currentPage]);
 
   // 답변 데이터 로드
@@ -221,6 +228,7 @@ export default function SajuResultPage() {
   const handlePrevious = () => {
     if (currentPage > 1) {
       setCurrentPage(currentPage - 1);
+      // 스크롤은 useEffect에서 처리됨 (currentPage dependency)
     }
   };
 
@@ -260,6 +268,7 @@ export default function SajuResultPage() {
     // ⭐ 다음 질문이 사주면 → 다음 페이지로 이동
     console.log('➡️ [SajuResultPage] 다음 질문이 사주 → 다음 페이지로 이동:', currentPage + 1);
     setCurrentPage(currentPage + 1);
+    // 스크롤은 useEffect에서 처리됨 (currentPage dependency)
   };
 
   const handleClose = () => {
@@ -290,7 +299,7 @@ export default function SajuResultPage() {
   }
 
   return (
-    <div className="fixed inset-0 bg-white flex flex-col w-full max-w-[440px] mx-auto left-1/2 -translate-x-1/2">
+    <div className="fixed top-0 bottom-0 left-1/2 -translate-x-1/2 bg-white flex flex-col w-full max-w-[440px]">
       {/* Top Navigation */}
       <div className="bg-white h-[52px] shrink-0 w-full z-20">
         <div className="flex items-center justify-between px-[12px] h-full w-full">
@@ -308,7 +317,7 @@ export default function SajuResultPage() {
       </div>
 
       {/* Scrollable Content Area */}
-      <div className="flex-1 overflow-y-auto overscroll-contain">
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto overscroll-contain">
         {/* Spacer */}
         <div className="h-[8px] shrink-0 w-full" />
 

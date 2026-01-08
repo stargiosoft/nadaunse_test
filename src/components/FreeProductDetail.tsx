@@ -1,11 +1,6 @@
-import { useState, useRef } from 'react';
 import { ArrowLeft, Home } from 'lucide-react';
-import { ShowMoreButton } from './FreeContentDetailComponents';
-import svgPaths from "../imports/svg-pln046rtst";
 import svgPathsBanner from "../imports/svg-1j0aq37vhy";
-import svgPathsSlider from "../imports/svg-4heccierrk";
 import bannerImg from "figma:asset/b236509a5f2172bc63b883ba8abf132659ed54d9.png";
-import img from "figma:asset/7b851936315a0976f82b567082641209095748c5.png";
 
 interface Product {
   id: number | string;  // ⭐️ UUID 지원을 위해 string 추가
@@ -23,57 +18,8 @@ interface Product {
 interface FreeProductDetailProps {
   product: Product;
   onBack: () => void;
-  onProductClick?: (productId: number) => void;
   onBannerClick?: () => void;
-  recommendedProducts?: Product[];
-  onPurchase?: () => void;  // ✅ 파라미터 없이 변경
-}
-
-function Notch() {
-  return (
-    <div className="absolute h-[30px] left-[103px] top-[-2px] w-[183px]">
-      <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 183 30">
-        <g id="Notch">
-          <path d={svgPaths.pf91bfc0} fill="var(--fill-0, black)" />
-        </g>
-      </svg>
-    </div>
-  );
-}
-
-function RightSide() {
-  return (
-    <div className="absolute h-[11.336px] right-[14.67px] top-[17.33px] w-[66.662px]">
-      <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 67 12">
-        <g id="Right Side">
-          <g id="Battery">
-            <path d={svgPaths.p3c576cf0} id="Rectangle" opacity="0.35" stroke="var(--stroke-0, black)" />
-            <path d={svgPaths.p1667d738} fill="var(--fill-0, black)" id="Combined Shape" opacity="0.4" />
-            <path d={svgPaths.p18fdac00} fill="var(--fill-0, black)" />
-          </g>
-          <path d={svgPaths.p344d52f0} fill="var(--fill-0, black)" id="Wifi" />
-          <path d={svgPaths.p3694c600} fill="var(--fill-0, black)" id="Mobile Signal" />
-        </g>
-      </svg>
-    </div>
-  );
-}
-
-function Time() {
-  return (
-    <div className="absolute h-[21px] left-[21px] top-[12px] w-[54px]">
-      <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 54 21">
-        <g id="Time">
-          <g id="9:41">
-            <path d={svgPaths.p24372f50} fill="var(--fill-0, black)" />
-            <path d={svgPaths.p3aa84e00} fill="var(--fill-0, black)" />
-            <path d={svgPaths.p2e6b3780} fill="var(--fill-0, black)" />
-            <path d={svgPaths.p12b0b900} fill="var(--fill-0, black)" />
-          </g>
-        </g>
-      </svg>
-    </div>
-  );
+  onPurchase?: () => void;
 }
 
 function HomeIndicatorLight() {
@@ -84,14 +30,7 @@ function HomeIndicatorLight() {
   );
 }
 
-export default function FreeProductDetail({ product, onBack, onProductClick, onBannerClick, recommendedProducts = [], onPurchase }: FreeProductDetailProps) {
-  const [visibleCards, setVisibleCards] = useState(6);
-  const [scrollPosition, setScrollPosition] = useState(0);
-  const sliderRef = useRef<HTMLDivElement>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [startX, setStartX] = useState(0);
-  const [scrollLeft, setScrollLeft] = useState(0);
-
+export default function FreeProductDetail({ product, onBack, onBannerClick, onPurchase }: FreeProductDetailProps) {
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log('🎨 [FreeProductDetail] 컴포넌트 렌더링');
   console.log('📌 [FreeProductDetail] product:', product);
@@ -101,93 +40,41 @@ export default function FreeProductDetail({ product, onBack, onProductClick, onB
   console.log('📌 [FreeProductDetail] onPurchase 존재:', !!onPurchase);
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
-  const handleScroll = (direction: 'left' | 'right') => {
-    const cardWidth = 212; // 200px + 12px gap
-    const container = document.getElementById('slider-container');
-    if (!container) return;
-    
-    const newPosition = direction === 'right' 
-      ? Math.min(scrollPosition + cardWidth, (recommendedProducts.length - 1) * cardWidth)
-      : Math.max(scrollPosition - cardWidth, 0);
-    
-    setScrollPosition(newPosition);
-    container.scrollTo({ left: newPosition, behavior: 'smooth' });
-  };
-
-  const showMoreCards = () => {
-    setVisibleCards(prev => prev + 6);
-  };
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (!sliderRef.current) return;
-    setIsDragging(true);
-    setStartX(e.pageX - sliderRef.current.offsetLeft);
-    setScrollLeft(sliderRef.current.scrollLeft);
-    sliderRef.current.style.cursor = 'grabbing';
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging || !sliderRef.current) return;
-    e.preventDefault();
-    const x = e.pageX - sliderRef.current.offsetLeft;
-    const walk = (x - startX) * 1.5; // Scroll speed multiplier
-    sliderRef.current.scrollLeft = scrollLeft - walk;
-  };
-
-  const handleMouseUp = () => {
-    setIsDragging(false);
-    if (sliderRef.current) {
-      sliderRef.current.style.cursor = 'grab';
-    }
-  };
-
-  const handleMouseLeave = () => {
-    if (isDragging) {
-      setIsDragging(false);
-      if (sliderRef.current) {
-        sliderRef.current.style.cursor = 'grab';
-      }
-    }
-  };
-
-  const visibleRecommendedProducts = recommendedProducts.slice(0, visibleCards);
-  const hasMoreCards = visibleCards < recommendedProducts.length;
-
   return (
-    <div className="bg-white relative min-h-screen w-full flex justify-center">
-      <div className="w-full max-w-[390px] relative">
-        {/* Top Navigation */}
-        <div className="fixed content-stretch flex flex-col items-start left-1/2 -translate-x-1/2 top-0 w-full max-w-[390px] z-10 bg-white">
-          
-          <div className="content-stretch flex flex-col items-start relative shrink-0 w-full">
-            <div className="bg-white h-[52px] relative shrink-0 w-full">
-              <div className="flex flex-col justify-center size-full">
-                <div className="box-border content-stretch flex flex-col gap-[10px] h-[52px] items-start justify-center px-[12px] py-[4px] relative w-full">
-                  <div className="content-stretch flex items-center justify-between relative shrink-0 w-full">
-                    <div 
-                      onClick={onBack}
-                      className="box-border content-stretch flex gap-[10px] items-center justify-center p-[4px] relative rounded-[12px] shrink-0 size-[44px] cursor-pointer"
-                    >
-                      <ArrowLeft className="w-6 h-6 text-[#848484]" />
-                    </div>
-                    <p className="basis-0 font-semibold grow leading-[25.5px] min-h-px min-w-px not-italic overflow-ellipsis overflow-hidden relative shrink-0 text-[18px] text-black text-center text-nowrap tracking-[-0.36px]">
-                      {product.title}
-                    </p>
-                    <div 
-                      onClick={onBack}
-                      className="box-border content-stretch flex gap-[10px] items-center justify-center p-[4px] relative rounded-[12px] shrink-0 size-[44px] cursor-pointer"
-                    >
-                      <Home className="w-6 h-6 text-[#848484]" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+    <div
+      className="bg-white flex flex-col w-full max-w-[390px] mx-auto relative overflow-hidden"
+      style={{ height: '100dvh' }}
+    >
+      {/* Top Navigation - Sticky */}
+      <div className="sticky top-0 z-20 bg-white shrink-0">
+        <div className="h-[52px] flex items-center justify-between px-[12px]">
+          <div
+            onClick={onBack}
+            className="flex items-center justify-center size-[44px] rounded-[12px] cursor-pointer"
+          >
+            <ArrowLeft className="w-6 h-6 text-[#848484]" />
+          </div>
+          <p className="font-semibold text-[18px] leading-[25.5px] text-black text-center tracking-[-0.36px] truncate max-w-[200px]">
+            {product.title}
+          </p>
+          <div
+            onClick={onBack}
+            className="flex items-center justify-center size-[44px] rounded-[12px] cursor-pointer"
+          >
+            <Home className="w-6 h-6 text-[#848484]" />
           </div>
         </div>
+      </div>
 
-        {/* Content */}
-        <div className="pt-[99px] pb-[120px]">
+      {/* Scrollable Content */}
+      <div
+        className="flex-1 overflow-y-auto"
+        style={{
+          WebkitOverflowScrolling: 'touch',
+          overflowAnchor: 'none'
+        }}
+      >
+        <div className="pb-[120px]">
           {/* Product Image & Info */}
           <div className="content-stretch flex flex-col gap-[24px] items-start relative shrink-0 w-full">
             <div className="aspect-[391/270] relative shrink-0 w-full">
@@ -298,8 +185,8 @@ export default function FreeProductDetail({ product, onBack, onProductClick, onB
           </div>
 
           {/* Advertisement Banner */}
-          <div className="bg-[#f8f8f8] box-border content-stretch flex flex-col gap-[10px] items-start p-[20px] relative shrink-0 w-full mb-[52px]">
-            <div 
+          <div className="bg-[#f8f8f8] box-border content-stretch flex flex-col gap-[10px] items-start p-[20px] relative shrink-0 w-full mb-[130px]">
+            <div
               onClick={onBannerClick}
               className="bg-white relative rounded-[16px] shadow-[6px_7px_12px_0px_rgba(0,0,0,0.04),-3px_-3px_12px_0px_rgba(0,0,0,0.04)] shrink-0 w-full cursor-pointer"
             >
@@ -330,120 +217,33 @@ export default function FreeProductDetail({ product, onBack, onProductClick, onB
             </div>
           </div>
 
-          {/* Recommended Products Section - 이런 운세는 어때요? */}
-          <div className="content-stretch flex flex-col gap-[12px] items-start relative shrink-0 w-full px-[20px] mb-[52px]">
-            <div className="content-stretch flex items-center justify-between relative shrink-0 w-full">
-              <div className="basis-0 content-stretch flex gap-[10px] grow items-center justify-center min-h-px min-w-px relative shrink-0">
-                <p className="basis-0 font-semibold grow leading-[24px] min-h-px min-w-px not-italic relative shrink-0 text-[17px] text-black tracking-[-0.34px]">이런 운세는 어때요?</p>
-              </div>
-            </div>
-            
-            <div className="relative w-full">
-              <div
-                ref={sliderRef}
-                id="slider-container"
-                className="flex gap-[12px] overflow-x-auto pb-[4px] -mx-[20px] px-[20px] items-stretch"
-                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-              >
-                {visibleRecommendedProducts.map((recProduct, index) => (
-                  <button
-                    key={recProduct.id}
-                    onClick={() => onProductClick?.(recProduct.id)}
-                    className="flex-none w-[200px] cursor-pointer text-left"
-                  >
-                    <div className="content-stretch flex flex-col gap-[8px] items-start relative shrink-0 w-full">
-                      <div className="h-[120px] pointer-events-none relative rounded-[12px] shrink-0 w-[200px]">
-                        <img alt="" className="absolute inset-0 max-w-none object-50%-50% object-cover rounded-[12px] size-full" src={recProduct.image} />
-                        <div aria-hidden="true" className="absolute border border-[#f9f9f9] border-solid inset-[-1px] rounded-[13px]" />
-                      </div>
-                      <div className="content-stretch flex flex-col gap-[12px] items-end relative shrink-0 w-[200px]">
-                        <div className="content-stretch flex flex-col gap-[4px] items-start relative shrink-0 w-full">
-                          <div className="bg-[#f0f8f8] box-border content-stretch flex gap-[10px] items-center justify-center px-[6px] py-[2px] relative rounded-[4px] shrink-0">
-                            <p className="font-medium leading-[16px] not-italic relative shrink-0 text-[#41a09e] text-[12px] text-nowrap tracking-[-0.24px] whitespace-pre">심화 해석판</p>
-                          </div>
-                          <div className="content-stretch flex flex-col items-start relative shrink-0 w-full">
-                            <div className="relative shrink-0 w-full">
-                              <div className="size-full">
-                                <div className="box-border content-stretch flex flex-col items-start px-px py-0 relative w-full">
-                                  <p className="font-medium leading-[23.5px] not-italic relative shrink-0 text-[15px] text-black tracking-[-0.3px] w-full">{recProduct.title}</p>
-                                </div>
-                              </div>
-                            </div>
-                            <div className="relative shrink-0 w-full">
-                              <div className="size-full">
-                                <div className="box-border content-stretch flex flex-col gap-[2px] items-start px-[2px] py-0 relative w-full">
-                                  <div className="content-stretch flex gap-[4px] items-center relative shrink-0">
-                                    <div className="box-border content-stretch flex gap-[8px] items-center px-px py-0 relative shrink-0">
-                                      <div className="content-stretch flex gap-[4px] items-center relative shrink-0">
-                                        <p className="[text-decoration-skip-ink:none] [text-underline-position:from-font] decoration-solid font-normal leading-[22px] line-through not-italic relative shrink-0 text-[#999999] text-[13px] text-nowrap whitespace-pre">{recProduct.price.toLocaleString()}원</p>
-                                      </div>
-                                    </div>
-                                  </div>
-                                  <div className="content-stretch flex gap-[2px] items-center relative shrink-0 w-full">
-                                    <div className="content-stretch flex font-bold gap-[2px] items-center leading-[20px] not-italic relative shrink-0 text-[15px] text-nowrap tracking-[-0.45px] whitespace-pre">
-                                      <p className="relative shrink-0 text-[#ff6678]">{recProduct.discountPercent}%</p>
-                                      <p className="relative shrink-0 text-black">{recProduct.discountPrice.toLocaleString()}원</p>
-                                    </div>
-                                  </div>
-                                  <div className="content-stretch flex gap-[2px] items-center not-italic relative shrink-0 text-[#48b2af] text-nowrap w-full whitespace-pre">
-                                    <p className="font-bold leading-[25px] relative shrink-0 text-[16px] tracking-[-0.32px]">9,900원</p>
-                                    <p className="font-medium leading-[16px] relative shrink-0 text-[11px]">쿠폰 적용가</p>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </button>
-                ))}
-                
-                {hasMoreCards && (
-                  <ShowMoreButton onClick={showMoreCards} />
-                )}
-              </div>
-            </div>
-          </div>
-
-
         </div>
+      </div>
 
-        {/* Bottom Button */}
-        <div className="fixed bottom-0 box-border content-stretch flex flex-col items-start left-1/2 shadow-[0px_-8px_16px_0px_rgba(255,255,255,0.76)] translate-x-[-50%] w-full max-w-[390px] z-10">
-          <div className="content-stretch flex flex-col items-start relative shrink-0 w-full">
-            <div className="bg-white relative shrink-0 w-full">
-              <div className="flex flex-col items-center justify-center size-full">
-                <div className="box-border content-stretch flex flex-col gap-[10px] items-center justify-center px-[20px] py-[12px] relative w-full">
-                  <div 
-                    onClick={() => {
-                      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-                      console.log('🆓 [FreeProductDetail] "무료로 풀이받기" 버튼 클릭');
-                      console.log('📌 [FreeProductDetail] product:', product);
-                      console.log('📌 [FreeProductDetail] product.id:', product.id);
-                      console.log('📌 [FreeProductDetail] product.type:', product.type);
-                      console.log('📌 [FreeProductDetail] onPurchase:', onPurchase);
-                      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-                      if (onPurchase) {
-                        onPurchase();  // ✅ 파라미터 없이 호출
-                      }
-                    }}
-                    className="bg-[#48b2af] h-[56px] relative rounded-[16px] shrink-0 w-full cursor-pointer"
-                  >
-                    <div className="flex flex-row items-center justify-center size-full">
-                      <div className="box-border content-stretch flex gap-[10px] h-[56px] items-center justify-center px-[12px] py-0 relative w-full">
-                        <div className="content-stretch flex gap-[4px] items-center relative shrink-0">
-                          <p className="font-medium leading-[25px] not-italic relative shrink-0 text-[16px] text-nowrap text-white tracking-[-0.32px] whitespace-pre">무료로 보기</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <HomeIndicatorLight />
+      {/* Bottom Button - Fixed outside scrollable area */}
+      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[390px] z-10 shadow-[0px_-8px_16px_0px_rgba(255,255,255,0.76)]">
+        <div className="bg-white px-[20px] py-[12px]">
+          <button
+            onClick={() => {
+              console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+              console.log('🆓 [FreeProductDetail] "무료로 풀이받기" 버튼 클릭');
+              console.log('📌 [FreeProductDetail] product:', product);
+              console.log('📌 [FreeProductDetail] product.id:', product.id);
+              console.log('📌 [FreeProductDetail] product.type:', product.type);
+              console.log('📌 [FreeProductDetail] onPurchase:', onPurchase);
+              console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+              if (onPurchase) {
+                onPurchase();
+              }
+            }}
+            className="w-full h-[56px] bg-[#48b2af] rounded-[16px] flex items-center justify-center cursor-pointer"
+          >
+            <p className="font-medium text-[16px] leading-[25px] text-white tracking-[-0.32px]">
+              무료로 보기
+            </p>
+          </button>
         </div>
+        <HomeIndicatorLight />
       </div>
     </div>
   );

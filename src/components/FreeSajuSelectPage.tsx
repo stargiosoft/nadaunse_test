@@ -7,7 +7,9 @@
 
 import { useState, useEffect, useLayoutEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { motion } from 'motion/react';
 import { supabase } from '../lib/supabase';
+import { toast } from '../lib/toast';
 import svgPaths from "../imports/svg-b51v8udqqu"; // ⭐️ SajuManagementPage와 동일한 SVG 사용
 import emptyStateSvgPaths from "../imports/svg-hw6oxtisye"; // Empty State 아이콘
 import { SajuKebabMenu } from './SajuKebabMenu';
@@ -177,7 +179,7 @@ export default function FreeSajuSelectPage({ productId, onBack }: FreeSajuSelect
   }, [productId, navigate, onBack]);
 
   // "다음" 버튼 클릭
-  const handleNext = async () => {
+  const handleNext = () => {
     if (!selectedSajuId) {
       alert('사주 정보를 선택해주세요.');
       return;
@@ -192,50 +194,50 @@ export default function FreeSajuSelectPage({ productId, onBack }: FreeSajuSelect
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.log('✅ [FreeSajuSelectPage] 다음 버튼 클릭');
     console.log('📌 [FreeSajuSelectPage] 선택된 사주:', selectedSaju);
-
-    // ⭐ 로그인 사용자인 경우 대표 사주 업데이트
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (user) {
-      console.log('🔄 [FreeSajuSelectPage] 대표 사주 업데이트 시작');
-
-      // 1단계: 해당 사용자의 모든 사주 is_primary=false로 변경
-      const { error: resetPrimaryError } = await supabase
-        .from('saju_records')
-        .update({ is_primary: false })
-        .eq('user_id', user.id);
-
-      if (resetPrimaryError) {
-        console.error('❌ [FreeSajuSelectPage] 대표 사주 초기화 실패:', resetPrimaryError);
-      } else {
-        console.log('✅ [FreeSajuSelectPage] 모든 사주 is_primary=false 설정 완료');
-      }
-
-      // 2단계: 선택된 사주만 is_primary=true로 변경
-      const { error: setPrimaryError } = await supabase
-        .from('saju_records')
-        .update({ is_primary: true })
-        .eq('id', selectedSajuId)
-        .eq('user_id', user.id);
-
-      if (setPrimaryError) {
-        console.error('❌ [FreeSajuSelectPage] 대표 사주 설정 실패:', setPrimaryError);
-      } else {
-        console.log('✅ [FreeSajuSelectPage] 선택된 사주를 대표 사주로 설정 완료:', selectedSajuId);
-      }
-    } else {
-      console.log('ℹ️ [FreeSajuSelectPage] 로그아웃 사용자 - 대표 사주 업데이트 생략');
-    }
-
-    console.log('🔀 [FreeSajuSelectPage] 로딩 페이지로 이동');
+    console.log('🔀 [FreeSajuSelectPage] 로딩 페이지로 즉시 이동');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
-    // 로딩 페이지로 이동
+    // 🚀 UX 개선: 먼저 로딩 페이지로 이동 (즉시 반응)
     navigate(`/free-loading?contentId=${productId}&sajuRecordId=${selectedSajuId}&userName=${selectedSaju.full_name}`);
+
+    // ⭐ 백그라운드에서 대표 사주 업데이트 (navigate 후 비동기 처리)
+    (async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (user) {
+          console.log('🔄 [FreeSajuSelectPage] 백그라운드: 대표 사주 업데이트 시작');
+
+          // 1단계: 해당 사용자의 모든 사주 is_primary=false로 변경
+          await supabase
+            .from('saju_records')
+            .update({ is_primary: false })
+            .eq('user_id', user.id);
+
+          // 2단계: 선택된 사주만 is_primary=true로 변경
+          await supabase
+            .from('saju_records')
+            .update({ is_primary: true })
+            .eq('id', selectedSajuId)
+            .eq('user_id', user.id);
+
+          console.log('✅ [FreeSajuSelectPage] 백그라운드: 대표 사주 업데이트 완료');
+        }
+      } catch (error) {
+        console.error('❌ [FreeSajuSelectPage] 백그라운드: 대표 사주 업데이트 실패:', error);
+      }
+    })();
   };
 
   // 사주 정보 추가 버튼 클릭
   const handleAddSaju = () => {
+    // ⭐ 함께 보는 사주 20개 제한 체크
+    const otherSajuCount = sajuRecords.filter(r => r.notes !== '본인').length;
+    if (otherSajuCount >= 20) {
+      toast.warning('사주 정보는 최대 20개까지 등록할 수 있습니다.', { duration: 2200 });
+      return;
+    }
+
     console.log('➕ [FreeSajuSelectPage] 사주 정보 추가 버튼 클릭');
     console.log('🔀 [FreeSajuSelectPage] 사주 입력 페이지로 이동:', `/product/${productId}/free-saju-add`);
     navigate(`/product/${productId}/free-saju-add`);
@@ -558,9 +560,12 @@ export default function FreeSajuSelectPage({ productId, onBack }: FreeSajuSelect
                 {/* Button Group - 사주 정보 추가 + 다음 */}
                 <div className="content-stretch flex gap-[12px] items-start relative shrink-0 w-full">
                   {/* 사주 정보 추가 버튼 */}
-                  <div
+                  <motion.button
                     onClick={handleAddSaju}
-                    className="basis-0 grow h-[56px] min-h-px min-w-px relative rounded-[16px] shrink-0 bg-[#f0f8f8] cursor-pointer hover:bg-[#e0f0f0] transition-colors"
+                    onTouchStart={() => {}}
+                    whileTap={{ scale: 0.96 }}
+                    transition={{ duration: 0.1 }}
+                    className="basis-0 grow h-[56px] min-h-px min-w-px relative rounded-[16px] shrink-0 bg-[#f0f8f8] cursor-pointer border-none transition-colors duration-150 active:bg-[#e0f0f0]"
                   >
                     <div className="flex flex-row items-center justify-center size-full">
                       <div className="content-stretch flex items-center justify-center px-[12px] py-0 relative size-full">
@@ -571,12 +576,15 @@ export default function FreeSajuSelectPage({ productId, onBack }: FreeSajuSelect
                         </div>
                       </div>
                     </div>
-                  </div>
+                  </motion.button>
 
                   {/* 다음 버튼 */}
-                  <div
+                  <motion.button
                     onClick={handleNext}
-                    className="basis-0 grow h-[56px] min-h-px min-w-px relative rounded-[16px] shrink-0 bg-[#48b2af] cursor-pointer hover:bg-[#3a9794] transition-colors"
+                    onTouchStart={() => {}}
+                    whileTap={{ scale: 0.96 }}
+                    transition={{ duration: 0.1 }}
+                    className="basis-0 grow h-[56px] min-h-px min-w-px relative rounded-[16px] shrink-0 bg-[#48b2af] cursor-pointer border-none transition-colors duration-150 active:bg-[#3a9693]"
                   >
                     <div className="flex flex-row items-center justify-center size-full">
                       <div className="content-stretch flex items-center justify-center px-[12px] py-0 relative size-full">
@@ -587,7 +595,7 @@ export default function FreeSajuSelectPage({ productId, onBack }: FreeSajuSelect
                         </div>
                       </div>
                     </div>
-                  </div>
+                  </motion.button>
                 </div>
               </div>
             </div>

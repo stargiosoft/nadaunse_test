@@ -1,5 +1,6 @@
 import { useState, useEffect, useLayoutEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import { motion } from 'motion/react';
 import svgPaths from "../imports/svg-tta3ixz6w2";
 import emptyStateSvgPaths from "../imports/svg-hw6oxtisye";
 import { supabase } from '../lib/supabase';
@@ -170,11 +171,18 @@ export default function SajuSelectPage() {
   };
 
   const handleAddSaju = () => {
+    // ⭐ 함께 보는 사주 20개 제한 체크
+    const otherSajuCount = sajuList.filter(s => s.notes !== '본인').length;
+    if (otherSajuCount >= 20) {
+      toast.warning('사주 정보는 최대 20개까지 등록할 수 있습니다.', { duration: 2200 });
+      return;
+    }
+
     // ⭐ 관계 사주 추가 페이지로 이동 (함께 보는 사주 추가)
-    navigate('/saju/add', { 
-      state: { 
-        returnTo: `/product/${productId}/saju-select` 
-      } 
+    navigate('/saju/add', {
+      state: {
+        returnTo: `/product/${productId}/saju-select`
+      }
     });
   };
 
@@ -746,9 +754,12 @@ export default function SajuSelectPage() {
                 <div className="content-stretch flex flex-col items-center justify-center px-[20px] py-[12px] relative w-full">
                   <div className="content-stretch flex gap-[12px] items-start relative shrink-0 w-full">
                     {/* 사주 정보 추가 버튼 */}
-                    <button
+                    <motion.button
                       onClick={handleAddSaju}
-                      className="basis-0 grow min-h-px min-w-px relative rounded-[16px] shrink-0 bg-[#f0f8f8] h-[56px] cursor-pointer border-none"
+                      onTouchStart={() => {}}
+                      whileTap={{ scale: 0.96 }}
+                      transition={{ duration: 0.1 }}
+                      className="basis-0 grow min-h-px min-w-px relative rounded-[16px] shrink-0 bg-[#f0f8f8] h-[56px] cursor-pointer border-none transition-colors duration-150 active:bg-[#e0f0f0]"
                     >
                       <div className="flex flex-row items-center justify-center size-full">
                         <div className="content-stretch flex items-center justify-center px-[12px] py-0 relative size-full">
@@ -757,14 +768,17 @@ export default function SajuSelectPage() {
                           </div>
                         </div>
                       </div>
-                    </button>
+                    </motion.button>
 
                     {/* 다음 버튼 */}
-                    <button
+                    <motion.button
                       onClick={handleNext}
+                      onTouchStart={() => {}}
                       disabled={!selectedSajuId}
-                      className={`basis-0 grow min-h-px min-w-px relative rounded-[16px] shrink-0 h-[56px] cursor-pointer border-none ${
-                        selectedSajuId ? 'bg-[#48b2af]' : 'bg-[#f8f8f8]'
+                      whileTap={selectedSajuId ? { scale: 0.96 } : {}}
+                      transition={{ duration: 0.1 }}
+                      className={`basis-0 grow min-h-px min-w-px relative rounded-[16px] shrink-0 h-[56px] cursor-pointer border-none transition-colors duration-150 ${
+                        selectedSajuId ? 'bg-[#48b2af] active:bg-[#3a9693]' : 'bg-[#f8f8f8]'
                       }`}
                     >
                       <div className="flex flex-row items-center justify-center size-full">
@@ -776,7 +790,7 @@ export default function SajuSelectPage() {
                           </div>
                         </div>
                       </div>
-                    </button>
+                    </motion.button>
                   </div>
                 </div>
               </div>

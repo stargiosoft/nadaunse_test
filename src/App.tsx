@@ -43,7 +43,8 @@ import TarotDemo from './pages/TarotDemo'; // ⭐ 타로 데모 페이지
 import { allProducts } from './data/products';
 import { initGA, trackPageView } from './utils/analytics';
 import { supabase } from './lib/supabase';
-import { Toaster } from 'sonner';
+import { Toaster, toast } from 'sonner';
+import { Toast } from './components/ui/Toast';
 import { prefetchZodiacImages } from './lib/zodiacUtils'; // 🔥 이미지 프리페칭
 import { DEV } from './lib/env'; // ⭐ 프로덕션 환경 체크
 import { initTestMode, isTestMode } from './lib/testAuth'; // 🧪 TestSprite 테스트 모드
@@ -74,11 +75,69 @@ function HistoryDebug() {
   return null;
 }
 
+// ⭐ 로그인 성공 토스트 표시 컴포넌트
+function LoginToast() {
+  const location = useLocation();
+
+  useEffect(() => {
+    // 페이지 로드 후 약간의 딜레이를 주어 안정적으로 토스트 표시
+    const timer = setTimeout(() => {
+      // sessionStorage에서 로그인 토스트 플래그 확인
+      const showLoginToast = sessionStorage.getItem('show_login_toast');
+
+      console.log('🔍 [LoginToast] 플래그 체크:', showLoginToast, 'pathname:', location.pathname);
+
+      if (showLoginToast === 'true') {
+        // 플래그 즉시 삭제 (중복 표시 방지)
+        sessionStorage.removeItem('show_login_toast');
+
+        // 토스트 표시 (2.2초간)
+        toast.custom(
+          () => <Toast type="positive" message="로그인 되었어요, 반가워요" />,
+          { duration: 2200 }
+        );
+
+        console.log('🎉 [LoginToast] 로그인 성공 토스트 표시');
+      }
+    }, 100); // 100ms 딜레이
+
+    return () => clearTimeout(timer);
+  }, [location.key]); // location.key로 페이지 이동 감지 (더 정확함)
+
+  return null;
+}
+
 // GA 초기화 컴포넌트
 function GAInit() {
   const location = useLocation();
 
   useEffect(() => {
+    // 🔐 세션 자동 갱신 (앱 시작 시)
+    const refreshUserSession = async () => {
+      const userJson = localStorage.getItem('user');
+      if (!userJson) return; // 로그인 안 된 상태면 스킵
+
+      try {
+        console.log('🔄 [Session] 세션 갱신 시도...');
+        const { data, error } = await supabase.auth.refreshSession();
+
+        if (error) {
+          console.warn('⚠️ [Session] 세션 갱신 실패:', error.message);
+          // 세션 갱신 실패해도 localStorage user는 유지 (오프라인 대응)
+          // 실제 API 호출 시 401 에러가 나면 그때 로그아웃 처리
+          return;
+        }
+
+        if (data.session) {
+          console.log('✅ [Session] 세션 갱신 성공');
+        }
+      } catch (err) {
+        console.error('❌ [Session] 세션 갱신 중 에러:', err);
+      }
+    };
+
+    refreshUserSession();
+
     // 🧪 TestSprite 테스트 모드 초기화
     if (isTestMode()) {
       initTestMode().then((success) => {
@@ -555,6 +614,7 @@ function BirthInfoPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const goBack = useGoBack(`/product/${id}`); // ⭐ 직전 페이지로 (fallback: 콘텐츠 상세)
   const [product, setProduct] = useState<Product | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [hasSajuInfo, setHasSajuInfo] = useState<boolean | null>(null); // ⭐ 사주 정보 존재 여부
@@ -696,7 +756,7 @@ function BirthInfoPage() {
     return (
       <FreeBirthInfoInput
         productId={id || ''}
-        onBack={() => navigate(`/product/${id}`)}
+        onBack={goBack} // ⭐ 직전 페이지로 (구매내역에서 진입 시 구매내역으로 복귀)
       />
     );
   }
@@ -706,10 +766,7 @@ function BirthInfoPage() {
   return (
     <BirthInfoInput
       productId={id || ''}
-      onBack={() => {
-        // ⭐️ 결제 완료 후에는 콘텐츠 상세 페이지로 이동
-        navigate(`/product/${id}`);
-      }}
+      onBack={goBack} // ⭐ 직전 페이지로 (구매내역에서 진입 시 구매내역으로 복귀)
       onComplete={(recordId: string, userName?: string) => {
         if (product.type === 'free') {
           navigate(`/product/${id}/result/free`, { state: { recordId, userName } });
@@ -986,6 +1043,7 @@ function ProfilePageWrapper() {
 // Login Page New Wrapper
 function LoginPageNewWrapper() {
   const navigate = useNavigate();
+  const goBack = useGoBack('/'); // ⭐ 직전 페이지로 돌아가기 (fallback: 홈)
 
   // ⭐ 이미 로그인된 상태면 홈으로 리다이렉트 (뒤로가기로 돌아왔을 때 처리)
   useEffect(() => {
@@ -998,10 +1056,14 @@ function LoginPageNewWrapper() {
 
   const handleLoginSuccess = (user: any) => {
     console.log('🎉 로그인 성공! user:', user);
+
+    // ⭐ 로그인 성공 토스트 표시 플래그 저장
+    sessionStorage.setItem('show_login_toast', 'true');
+
     // 리다이렉트 URL 확인
     const redirectUrl = localStorage.getItem('redirectAfterLogin');
     console.log('📍 리다이렉트 URL 확인:', redirectUrl);
-    
+
     if (redirectUrl) {
       console.log('✅ 리다이렉트 URL 존재 → 이동:', redirectUrl);
       localStorage.removeItem('redirectAfterLogin');
@@ -1014,7 +1076,7 @@ function LoginPageNewWrapper() {
 
   return (
     <LoginPageNew
-      onBack={() => navigate('/')}
+      onBack={goBack} // ⭐ 직전 페이지로 돌아가기
       onLoginSuccess={handleLoginSuccess}
       onNavigateToTerms={() => navigate('/terms')}
       onNavigateToExistingAccount={(provider) => {
@@ -1096,6 +1158,9 @@ function WelcomeCouponPageWrapper() {
   const handleClose = () => {
     // ⭐ 환영 페이지를 봤다는 플래그 설정
     sessionStorage.setItem('welcomePageViewed', 'true');
+
+    // ⭐ 신규 회원 로그인 완료 토스트 표시 플래그 저장
+    sessionStorage.setItem('show_login_toast', 'true');
 
     // redirectAfterLogin 확인
     const redirectUrl = localStorage.getItem('redirectAfterLogin');
@@ -1495,6 +1560,7 @@ export default function App() {
       <ErrorBoundary>
         <HistoryDebug />
         <GAInit />
+        <LoginToast />
         <PortOneInit />
         <Routes>
           <Route path="/" element={<HomePage />} />

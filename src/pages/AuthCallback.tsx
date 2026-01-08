@@ -140,10 +140,13 @@ export default function AuthCallback() {
         }
         console.log('🍪 쿠키 저장 완료');
 
+        // ⭐ 로그인 성공 토스트 표시 플래그 저장
+        sessionStorage.setItem('show_login_toast', 'true');
+
         // 리다이렉트 URL 확인
         const redirectUrl = localStorage.getItem('redirectAfterLogin');
         console.log('📍 저장된 리다이렉트 URL:', redirectUrl);
-        
+
         if (redirectUrl) {
           console.log('✅ 리다이렉트 URL 존재 → 이동:', redirectUrl);
           localStorage.removeItem('redirectAfterLogin');

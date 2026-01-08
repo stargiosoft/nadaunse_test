@@ -950,6 +950,7 @@ export default function BirthInfoInput({ productId, onBack, onComplete }: BirthI
                 <div className="content-stretch flex flex-col items-center justify-center px-[20px] py-[12px] relative w-full">
                   <motion.button
                     onClick={handleSubmit}
+                    onTouchStart={() => {}}
                     disabled={!isFormValid() || isSubmitting}
                     whileTap={isFormValid() && !isSubmitting ? { scale: 0.96 } : {}}
                     transition={{ duration: 0.1 }}
@@ -957,7 +958,7 @@ export default function BirthInfoInput({ productId, onBack, onComplete }: BirthI
                       isFormValid() && !isSubmitting
                         ? 'bg-[#48b2af] active:bg-[#3a9693]'
                         : 'bg-[#f8f8f8]'
-                    } content-stretch flex h-[56px] items-center justify-center px-[12px] py-0 relative rounded-[16px] shrink-0 w-full cursor-pointer border-none transition-colors`}
+                    } content-stretch flex h-[56px] items-center justify-center px-[12px] py-0 relative rounded-[16px] shrink-0 w-full cursor-pointer border-none transition-colors duration-150`}
                   >
                     <div className="content-stretch flex gap-[4px] items-center relative shrink-0">
                       <p className={`font-['Pretendard_Variable:Medium',sans-serif] font-medium leading-[25px] relative shrink-0 text-[16px] text-nowrap tracking-[-0.32px] ${

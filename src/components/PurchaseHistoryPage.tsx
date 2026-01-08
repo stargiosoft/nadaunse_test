@@ -209,22 +209,28 @@ export default function PurchaseHistoryPage() {
             
             if (sajuError) {
               console.error('❌ [구매내역] 사주 정보 조회 실패:', sajuError);
-              // 에러 시 사주 입력 페이지로 이동
-              navigate(`/product/${item.content_id}/birthinfo?orderId=${item.id}`);
+              // 에러 시 사주 입력 페이지로 이동 (canGoBack 상태 추가)
+              navigate(`/product/${item.content_id}/birthinfo?orderId=${item.id}`, {
+                state: { canGoBack: true, fromPath: '/purchase-history' }
+              });
               return;
             }
-            
+
             const hasSajuRecords = sajuRecords && sajuRecords.length > 0;
             console.log('📊 [구매내역] 등록된 사주 개수:', sajuRecords?.length || 0);
-            
+
             if (hasSajuRecords) {
-              // 등록된 사주 정보가 있으면 → 사주 선택 페이지로
+              // 등록된 사주 정보가 있으면 → 사주 선택 페이지로 (canGoBack 상태 추가)
               console.log('✅ [구매내역] 등록된 사주 있음 → 사주 선택 페이지로 이동');
-              navigate(`/product/${item.content_id}/saju-select?orderId=${item.id}`);
+              navigate(`/product/${item.content_id}/saju-select?orderId=${item.id}`, {
+                state: { canGoBack: true, fromPath: '/purchase-history' }
+              });
             } else {
-              // 등록된 사주 정보가 없으면 → 사주 입력 페이지로
+              // 등록된 사주 정보가 없으면 → 사주 입력 페이지로 (canGoBack 상태 추가)
               console.log('✅ [구매내역] 등록된 사주 없음 → 사주 입력 페이지로 이동');
-              navigate(`/product/${item.content_id}/birthinfo?orderId=${item.id}`);
+              navigate(`/product/${item.content_id}/birthinfo?orderId=${item.id}`, {
+                state: { canGoBack: true, fromPath: '/purchase-history' }
+              });
             }
           }
           return;
