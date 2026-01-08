@@ -338,28 +338,18 @@ export default function FreeProductDetail({ product, onBack, onProductClick, onB
               </div>
             </div>
             
-            <div className="relative w-full">
-              <div 
+            <div className="relative w-full -mx-[20px] px-[20px]">
+              <div
                 ref={sliderRef}
                 id="slider-container"
-                className="content-stretch flex gap-[12px] items-start overflow-x-auto overflow-y-visible scrollbar-hide relative shrink-0 w-full cursor-grab select-none snap-x snap-mandatory"
-                style={{
-                  scrollbarWidth: 'none',
-                  msOverflowStyle: 'none',
-                  WebkitOverflowScrolling: 'touch',
-                  overscrollBehaviorX: 'contain',
-                  touchAction: 'pan-x pan-y'
-                }}
-                onMouseDown={handleMouseDown}
-                onMouseMove={handleMouseMove}
-                onMouseUp={handleMouseUp}
-                onMouseLeave={handleMouseLeave}
+                className="flex gap-[12px] overflow-x-auto pb-[4px] items-stretch"
+                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
               >
                 {visibleRecommendedProducts.map((recProduct, index) => (
                   <div 
                     key={recProduct.id}
                     onClick={() => onProductClick?.(recProduct.id)}
-                    className="content-stretch flex flex-col gap-[8px] items-start relative shrink-0 cursor-pointer snap-start"
+                    className="flex-none w-[200px] cursor-pointer"
                   >
                     <div className="content-stretch flex flex-col gap-[8px] items-start relative shrink-0 w-full">
                       <div className="h-[120px] pointer-events-none relative rounded-[12px] shrink-0 w-[200px]">
