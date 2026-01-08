@@ -104,40 +104,40 @@ export default function FreeProductDetail({ product, onBack, onProductClick, onB
   const hasMoreCards = visibleCards < recommendedProducts.length;
 
   return (
-    <div className="bg-white relative min-h-screen w-full flex justify-center">
-      <div className="w-full max-w-[390px] relative">
-        {/* Top Navigation */}
-        <div className="fixed content-stretch flex flex-col items-start left-1/2 -translate-x-1/2 top-0 w-full max-w-[390px] z-10 bg-white">
-          
-          <div className="content-stretch flex flex-col items-start relative shrink-0 w-full">
-            <div className="bg-white h-[52px] relative shrink-0 w-full">
-              <div className="flex flex-col justify-center size-full">
-                <div className="box-border content-stretch flex flex-col gap-[10px] h-[52px] items-start justify-center px-[12px] py-[4px] relative w-full">
-                  <div className="content-stretch flex items-center justify-between relative shrink-0 w-full">
-                    <div 
-                      onClick={onBack}
-                      className="box-border content-stretch flex gap-[10px] items-center justify-center p-[4px] relative rounded-[12px] shrink-0 size-[44px] cursor-pointer"
-                    >
-                      <ArrowLeft className="w-6 h-6 text-[#848484]" />
-                    </div>
-                    <p className="basis-0 font-semibold grow leading-[25.5px] min-h-px min-w-px not-italic overflow-ellipsis overflow-hidden relative shrink-0 text-[18px] text-black text-center text-nowrap tracking-[-0.36px]">
-                      {product.title}
-                    </p>
-                    <div 
-                      onClick={onBack}
-                      className="box-border content-stretch flex gap-[10px] items-center justify-center p-[4px] relative rounded-[12px] shrink-0 size-[44px] cursor-pointer"
-                    >
-                      <Home className="w-6 h-6 text-[#848484]" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+    <div
+      className="bg-white flex flex-col w-full max-w-[390px] mx-auto relative overflow-hidden"
+      style={{ height: '100dvh' }}
+    >
+      {/* Top Navigation - Sticky */}
+      <div className="sticky top-0 z-20 bg-white shrink-0">
+        <div className="h-[52px] flex items-center justify-between px-[12px]">
+          <div
+            onClick={onBack}
+            className="flex items-center justify-center size-[44px] rounded-[12px] cursor-pointer"
+          >
+            <ArrowLeft className="w-6 h-6 text-[#848484]" />
+          </div>
+          <p className="font-semibold text-[18px] leading-[25.5px] text-black text-center tracking-[-0.36px] truncate max-w-[200px]">
+            {product.title}
+          </p>
+          <div
+            onClick={onBack}
+            className="flex items-center justify-center size-[44px] rounded-[12px] cursor-pointer"
+          >
+            <Home className="w-6 h-6 text-[#848484]" />
           </div>
         </div>
+      </div>
 
-        {/* Content */}
-        <div className="pt-[99px] pb-[120px]">
+      {/* Scrollable Content */}
+      <div
+        className="flex-1 overflow-y-auto"
+        style={{
+          WebkitOverflowScrolling: 'touch',
+          overflowAnchor: 'none'
+        }}
+      >
+        <div className="pb-[120px]">
           {/* Product Image & Info */}
           <div className="content-stretch flex flex-col gap-[24px] items-start relative shrink-0 w-full">
             <div className="aspect-[391/270] relative shrink-0 w-full">
@@ -353,44 +353,33 @@ export default function FreeProductDetail({ product, onBack, onProductClick, onB
             </div>
           </div>
 
-
         </div>
+      </div>
 
-        {/* Bottom Button */}
-        <div className="fixed bottom-0 box-border content-stretch flex flex-col items-start left-1/2 shadow-[0px_-8px_16px_0px_rgba(255,255,255,0.76)] translate-x-[-50%] w-full max-w-[390px] z-10">
-          <div className="content-stretch flex flex-col items-start relative shrink-0 w-full">
-            <div className="bg-white relative shrink-0 w-full">
-              <div className="flex flex-col items-center justify-center size-full">
-                <div className="box-border content-stretch flex flex-col gap-[10px] items-center justify-center px-[20px] py-[12px] relative w-full">
-                  <div 
-                    onClick={() => {
-                      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-                      console.log('🆓 [FreeProductDetail] "무료로 풀이받기" 버튼 클릭');
-                      console.log('📌 [FreeProductDetail] product:', product);
-                      console.log('📌 [FreeProductDetail] product.id:', product.id);
-                      console.log('📌 [FreeProductDetail] product.type:', product.type);
-                      console.log('📌 [FreeProductDetail] onPurchase:', onPurchase);
-                      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-                      if (onPurchase) {
-                        onPurchase();  // ✅ 파라미터 없이 호출
-                      }
-                    }}
-                    className="bg-[#48b2af] h-[56px] relative rounded-[16px] shrink-0 w-full cursor-pointer"
-                  >
-                    <div className="flex flex-row items-center justify-center size-full">
-                      <div className="box-border content-stretch flex gap-[10px] h-[56px] items-center justify-center px-[12px] py-0 relative w-full">
-                        <div className="content-stretch flex gap-[4px] items-center relative shrink-0">
-                          <p className="font-medium leading-[25px] not-italic relative shrink-0 text-[16px] text-nowrap text-white tracking-[-0.32px] whitespace-pre">무료로 보기</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <HomeIndicatorLight />
+      {/* Bottom Button - Fixed outside scrollable area */}
+      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[390px] z-10 shadow-[0px_-8px_16px_0px_rgba(255,255,255,0.76)]">
+        <div className="bg-white px-[20px] py-[12px]">
+          <button
+            onClick={() => {
+              console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+              console.log('🆓 [FreeProductDetail] "무료로 풀이받기" 버튼 클릭');
+              console.log('📌 [FreeProductDetail] product:', product);
+              console.log('📌 [FreeProductDetail] product.id:', product.id);
+              console.log('📌 [FreeProductDetail] product.type:', product.type);
+              console.log('📌 [FreeProductDetail] onPurchase:', onPurchase);
+              console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+              if (onPurchase) {
+                onPurchase();
+              }
+            }}
+            className="w-full h-[56px] bg-[#48b2af] rounded-[16px] flex items-center justify-center cursor-pointer"
+          >
+            <p className="font-medium text-[16px] leading-[25px] text-white tracking-[-0.32px]">
+              무료로 보기
+            </p>
+          </button>
         </div>
+        <HomeIndicatorLight />
       </div>
     </div>
   );
