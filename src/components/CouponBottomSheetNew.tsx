@@ -119,7 +119,7 @@ export default function CouponBottomSheetNew({
             </div>
 
             {/* Content - 스크롤 제어 변경 */}
-            <div className="flex-1 overflow-y-auto flex flex-col pb-[100px]">
+            <div className="overflow-y-auto flex flex-col pb-[20px]">
               {/* 상단 상품 정보 (고정) */}
               <div className="px-[20px] flex flex-col gap-[14px] shrink-0">
                 {/* Product card */}
