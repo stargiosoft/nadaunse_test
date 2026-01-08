@@ -519,15 +519,13 @@ export default function SajuManagementPage({ onBack, onNavigateToInput, onNaviga
         }
       }
 
-      // 토스트 메시지 제거 (디자인 수정 필요)
-      // toast.success('선택한 사주 정보가 삭제되었어요.', { duration: 2200 });
-
-      // 4단계: 목록 새로고침
+      // 4단계: 토스트 + 목록 새로고침
+      toast.success('삭제되었습니다.');
       await loadSajuList();
       setSelectedSajuForKebab(null);
     } catch (error) {
       console.error('❌ [사주삭제] 삭제 실패:', error);
-      // toast.error('사주 정보 삭제에 실패했습니다');
+      toast.error('삭제에 실패했습니다.');
     } finally {
       setIsDeleting(false);
     }
