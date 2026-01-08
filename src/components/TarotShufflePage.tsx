@@ -182,6 +182,12 @@ export default function TarotShufflePage() {
   };
 
   const handleClose = () => {
+    // ⭐ 디버깅: from 파라미터 값 확인
+    console.log('🔍 [TarotShufflePage] handleClose 호출');
+    console.log('🔍 [TarotShufflePage] from 파라미터:', from);
+    console.log('🔍 [TarotShufflePage] location.search:', location.search);
+    console.log('🔍 [TarotShufflePage] 전체 URL:', window.location.href);
+
     // ⭐ from 파라미터에 따라 분기 처리
     if (from === 'purchase') {
       // 구매내역에서 접근한 경우 → 구매내역으로 이동
@@ -189,7 +195,7 @@ export default function TarotShufflePage() {
       navigate('/purchase-history', { replace: true });
     } else {
       // 결제 후 바로 접근한 경우 → 홈으로 이동
-      console.log('✅ [TarotShufflePage] 결제 후 접근 → 홈으로 이동');
+      console.log('✅ [TarotShufflePage] 결제 후 접근 (from=' + from + ') → 홈으로 이동');
       navigate('/');
     }
   };

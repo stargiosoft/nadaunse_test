@@ -262,6 +262,8 @@ export default function SajuResultPage() {
       const fromParam = from ? `&from=${from}` : '';
       const contentIdParam = contentId ? `&contentId=${contentId}` : '';
       console.log('🎴 [SajuResultPage] 다음 질문이 타로 → 타로 셔플 페이지로 이동');
+      console.log('🎴 [SajuResultPage] from 파라미터:', from);
+      console.log('🎴 [SajuResultPage] fromParam:', fromParam);
       console.log('🎴 [SajuResultPage] 이동 URL:', `/tarot/shuffle?orderId=${orderId}&questionOrder=${nextAnswer.question_order}${contentIdParam}${fromParam}`);
       navigate(`/tarot/shuffle?orderId=${orderId}&questionOrder=${nextAnswer.question_order}${contentIdParam}${fromParam}`);
       return;

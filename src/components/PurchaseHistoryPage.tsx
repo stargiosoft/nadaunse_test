@@ -247,8 +247,8 @@ export default function PurchaseHistoryPage() {
 
         if (questionsError) {
           console.error('❌ [구매내역] 질문 개수 조회 실패:', questionsError);
-          // 에러 시 일단 결과 페이지로 이동
-          navigate(`/result/saju?orderId=${item.id}&contentId=${item.content_id}`);
+          // 에러 시 일단 결과 페이지로 이동 (from=purchase 포함)
+          navigate(`/result/saju?orderId=${item.id}&contentId=${item.content_id}&from=purchase`);
           return;
         }
 
