@@ -11,6 +11,56 @@ import svgPathsLogo from "../imports/svg-7fu3k5931y";
 
 type TabCategory = '전체' | '개인운세' | '연애' | '이별' | '궁합' | '재물' | '직업' | '시험/학업' | '건강' | '인간관계' | '자녀' | '이사/매매' | '기타';
 
+/**
+ * ⭐ 홈 필터 초기값 캐시
+ * - useState 초기화 시 여러 번 호출되어도 같은 값을 반환하도록 캐시
+ * - 현재 마운트 사이클이 끝나면 자동으로 초기화 (setTimeout 0ms)
+ */
+let homeFilterCache: { category: TabCategory; contentType: 'all' | 'paid' | 'free' } | null = null;
+
+/**
+ * ⭐ 홈 필터 초기값 헬퍼 함수
+ * - '다른 운세 보기' 버튼으로 이동 시 카테고리 필터 자동 선택
+ * - localStorage의 homeFilter를 읽고 즉시 제거 (일회성)
+ */
+function getInitialHomeFilter(): { category: TabCategory; contentType: 'all' | 'paid' | 'free' } {
+  // 이미 캐시가 있으면 반환 (같은 마운트 사이클에서 두 번 호출 방지)
+  if (homeFilterCache !== null) {
+    return homeFilterCache;
+  }
+
+  const defaultFilter = { category: '전체' as TabCategory, contentType: 'all' as const };
+
+  try {
+    const homeFilter = localStorage.getItem('homeFilter');
+    if (homeFilter) {
+      const parsed = JSON.parse(homeFilter);
+      localStorage.removeItem('homeFilter'); // 일회성이므로 바로 제거
+      console.log('🎯 [HomePage] homeFilter 적용:', parsed);
+
+      // category 유효성 검사
+      const validCategories: TabCategory[] = ['전체', '개인운세', '연애', '이별', '궁합', '재물', '직업', '시험/학업', '건강', '인간관계', '자녀', '이사/매매', '기타'];
+      const category = validCategories.includes(parsed.category) ? parsed.category : '전체';
+
+      // contentType 유효성 검사
+      const validTypes = ['all', 'paid', 'free'] as const;
+      const contentType = validTypes.includes(parsed.contentType) ? parsed.contentType : 'all';
+
+      homeFilterCache = { category, contentType };
+    } else {
+      homeFilterCache = defaultFilter;
+    }
+  } catch (e) {
+    console.error('❌ [HomePage] homeFilter 파싱 실패:', e);
+    homeFilterCache = defaultFilter;
+  }
+
+  // ⭐ 현재 동기 실행이 끝난 후 캐시 초기화 (다음 마운트를 위해)
+  setTimeout(() => { homeFilterCache = null; }, 0);
+
+  return homeFilterCache;
+}
+
 function Notch() {
   return (
     <div className="absolute h-[30px] left-[103px] top-[-2px] w-[183px]" data-name="Notch">
@@ -514,8 +564,10 @@ function HomeIndicatorLight() {
 export default function HomePage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [selectedCategory, setSelectedCategory] = useState<TabCategory>('전체');
-  const [selectedType, setSelectedType] = useState<'all' | 'paid' | 'free'>('all');
+  // ⭐ 초기값: localStorage의 homeFilter가 있으면 해당 값 사용 (다른 운세 보기 버튼으로 이동 시)
+  // - 함수로 호출하여 컴포넌트 마운트 시마다 새로 읽음
+  const [selectedCategory, setSelectedCategory] = useState<TabCategory>(() => getInitialHomeFilter().category);
+  const [selectedType, setSelectedType] = useState<'all' | 'paid' | 'free'>(() => getInitialHomeFilter().contentType);
   const [allContents, setAllContents] = useState<MasterContent[]>([]);
   const [featuredContent, setFeaturedContent] = useState<MasterContent | null>(null);
   const [currentPage, setCurrentPage] = useState(0);

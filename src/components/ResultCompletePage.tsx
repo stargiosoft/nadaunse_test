@@ -251,6 +251,7 @@ export default function ResultCompletePage({ onBack, onClose }: ResultCompletePa
   const [isLoadingContents, setIsLoadingContents] = useState(false);
   const [displayCount, setDisplayCount] = useState(6);
   const [isCheckingCoupon, setIsCheckingCoupon] = useState(true); // ⭐ 쿠폰 체크 중 상태
+  const [contentCategory, setContentCategory] = useState<string | null>(null); // ⭐ 현재 콘텐츠의 카테고리
 
   // ⭐ 페이지 진입 시 오버스크롤(바운스) 방지
   useEffect(() => {
@@ -260,12 +261,13 @@ export default function ResultCompletePage({ onBack, onClose }: ResultCompletePa
     };
   }, []);
 
-  // ⭐ 페이지 로드 시 쿠폰 발급 여부 체크 + 추천 콘텐츠 조회
+  // ⭐ 페이지 로드 시 쿠폰 발급 여부 체크 + 추천 콘텐츠 조회 + 현재 콘텐츠 카테고리 조회
   useEffect(() => {
     const initializePage = async () => {
       await Promise.all([
         checkCouponIssued(),
-        fetchRecommendedContents()
+        fetchRecommendedContents(),
+        fetchContentCategory()
       ]);
     };
 
@@ -363,6 +365,44 @@ export default function ResultCompletePage({ onBack, onClose }: ResultCompletePa
     }
   };
 
+  /**
+   * ⭐ 현재 주문의 콘텐츠 카테고리 조회
+   * - orderId로 orders 테이블에서 content_id 조회
+   * - content_id로 master_contents 테이블에서 category_main 조회
+   */
+  const fetchContentCategory = async () => {
+    try {
+      const orderId = location.state?.orderId;
+      if (!orderId) {
+        console.log('🔍 orderId 없음 - 카테고리 조회 스킵');
+        return;
+      }
+
+      console.log('🔍 콘텐츠 카테고리 조회 시작:', { orderId });
+
+      // orders → master_contents 조인해서 category_main 조회
+      const { data, error } = await supabase
+        .from('orders')
+        .select('content_id, master_contents(category_main)')
+        .eq('id', orderId)
+        .single();
+
+      if (error) {
+        console.error('❌ 콘텐츠 카테고리 조회 실패:', error);
+        return;
+      }
+
+      // master_contents가 객체로 반환됨
+      const category = (data?.master_contents as { category_main: string } | null)?.category_main;
+      if (category) {
+        console.log('✅ 콘텐츠 카테고리 조회 성공:', category);
+        setContentCategory(category);
+      }
+    } catch (error) {
+      console.error('❌ 콘텐츠 카테고리 조회 중 오류:', error);
+    }
+  };
+
   const handleBack = () => {
     if (onBack) {
       onBack();
@@ -384,11 +424,14 @@ export default function ResultCompletePage({ onBack, onClose }: ResultCompletePa
   };
 
   const handleViewOtherContents = () => {
-    // 홈으로 이동하면서 localStorage에 필터 정보 저장
+    // ⭐ 홈으로 이동하면서 localStorage에 필터 정보 저장
+    // - 현재 본 콘텐츠의 카테고리로 필터 자동 선택
+    // - 카테고리 정보가 없으면 '전체'로 설정
     localStorage.setItem('homeFilter', JSON.stringify({
-      category: '전체',
+      category: contentCategory || '전체',
       contentType: 'paid'
     }));
+    console.log('🏠 다른 운세 보기 클릭 - 홈 필터 설정:', { category: contentCategory || '전체' });
     navigate('/');
   };
 
