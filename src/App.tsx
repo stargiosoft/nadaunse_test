@@ -43,7 +43,8 @@ import TarotDemo from './pages/TarotDemo'; // ⭐ 타로 데모 페이지
 import { allProducts } from './data/products';
 import { initGA, trackPageView } from './utils/analytics';
 import { supabase } from './lib/supabase';
-import { Toaster } from 'sonner';
+import { Toaster, toast } from 'sonner';
+import { Toast } from './components/ui/Toast';
 import { prefetchZodiacImages } from './lib/zodiacUtils'; // 🔥 이미지 프리페칭
 import { DEV } from './lib/env'; // ⭐ 프로덕션 환경 체크
 import { initTestMode, isTestMode } from './lib/testAuth'; // 🧪 TestSprite 테스트 모드
@@ -70,6 +71,31 @@ function HistoryDebug() {
     console.log('📍 [히스토리] history.length:', window.history.length);
     // ⭐ window.scrollTo() 제거 - 브라우저 기본 스크롤 복원 사용
   }, [pathname]);
+
+  return null;
+}
+
+// ⭐ 로그인 성공 토스트 표시 컴포넌트
+function LoginToast() {
+  const location = useLocation();
+
+  useEffect(() => {
+    // sessionStorage에서 로그인 토스트 플래그 확인
+    const showLoginToast = sessionStorage.getItem('show_login_toast');
+
+    if (showLoginToast === 'true') {
+      // 플래그 즉시 삭제 (중복 표시 방지)
+      sessionStorage.removeItem('show_login_toast');
+
+      // 토스트 표시 (2.2초간)
+      toast.custom(
+        () => <Toast type="positive" message="로그인 되었어요, 반가워요" />,
+        { duration: 2200 }
+      );
+
+      console.log('🎉 [LoginToast] 로그인 성공 토스트 표시');
+    }
+  }, [location.pathname]); // 페이지 이동 시마다 체크
 
   return null;
 }
@@ -1098,6 +1124,9 @@ function WelcomeCouponPageWrapper() {
     // ⭐ 환영 페이지를 봤다는 플래그 설정
     sessionStorage.setItem('welcomePageViewed', 'true');
 
+    // ⭐ 신규 회원 로그인 완료 토스트 표시 플래그 저장
+    sessionStorage.setItem('show_login_toast', 'true');
+
     // redirectAfterLogin 확인
     const redirectUrl = localStorage.getItem('redirectAfterLogin');
 
@@ -1496,6 +1525,7 @@ export default function App() {
       <ErrorBoundary>
         <HistoryDebug />
         <GAInit />
+        <LoginToast />
         <PortOneInit />
         <Routes>
           <Route path="/" element={<HomePage />} />
