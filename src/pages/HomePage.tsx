@@ -1248,7 +1248,10 @@ export default function HomePage() {
   }, [hasMore, isLoading, loadMoreContents, isInitialLoading]);
 
   const handleUserIconClick = () => {
-    if (isLoggedIn) {
+    // localStorage 기준으로 즉시 체크 (비동기 세션 체크 지연 문제 해결)
+    const user = localStorage.getItem('user');
+    console.log('🔐 [프로필 클릭] user:', user ? '있음' : '없음', 'isLoggedIn:', isLoggedIn);
+    if (user || isLoggedIn) {
       navigate('/profile');
     } else {
       navigate('/login');
