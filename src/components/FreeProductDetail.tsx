@@ -352,7 +352,7 @@ export default function FreeProductDetail({ product, onBack, onProductClick, onB
                     className="flex-none w-[200px] cursor-pointer text-left"
                   >
                     <div className="content-stretch flex flex-col gap-[8px] items-start relative shrink-0 w-full">
-                      <div className="h-[120px] pointer-events-none relative rounded-[12px] shrink-0 w-[200px]">
+                      <div className="h-[120px] relative rounded-[12px] shrink-0 w-[200px] overflow-hidden">
                         <img alt="" className="absolute inset-0 max-w-none object-50%-50% object-cover rounded-[12px] size-full" src={recProduct.image} />
                         <div aria-hidden="true" className="absolute border border-[#f9f9f9] border-solid inset-[-1px] rounded-[13px]" />
                       </div>
