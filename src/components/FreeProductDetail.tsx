@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { ArrowLeft, Home } from 'lucide-react';
 import { ShowMoreButton } from './FreeContentDetailComponents';
 import svgPaths from "../imports/svg-pln046rtst";
@@ -86,11 +86,6 @@ function HomeIndicatorLight() {
 
 export default function FreeProductDetail({ product, onBack, onProductClick, onBannerClick, recommendedProducts = [], onPurchase }: FreeProductDetailProps) {
   const [visibleCards, setVisibleCards] = useState(6);
-  const [scrollPosition, setScrollPosition] = useState(0);
-  const sliderRef = useRef<HTMLDivElement>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [startX, setStartX] = useState(0);
-  const [scrollLeft, setScrollLeft] = useState(0);
 
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log('🎨 [FreeProductDetail] 컴포넌트 렌더링');
@@ -101,53 +96,8 @@ export default function FreeProductDetail({ product, onBack, onProductClick, onB
   console.log('📌 [FreeProductDetail] onPurchase 존재:', !!onPurchase);
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
-  const handleScroll = (direction: 'left' | 'right') => {
-    const cardWidth = 212; // 200px + 12px gap
-    const container = document.getElementById('slider-container');
-    if (!container) return;
-    
-    const newPosition = direction === 'right' 
-      ? Math.min(scrollPosition + cardWidth, (recommendedProducts.length - 1) * cardWidth)
-      : Math.max(scrollPosition - cardWidth, 0);
-    
-    setScrollPosition(newPosition);
-    container.scrollTo({ left: newPosition, behavior: 'smooth' });
-  };
-
   const showMoreCards = () => {
     setVisibleCards(prev => prev + 6);
-  };
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (!sliderRef.current) return;
-    setIsDragging(true);
-    setStartX(e.pageX - sliderRef.current.offsetLeft);
-    setScrollLeft(sliderRef.current.scrollLeft);
-    sliderRef.current.style.cursor = 'grabbing';
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging || !sliderRef.current) return;
-    e.preventDefault();
-    const x = e.pageX - sliderRef.current.offsetLeft;
-    const walk = (x - startX) * 1.5; // Scroll speed multiplier
-    sliderRef.current.scrollLeft = scrollLeft - walk;
-  };
-
-  const handleMouseUp = () => {
-    setIsDragging(false);
-    if (sliderRef.current) {
-      sliderRef.current.style.cursor = 'grab';
-    }
-  };
-
-  const handleMouseLeave = () => {
-    if (isDragging) {
-      setIsDragging(false);
-      if (sliderRef.current) {
-        sliderRef.current.style.cursor = 'grab';
-      }
-    }
   };
 
   const visibleRecommendedProducts = recommendedProducts.slice(0, visibleCards);
@@ -331,78 +281,75 @@ export default function FreeProductDetail({ product, onBack, onProductClick, onB
           </div>
 
           {/* Recommended Products Section - 이런 운세는 어때요? */}
-          <div className="content-stretch flex flex-col gap-[12px] items-start relative shrink-0 w-full px-[20px] mb-[52px]">
-            <div className="content-stretch flex items-center justify-between relative shrink-0 w-full">
-              <div className="basis-0 content-stretch flex gap-[10px] grow items-center justify-center min-h-px min-w-px relative shrink-0">
-                <p className="basis-0 font-semibold grow leading-[24px] min-h-px min-w-px not-italic relative shrink-0 text-[17px] text-black tracking-[-0.34px]">이런 운세는 어때요?</p>
-              </div>
+          <div className="bg-white px-[20px] pt-[32px] pb-[52px]">
+            {/* Section Title */}
+            <div className="mb-[12px]">
+              <p className="font-semibold text-[17px] leading-[24px] tracking-[-0.34px] text-black">
+                이런 운세는 어때요?
+              </p>
             </div>
-            
-            <div className="relative w-full">
-              <div
-                ref={sliderRef}
-                id="slider-container"
-                className="flex gap-[12px] overflow-x-auto pb-[4px] -mx-[20px] px-[20px] items-stretch"
-                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-              >
-                {visibleRecommendedProducts.map((recProduct, index) => (
-                  <button
-                    key={recProduct.id}
-                    onClick={() => onProductClick?.(recProduct.id)}
-                    className="flex-none w-[200px] cursor-pointer text-left"
-                  >
-                    <div className="content-stretch flex flex-col gap-[8px] items-start relative shrink-0 w-full">
-                      <div className="h-[120px] relative rounded-[12px] shrink-0 w-[200px] overflow-hidden">
-                        <img alt="" className="absolute inset-0 max-w-none object-50%-50% object-cover rounded-[12px] size-full" src={recProduct.image} />
-                        <div aria-hidden="true" className="absolute border border-[#f9f9f9] border-solid inset-[-1px] rounded-[13px]" />
+
+            {/* Content Cards - Horizontal Scroll (LoadingPage 스타일) */}
+            <div
+              className="flex gap-[12px] overflow-x-auto pb-[4px] -mx-[20px] px-[20px] items-stretch"
+              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+            >
+              {visibleRecommendedProducts.map((recProduct) => (
+                <button
+                  key={recProduct.id}
+                  onClick={() => onProductClick?.(recProduct.id)}
+                  className="flex-none w-[200px] cursor-pointer"
+                >
+                  <div className="flex flex-col gap-[8px]">
+                    {/* Thumbnail */}
+                    <div className="h-[120px] w-[200px] rounded-[12px] overflow-hidden bg-[#f9f9f9] relative">
+                      <img
+                        src={recProduct.image}
+                        alt={recProduct.title}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+
+                    {/* Info */}
+                    <div className="flex flex-col gap-[4px] items-start w-full">
+                      {/* Tag */}
+                      <div className="bg-[#f0f8f8] px-[6px] py-[2px] rounded-[4px]">
+                        <p className="font-medium text-[12px] leading-[16px] tracking-[-0.24px] text-[#41a09e]">
+                          심화 해석판
+                        </p>
                       </div>
-                      <div className="content-stretch flex flex-col gap-[12px] items-end relative shrink-0 w-[200px]">
-                        <div className="content-stretch flex flex-col gap-[4px] items-start relative shrink-0 w-full">
-                          <div className="bg-[#f0f8f8] box-border content-stretch flex gap-[10px] items-center justify-center px-[6px] py-[2px] relative rounded-[4px] shrink-0">
-                            <p className="font-medium leading-[16px] not-italic relative shrink-0 text-[#41a09e] text-[12px] text-nowrap tracking-[-0.24px] whitespace-pre">심화 해석판</p>
-                          </div>
-                          <div className="content-stretch flex flex-col items-start relative shrink-0 w-full">
-                            <div className="relative shrink-0 w-full">
-                              <div className="size-full">
-                                <div className="box-border content-stretch flex flex-col items-start px-px py-0 relative w-full">
-                                  <p className="font-medium leading-[23.5px] not-italic relative shrink-0 text-[15px] text-black tracking-[-0.3px] w-full">{recProduct.title}</p>
-                                </div>
-                              </div>
-                            </div>
-                            <div className="relative shrink-0 w-full">
-                              <div className="size-full">
-                                <div className="box-border content-stretch flex flex-col gap-[2px] items-start px-[2px] py-0 relative w-full">
-                                  <div className="content-stretch flex gap-[4px] items-center relative shrink-0">
-                                    <div className="box-border content-stretch flex gap-[8px] items-center px-px py-0 relative shrink-0">
-                                      <div className="content-stretch flex gap-[4px] items-center relative shrink-0">
-                                        <p className="[text-decoration-skip-ink:none] [text-underline-position:from-font] decoration-solid font-normal leading-[22px] line-through not-italic relative shrink-0 text-[#999999] text-[13px] text-nowrap whitespace-pre">{recProduct.price.toLocaleString()}원</p>
-                                      </div>
-                                    </div>
-                                  </div>
-                                  <div className="content-stretch flex gap-[2px] items-center relative shrink-0 w-full">
-                                    <div className="content-stretch flex font-bold gap-[2px] items-center leading-[20px] not-italic relative shrink-0 text-[15px] text-nowrap tracking-[-0.45px] whitespace-pre">
-                                      <p className="relative shrink-0 text-[#ff6678]">{recProduct.discountPercent}%</p>
-                                      <p className="relative shrink-0 text-black">{recProduct.discountPrice.toLocaleString()}원</p>
-                                    </div>
-                                  </div>
-                                  <div className="content-stretch flex gap-[2px] items-center not-italic relative shrink-0 text-[#48b2af] text-nowrap w-full whitespace-pre">
-                                    <p className="font-bold leading-[25px] relative shrink-0 text-[16px] tracking-[-0.32px]">9,900원</p>
-                                    <p className="font-medium leading-[16px] relative shrink-0 text-[11px]">쿠폰 적용가</p>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
+
+                      {/* Title */}
+                      <p className="font-medium text-[15px] leading-[23.5px] tracking-[-0.3px] text-black text-left w-full">
+                        {recProduct.title}
+                      </p>
+
+                      {/* Price */}
+                      <div className="flex flex-col gap-[2px] w-full">
+                        <p className="line-through text-[#999999] text-[13px] leading-[22px]">
+                          {recProduct.price.toLocaleString()}원
+                        </p>
+                        <div className="flex gap-[2px] items-center">
+                          <span className="font-bold text-[15px] leading-[20px] tracking-[-0.45px] text-[#ff6678]">
+                            {recProduct.discountPercent}%
+                          </span>
+                          <span className="font-bold text-[15px] leading-[20px] tracking-[-0.45px] text-black">
+                            {recProduct.discountPrice.toLocaleString()}원
+                          </span>
+                        </div>
+                        <div className="flex gap-[2px] items-center text-[#48b2af]">
+                          <span className="font-bold text-[16px] leading-[25px] tracking-[-0.32px]">9,900원</span>
+                          <span className="font-medium text-[11px] leading-[16px]">쿠폰 적용가</span>
                         </div>
                       </div>
                     </div>
-                  </button>
-                ))}
-                
-                {hasMoreCards && (
-                  <ShowMoreButton onClick={showMoreCards} />
-                )}
-              </div>
+                  </div>
+                </button>
+              ))}
+
+              {hasMoreCards && (
+                <ShowMoreButton onClick={showMoreCards} />
+              )}
             </div>
           </div>
 
