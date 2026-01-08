@@ -518,60 +518,10 @@ export default function FreeContentDetail({
 
           {/* Advertisement Banner */}
           <motion.div variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } } }}>
-            <AdBanner onClick={onBannerClick} />
+            <div className="mb-[130px]">
+              <AdBanner onClick={onBannerClick} />
+            </div>
           </motion.div>
-
-          {/* ⭐ 유료 콘텐츠 추천 섹션 - 가로 스크롤 */}
-          {displayedPaidContents.length > 0 && (
-            <motion.div variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } } }}>
-              <div className="content-stretch flex flex-col gap-[12px] items-start relative shrink-0 w-full mb-[120px] mt-[-12px]">
-                {/* 섹션 제목 */}
-                <div className="content-stretch flex flex-col gap-[12px] items-center relative shrink-0 w-full px-[20px]">
-                  <div className="content-stretch flex items-center justify-between relative shrink-0 w-full">
-                    <div className="basis-0 content-stretch flex grow items-center justify-center min-h-px min-w-px relative shrink-0">
-                      <p className="basis-0 font-semibold grow leading-[24px] min-h-px min-w-px not-italic relative shrink-0 text-[17px] text-black tracking-[-0.34px]">
-                        이런 운세는 어때요?
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* ⭐ 가로 스크롤 슬라이더 */}
-                <div className="w-[calc(100%_+_40px)] max-w-[440px] mx-[-20px] relative overflow-hidden select-none">
-                  <div 
-                    ref={sliderRef}
-                    onTouchStart={handleTouchStart}
-                    onTouchMove={handleTouchMove}
-                    onTouchEnd={handleTouchEnd}
-                    onMouseDown={handleMouseDown}
-                    onMouseMove={handleMouseMove}
-                    onMouseUp={handleMouseUp}
-                    onMouseLeave={handleMouseLeave}
-                    onClickCapture={handleClickCapture}
-                    className={`content-stretch flex gap-[12px] items-stretch relative shrink-0 w-full overflow-x-auto overflow-y-hidden scrollbar-hide px-[40px] overscroll-x-contain touch-pan-x ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
-                    style={{ scrollBehavior: isDragging ? 'auto' : 'smooth' }}
-                  >
-                    {displayedPaidContents.map((paidContent) => (
-                      <PaidContentCard
-                        key={paidContent.id}
-                        content={paidContent}
-                        onClick={() => {
-                          console.log('🚀 onContentClick 호출:', paidContent.id, paidContent.title);
-                          onContentClick?.(paidContent.id);
-                        }}
-                        couponDiscount={3000} // TODO: 실제 쿠폰 로직으로 교체
-                      />
-                    ))}
-                    
-                    {/* 더 볼래요 버튼 */}
-                    {hasMorePaidContents && (
-                      <ShowMoreButton onClick={loadMorePaidContents} />
-                    )}
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          )}
         </motion.div>
 
         {/* Bottom Button */}
