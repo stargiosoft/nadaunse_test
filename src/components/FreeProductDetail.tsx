@@ -1,11 +1,6 @@
-import { useState } from 'react';
 import { ArrowLeft, Home } from 'lucide-react';
-import { ShowMoreButton } from './FreeContentDetailComponents';
-import svgPaths from "../imports/svg-pln046rtst";
 import svgPathsBanner from "../imports/svg-1j0aq37vhy";
-import svgPathsSlider from "../imports/svg-4heccierrk";
 import bannerImg from "figma:asset/b236509a5f2172bc63b883ba8abf132659ed54d9.png";
-import img from "figma:asset/7b851936315a0976f82b567082641209095748c5.png";
 
 interface Product {
   id: number | string;  // ⭐️ UUID 지원을 위해 string 추가
@@ -23,57 +18,8 @@ interface Product {
 interface FreeProductDetailProps {
   product: Product;
   onBack: () => void;
-  onProductClick?: (productId: number) => void;
   onBannerClick?: () => void;
-  recommendedProducts?: Product[];
-  onPurchase?: () => void;  // ✅ 파라미터 없이 변경
-}
-
-function Notch() {
-  return (
-    <div className="absolute h-[30px] left-[103px] top-[-2px] w-[183px]">
-      <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 183 30">
-        <g id="Notch">
-          <path d={svgPaths.pf91bfc0} fill="var(--fill-0, black)" />
-        </g>
-      </svg>
-    </div>
-  );
-}
-
-function RightSide() {
-  return (
-    <div className="absolute h-[11.336px] right-[14.67px] top-[17.33px] w-[66.662px]">
-      <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 67 12">
-        <g id="Right Side">
-          <g id="Battery">
-            <path d={svgPaths.p3c576cf0} id="Rectangle" opacity="0.35" stroke="var(--stroke-0, black)" />
-            <path d={svgPaths.p1667d738} fill="var(--fill-0, black)" id="Combined Shape" opacity="0.4" />
-            <path d={svgPaths.p18fdac00} fill="var(--fill-0, black)" />
-          </g>
-          <path d={svgPaths.p344d52f0} fill="var(--fill-0, black)" id="Wifi" />
-          <path d={svgPaths.p3694c600} fill="var(--fill-0, black)" id="Mobile Signal" />
-        </g>
-      </svg>
-    </div>
-  );
-}
-
-function Time() {
-  return (
-    <div className="absolute h-[21px] left-[21px] top-[12px] w-[54px]">
-      <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 54 21">
-        <g id="Time">
-          <g id="9:41">
-            <path d={svgPaths.p24372f50} fill="var(--fill-0, black)" />
-            <path d={svgPaths.p3aa84e00} fill="var(--fill-0, black)" />
-            <path d={svgPaths.p2e6b3780} fill="var(--fill-0, black)" />
-            <path d={svgPaths.p12b0b900} fill="var(--fill-0, black)" />
-          </g>
-        </g>
-      </svg>
-    </div>
-  );
+  onPurchase?: () => void;
 }
 
 function HomeIndicatorLight() {
@@ -84,9 +30,7 @@ function HomeIndicatorLight() {
   );
 }
 
-export default function FreeProductDetail({ product, onBack, onProductClick, onBannerClick, recommendedProducts = [], onPurchase }: FreeProductDetailProps) {
-  const [visibleCards, setVisibleCards] = useState(6);
-
+export default function FreeProductDetail({ product, onBack, onBannerClick, onPurchase }: FreeProductDetailProps) {
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log('🎨 [FreeProductDetail] 컴포넌트 렌더링');
   console.log('📌 [FreeProductDetail] product:', product);
@@ -95,13 +39,6 @@ export default function FreeProductDetail({ product, onBack, onProductClick, onB
   console.log('📌 [FreeProductDetail] product.description:', product.description?.substring(0, 50));
   console.log('📌 [FreeProductDetail] onPurchase 존재:', !!onPurchase);
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-
-  const showMoreCards = () => {
-    setVisibleCards(prev => prev + 6);
-  };
-
-  const visibleRecommendedProducts = recommendedProducts.slice(0, visibleCards);
-  const hasMoreCards = visibleCards < recommendedProducts.length;
 
   return (
     <div
@@ -248,8 +185,8 @@ export default function FreeProductDetail({ product, onBack, onProductClick, onB
           </div>
 
           {/* Advertisement Banner */}
-          <div className="bg-[#f8f8f8] box-border content-stretch flex flex-col gap-[10px] items-start p-[20px] relative shrink-0 w-full mb-[52px]">
-            <div 
+          <div className="bg-[#f8f8f8] box-border content-stretch flex flex-col gap-[10px] items-start p-[20px] relative shrink-0 w-full mb-[130px]">
+            <div
               onClick={onBannerClick}
               className="bg-white relative rounded-[16px] shadow-[6px_7px_12px_0px_rgba(0,0,0,0.04),-3px_-3px_12px_0px_rgba(0,0,0,0.04)] shrink-0 w-full cursor-pointer"
             >
@@ -277,79 +214,6 @@ export default function FreeProductDetail({ product, onBack, onProductClick, onB
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
-
-          {/* Recommended Products Section - 이런 운세는 어때요? */}
-          <div className="bg-white px-[20px] pt-[32px] pb-[52px]">
-            {/* Section Title */}
-            <div className="mb-[12px]">
-              <p className="font-semibold text-[17px] leading-[24px] tracking-[-0.34px] text-black">
-                이런 운세는 어때요?
-              </p>
-            </div>
-
-            {/* Content Cards - Horizontal Scroll (LoadingPage와 동일) */}
-            <div
-              className="flex gap-[12px] overflow-x-auto overflow-y-visible pb-[4px] -mx-[20px] px-[20px] items-stretch"
-              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-            >
-              {visibleRecommendedProducts.map((recProduct) => (
-                <button
-                  key={recProduct.id}
-                  onClick={() => onProductClick?.(recProduct.id)}
-                  className="flex-none w-[200px] cursor-pointer"
-                >
-                  <div className="flex flex-col gap-[8px]">
-                    {/* Thumbnail */}
-                    <div className="h-[120px] w-[200px] rounded-[12px] overflow-hidden bg-[#f9f9f9] relative">
-                      <img
-                        src={recProduct.image}
-                        alt={recProduct.title}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-
-                    {/* Info */}
-                    <div className="flex flex-col gap-[4px] items-start w-full">
-                      {/* Tag */}
-                      <div className="bg-[#f0f8f8] px-[6px] py-[2px] rounded-[4px]">
-                        <p className="font-medium text-[12px] leading-[16px] tracking-[-0.24px] text-[#41a09e]">
-                          심화 해석판
-                        </p>
-                      </div>
-
-                      {/* Title */}
-                      <p className="font-medium text-[15px] leading-[23.5px] tracking-[-0.3px] text-black text-left w-full">
-                        {recProduct.title}
-                      </p>
-
-                      {/* Price */}
-                      <div className="flex flex-col gap-[2px] w-full">
-                        <p className="line-through text-[#999999] text-[13px] leading-[22px]">
-                          {recProduct.price.toLocaleString()}원
-                        </p>
-                        <div className="flex gap-[2px] items-center">
-                          <span className="font-bold text-[15px] leading-[20px] tracking-[-0.45px] text-[#ff6678]">
-                            {recProduct.discountPercent}%
-                          </span>
-                          <span className="font-bold text-[15px] leading-[20px] tracking-[-0.45px] text-black">
-                            {recProduct.discountPrice.toLocaleString()}원
-                          </span>
-                        </div>
-                        <div className="flex gap-[2px] items-center text-[#48b2af]">
-                          <span className="font-bold text-[16px] leading-[25px] tracking-[-0.32px]">9,900원</span>
-                          <span className="font-medium text-[11px] leading-[16px]">쿠폰 적용가</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </button>
-              ))}
-
-              {hasMoreCards && (
-                <ShowMoreButton onClick={showMoreCards} />
-              )}
             </div>
           </div>
 
