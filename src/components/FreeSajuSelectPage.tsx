@@ -19,7 +19,8 @@ import SajuCard, { SajuCardData } from './SajuCard';
 interface FreeSajuSelectPageProps {
   productId: string;
   onBack: () => void;
-  prefetchedMySaju?: SajuRecord | null; // ⭐ ProductDetailPage에서 전달받은 본인 사주
+  prefetchedSajuRecords?: SajuRecord[] | null; // ⭐ BirthInfoPage에서 전달받은 전체 사주 배열
+  prefetchedMySaju?: SajuRecord | null; // ⭐ ProductDetailPage에서 전달받은 본인 사주 (하위 호환)
 }
 
 interface SajuRecord {
@@ -39,18 +40,31 @@ interface SajuRecord {
   zodiac?: string;
 }
 
-export default function FreeSajuSelectPage({ productId, onBack, prefetchedMySaju }: FreeSajuSelectPageProps) {
+export default function FreeSajuSelectPage({ productId, onBack, prefetchedSajuRecords, prefetchedMySaju }: FreeSajuSelectPageProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  // ⭐ prefetchedMySaju가 있으면 초기값으로 사용 (로딩 스킵)
-  const [sajuRecords, setSajuRecords] = useState<SajuRecord[]>(
-    prefetchedMySaju ? [prefetchedMySaju] : []
-  );
-  const [selectedSajuId, setSelectedSajuId] = useState<string | null>(
-    prefetchedMySaju?.id || null
-  );
-  // ⭐ prefetchedMySaju가 있으면 로딩 스킵
-  const [isLoading, setIsLoading] = useState(!prefetchedMySaju);
+
+  // ⭐ prefetchedSajuRecords(전체 배열)가 있으면 우선 사용, 없으면 prefetchedMySaju(단일) 사용
+  const hasPrefetchedData = !!(prefetchedSajuRecords?.length || prefetchedMySaju);
+  const initialRecords = prefetchedSajuRecords?.length
+    ? prefetchedSajuRecords
+    : (prefetchedMySaju ? [prefetchedMySaju] : []);
+
+  const [sajuRecords, setSajuRecords] = useState<SajuRecord[]>(initialRecords);
+
+  // ⭐ 초기 선택: 대표 사주 > 본인 사주 > 첫번째
+  const getInitialSelectedId = () => {
+    if (!initialRecords.length) return null;
+    const primary = initialRecords.find(r => r.is_primary);
+    if (primary) return primary.id;
+    const mySaju = initialRecords.find(r => r.notes === '본인');
+    if (mySaju) return mySaju.id;
+    return initialRecords[0].id;
+  };
+
+  const [selectedSajuId, setSelectedSajuId] = useState<string | null>(getInitialSelectedId());
+  // ⭐ prefetched 데이터가 있으면 로딩 스킵
+  const [isLoading, setIsLoading] = useState(!hasPrefetchedData);
   const [isDeleting, setIsDeleting] = useState(false);
   
   // ⭐ 케밥 메뉴 상태
@@ -179,8 +193,15 @@ export default function FreeSajuSelectPage({ productId, onBack, prefetchedMySaju
     // ⭐ 페이지 진입/복귀 시 케밥 메뉴 닫기
     setKebabMenuOpen(false);
     setSelectedSajuForKebab(null);
+
+    // ⭐ prefetched 데이터가 있으면 DB 쿼리 스킵
+    if (hasPrefetchedData) {
+      console.log('✅ [FreeSajuSelectPage] prefetched 데이터 사용 → DB 쿼리 스킵');
+      return;
+    }
+
     loadSajuRecords();
-  }, [productId, navigate, onBack]);
+  }, [productId, navigate, onBack, hasPrefetchedData]);
 
   // "다음" 버튼 클릭
   const handleNext = () => {

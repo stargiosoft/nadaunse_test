@@ -689,12 +689,12 @@ function BirthInfoPage() {
         return;
       }
 
-      // 사주 정보 존재 여부 확인
+      // ⭐ 사주 정보 전체 조회 (존재 여부 확인 + 데이터 프리페치)
       const { data: sajuData, error } = await supabase
         .from('saju_records')
-        .select('id')
+        .select('*')
         .eq('user_id', user.id)
-        .limit(1);
+        .order('created_at', { ascending: false });
 
       if (error) {
         console.error('❌ [BirthInfoPage] 사주 정보 조회 실패:', error);
@@ -703,14 +703,17 @@ function BirthInfoPage() {
       }
 
       const hasSaju = sajuData && sajuData.length > 0;
-      console.log(`${hasSaju ? '✅' : 'ℹ️'} [BirthInfoPage] 사주 정보 ${hasSaju ? '있음' : '없음'}`);
-      
+      console.log(`${hasSaju ? '✅' : 'ℹ️'} [BirthInfoPage] 사주 정보 ${hasSaju ? '있음' : '없음'}`, sajuData?.length);
+
       setHasSajuInfo(hasSaju);
 
-      // ⭐ 사주 정보가 있으면 사주 선택 페이지로 리다이렉트
+      // ⭐ 사주 정보가 있으면 데이터와 함께 사주 선택 페이지로 리다이렉트 (로딩 스킵)
       if (hasSaju) {
-        console.log('🔀 [BirthInfoPage] 무료 콘텐츠 + 사주 정보 있음 → 사주 선택 페이지로 리다이렉트');
-        navigate(`/product/${id}/free-saju-select`, { replace: true });
+        console.log('🔀 [BirthInfoPage] 무료 콘텐츠 + 사주 정보 있음 → 사주 선택 페이지로 리다이렉트 (prefetch)');
+        navigate(`/product/${id}/free-saju-select`, {
+          replace: true,
+          state: { prefetchedSajuRecords: sajuData }
+        });
       }
     };
 
