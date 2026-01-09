@@ -169,26 +169,90 @@ export default function ProfilePage({
         }
       }
 
-      const { data: { user: authUser } } = await supabase.auth.getUser();
-      
-      if (authUser) {
-        const { data: userData, error } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', authUser.id)
-          .single();
+      // 🚀 캐시 우선 렌더링: localStorage에 user 정보가 있으면 먼저 표시
+      const cachedUserJson = localStorage.getItem('user');
+      const cachedSajuJson = localStorage.getItem('primary_saju');
+      let cachedUser = null;
+      let hasCachedSaju = false;
 
-        if (userData && !error) {
+      if (cachedUserJson) {
+        try {
+          cachedUser = JSON.parse(cachedUserJson);
+          // ⭐ 캐시된 user 정보로 즉시 렌더링
+          setUser(cachedUser);
+          setIsMaster(cachedUser.role === 'master');
+          console.log('✅ [ProfilePage] 캐시에서 user 즉시 표시');
+        } catch (e) {
+          console.error('JSON parse error', e);
+          localStorage.removeItem('user');
+        }
+      }
+
+      // ⭐ 캐시된 사주 정보로 즉시 렌더링 (스켈레톤 없이)
+      if (cachedSajuJson) {
+        try {
+          const cachedSaju = JSON.parse(cachedSajuJson);
+          setPrimarySaju(cachedSaju);
+          setIsLoadingSaju(false); // 캐시 있으면 로딩 즉시 해제
+          hasCachedSaju = true;
+          console.log('✅ [ProfilePage] 캐시에서 saju 즉시 표시');
+        } catch (e) {
+          console.error('JSON parse error (saju)', e);
+          localStorage.removeItem('primary_saju');
+        }
+      }
+
+      // 백그라운드에서 최신 데이터 로드
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+
+      if (authUser) {
+        // 🚀 API 병렬화: users 조회 + saju_records 조회 동시 실행
+        const [userResult, sajuResult] = await Promise.all([
+          supabase
+            .from('users')
+            .select('*')
+            .eq('id', authUser.id)
+            .single(),
+          supabase
+            .from('saju_records')
+            .select('*')
+            .eq('user_id', authUser.id)
+            .order('created_at', { ascending: true })
+        ]);
+
+        const { data: userData, error: userError } = userResult;
+        const { data: sajuList, error: sajuError } = sajuResult;
+
+        // users 처리
+        if (userData && !userError) {
           setUser(userData);
           setIsMaster(userData.role === 'master');
           localStorage.setItem('user', JSON.stringify(userData));
         }
-        
-        await loadPrimarySaju(authUser.id);
+
+        // saju_records 처리
+        if (sajuError) {
+          console.error('❌ 사주 정보 로드 실패:', sajuError);
+          setPrimarySaju(null);
+          localStorage.removeItem('primary_saju');
+        } else if (sajuList && sajuList.length > 0) {
+          const primary = sajuList.find((s: any) => s.is_primary) || sajuList[0];
+          setPrimarySaju(primary);
+          // ⭐ 사주 정보 캐시에 저장
+          localStorage.setItem('primary_saju', JSON.stringify(primary));
+          console.log('✅ 대표 사주 로드 완료:', primary);
+        } else {
+          setPrimarySaju(null);
+          localStorage.removeItem('primary_saju');
+          console.log('📭 등록된 사주 없음');
+        }
+
+        setIsLoadingSaju(false);
       } else {
         // ⭐ 세션 만료 → 바로 로그인 페이지로 이동 (다이얼로그 없이)
         console.log('🔐 [ProfilePage] 세션 만료 → 로그인 페이지로 이동');
         localStorage.removeItem('user'); // 만료된 user 정보 삭제
+        localStorage.removeItem('primary_saju'); // 만료된 saju 정보 삭제
         navigate('/login/new', { replace: true });
         return;
       }
