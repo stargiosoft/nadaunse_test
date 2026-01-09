@@ -250,7 +250,22 @@ function useFreeContentDetail(contentId: string, onBack: () => void) {
       return;
     }
 
-    // Fallback: onPurchase가 없을 때만 사용
+    // 🚀 캐시 확인: 사주 정보가 있으면 바로 사주 선택 페이지로 이동 (birthinfo 스킵)
+    try {
+      const cachedJson = localStorage.getItem('saju_records_cache');
+      if (cachedJson) {
+        const cached = JSON.parse(cachedJson);
+        if (Array.isArray(cached) && cached.length > 0) {
+          console.log('🚀 [FreeContentDetail] 사주 캐시 발견 → birthinfo 스킵, 바로 사주 선택으로 이동');
+          navigate(`/product/${contentId}/free-saju-select`);
+          return;
+        }
+      }
+    } catch (e) {
+      console.error('❌ [FreeContentDetail] 캐시 파싱 실패:', e);
+    }
+
+    // Fallback: 캐시가 없으면 birthinfo로 이동
     navigate(`/product/${contentId}/birthinfo`);
   };
 
