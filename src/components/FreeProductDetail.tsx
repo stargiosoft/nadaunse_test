@@ -67,13 +67,8 @@ export default function FreeProductDetail({ product, onBack, onBannerClick, onPu
       </div>
 
       {/* Scrollable Content */}
-      <div
-        className="flex-1 overflow-y-auto"
-        style={{
-          WebkitOverflowScrolling: 'touch',
-          overflowAnchor: 'none'
-        }}
-      >
+      {/* ⭐ overscroll-contain: iOS Safari 스크롤 바운스 방지 */}
+      <div className="flex-1 overflow-y-auto overscroll-contain">
         <div className="pb-[120px]">
           {/* Product Image & Info */}
           <div className="content-stretch flex flex-col gap-[24px] items-start relative shrink-0 w-full">
