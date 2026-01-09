@@ -84,6 +84,10 @@ export default function LoadingPage() {
   const [displayCount, setDisplayCount] = useState(6); // 초기 6개 표시
   // 로딩 페이지에서는 세션 만료 시 바로 리다이렉트하므로 상태 불필요
 
+  // ⭐ 이미지 로드 상태 (페이드인 애니메이션용)
+  const [mainImageLoaded, setMainImageLoaded] = useState(false);
+  const [loadedThumbnails, setLoadedThumbnails] = useState<Set<string>>(new Set());
+
   // ⭐ 세션 체크 - 로그아웃 상태면 로그인 페이지로 즉시 리다이렉트
   // (로딩 페이지가 작동 중이므로 다이얼로그 대신 바로 이동)
   useEffect(() => {
@@ -447,12 +451,16 @@ export default function LoadingPage() {
           overflowAnchor: 'none'
         }}
       >
-        {/* Loading Image */}
-        <div className="w-full max-w-[440px] h-auto mx-auto relative overflow-hidden p-0 select-none">
-          <img
+        {/* Loading Image - 페이드인 애니메이션 적용 */}
+        <div className="w-full max-w-[440px] h-auto mx-auto relative overflow-hidden p-0 select-none bg-[#f5e6d3]">
+          <motion.img
             alt=""
             className="w-full h-auto object-cover pointer-events-none block"
             src={imgLoadingImage}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: mainImageLoaded ? 1 : 0 }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
+            onLoad={() => setMainImageLoaded(true)}
           />
         </div>
 
@@ -493,13 +501,17 @@ export default function LoadingPage() {
                   className="flex-none w-[200px] cursor-pointer"
                 >
                   <div className="flex flex-col gap-[8px]">
-                    {/* Thumbnail */}
+                    {/* Thumbnail - 페이드인 애니메이션 적용 */}
                     <div className="h-[120px] w-[200px] rounded-[12px] overflow-hidden bg-[#f9f9f9] relative">
                       {content.thumbnail_url ? (
-                        <img
+                        <motion.img
                           src={content.thumbnail_url}
                           alt={content.title}
                           className="w-full h-full object-cover"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: loadedThumbnails.has(content.id) ? 1 : 0 }}
+                          transition={{ duration: 0.3, ease: "easeOut" }}
+                          onLoad={() => setLoadedThumbnails(prev => new Set(prev).add(content.id))}
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-[#d4d4d4]">

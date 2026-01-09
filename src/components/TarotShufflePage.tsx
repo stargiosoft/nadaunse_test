@@ -43,8 +43,10 @@ export default function TarotShufflePage() {
   const [isSessionExpired, setIsSessionExpired] = useState(false);
 
   // ⭐ 세션 체크 상태 추가 (알림톡 링크 접속 시 세션 없으면 로그인 페이지로 리다이렉트)
-  const [isCheckingSession, setIsCheckingSession] = useState(true);
-  const [hasValidSession, setHasValidSession] = useState(false);
+  // ✅ 최적화: localStorage에 캐시된 유저 정보가 있으면 세션 체크 건너뛰기 (즉시 렌더링)
+  const cachedUser = localStorage.getItem('user');
+  const [isCheckingSession, setIsCheckingSession] = useState(!cachedUser);
+  const [hasValidSession, setHasValidSession] = useState(!!cachedUser);
 
   // ⭐ 다른 계정 주문 에러 상태 (A 계정 구매 → B 계정 로그인 시)
   const [isWrongAccount, setIsWrongAccount] = useState(false);
