@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { issueWelcomeCoupon } from '../lib/coupon';
 import { motion, AnimatePresence } from 'motion/react';
+import { DEV } from '../lib/env';
 import svgPaths from '../imports/svg-4laayaclj0';
 import svgPathsNew from '../imports/svg-90sehl95g8';
 
@@ -599,9 +600,11 @@ export default function TermsPage({ onBack, onComplete }: TermsPageProps) {
           </motion.button>
 
           {/* 개발용: 완료 페이지 확인 버튼 */}
-          <button onClick={onComplete} className="w-full py-2 text-xs text-gray-400 underline">
-            [개발용] 약관동의 완료 페이지 보기
-          </button>
+          {DEV && (
+            <button onClick={onComplete} className="w-full py-2 text-xs text-gray-400 underline">
+              [개발용] 약관동의 완료 페이지 보기
+            </button>
+          )}
         </div>
 
       </div>

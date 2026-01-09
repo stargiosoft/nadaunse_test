@@ -1,5 +1,6 @@
 import { motion } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
+import { DEV } from '../lib/env';
 import svgPaths404 from '../imports/svg-wp3v25qh3h';
 import svgPaths500 from '../imports/svg-47kifjlpzo';
 import svgPaths503 from '../imports/svg-zgc97psg68';
@@ -221,7 +222,7 @@ export default function ErrorPage({ type }: ErrorPageProps) {
           </div>
 
           {/* DEV 표시 (개발 모드일 때만) */}
-          {import.meta.env.DEV && (
+          {DEV && (
             <motion.div
               variants={{
                 hidden: { opacity: 0, y: 20 },

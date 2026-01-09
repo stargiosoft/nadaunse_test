@@ -351,31 +351,29 @@ export default function ProfilePage({
   };
 
   return (
-    <div className="bg-white relative w-full min-h-screen flex justify-center">
-      <div className="relative w-full max-w-[440px] min-h-screen flex flex-col bg-white">
-        
+    <div className="bg-white fixed inset-0 flex justify-center">
+      <div className="w-full max-w-[440px] h-full flex flex-col bg-white">
+
         {/* Top Navigation */}
-        <div className="bg-white h-[52px] relative shrink-0 w-full">
-          <div className="flex flex-col justify-center size-full">
-            <div className="content-stretch flex flex-col h-[52px] items-start justify-center px-[12px] py-[4px] relative w-full">
-              <div className="content-stretch flex items-center justify-between fixed top-0 left-1/2 -translate-x-1/2 z-50 w-full max-w-[440px] h-[52px] px-[12px] bg-white shrink-0">
-                <div onClick={onBack} className="content-stretch flex items-center justify-center p-[4px] relative rounded-[12px] shrink-0 size-[44px] cursor-pointer group text-gray-700 transition-colors active:bg-gray-100">
-                  <div className="relative shrink-0 size-[24px] transition-transform group-active:scale-90">
-                    <ArrowLeftIcon />
-                  </div>
-                </div>
-                <p className="font-['Pretendard_Variable',sans-serif] font-semibold leading-[25.5px] text-[18px] text-black tracking-[-0.36px]">마이페이지</p>
-                <div className="content-stretch flex items-center justify-center opacity-0 p-[4px] relative rounded-[12px] shrink-0 size-[44px]" />
+        <div className="bg-white h-[52px] shrink-0 w-full z-20">
+          <div className="flex items-center justify-between px-[12px] h-full w-full">
+            <div onClick={onBack} className="flex items-center justify-center p-[4px] rounded-[12px] size-[44px] cursor-pointer group text-gray-700 transition-colors active:bg-gray-100">
+              <div className="size-[24px] transition-transform group-active:scale-90">
+                <ArrowLeftIcon />
               </div>
             </div>
+            <p className="font-['Pretendard_Variable',sans-serif] font-semibold leading-[25.5px] text-[18px] text-black tracking-[-0.36px]">마이페이지</p>
+            <div className="opacity-0 p-[4px] size-[44px]" />
           </div>
         </div>
 
-        {/* Spacer */}
-        <div className="h-[16px] shrink-0 w-full" />
+        {/* ⭐ Scrollable Content Area - overscroll-contain으로 iOS 바운스 방지 */}
+        <div className="flex-1 overflow-y-auto overscroll-contain">
+          {/* Spacer */}
+          <div className="h-[16px] shrink-0 w-full" />
 
-        {/* Main Content */}
-        <div className="flex-1 flex flex-col px-[20px] pb-0 font-['Pretendard_Variable',sans-serif]">
+          {/* Main Content */}
+          <div className="flex-1 flex flex-col px-[20px] pb-0 font-['Pretendard_Variable',sans-serif]">
           
           {/* Profile Section - 조건부 렌링 */}
           {isLoadingSaju ? (
@@ -555,7 +553,7 @@ export default function ProfilePage({
                     <div className="flex items-center gap-[8px]">
                       <p className="font-['Pretendard_Variable:Medium',sans-serif] leading-[28.5px] text-[16px] text-black tracking-[-0.32px]">사주 정보 관리</p>
                       {/* DEV: UI 테스팅용 직접 이동 버튼 */}
-                      {import.meta.env.DEV && (
+                      {DEV && (
                         <button
                           onClick={(e) => {
                             // ⭐️ 이벤트 전파를 완벽하게 차단하여 부모의 로그인 체크 로직(handleSajuMenuClick)이 실행되지 않도록 함
@@ -597,13 +595,13 @@ export default function ProfilePage({
                     <div className="flex items-center gap-[8px]">
                       <p className="font-['Pretendard_Variable:Medium',sans-serif] leading-[28.5px] text-[16px] text-black tracking-[-0.32px]">구매 내역</p>
                       {/* DEV: UI 테스팅용 직접 이동 버튼 */}
-                      {import.meta.env.DEV && (
+                      {DEV && (
                         <button
                           onClick={(e) => {
                             // ⭐️ 이벤트 전파를 완벽하게 차단하여 부모의 로그인 체크 우회
                             e.preventDefault();
                             e.stopPropagation();
-                            
+
                             // ⭐️ 개발용: 더미 구매내역 데이터 생성
                             const devPurchases = [
                               // 2025-01-03 (오늘)
@@ -806,7 +804,7 @@ export default function ProfilePage({
                   </motion.div>
 
                   {/* 디버그용 버튼: 사주 미등록 화면 토글 */}
-                  {import.meta.env.DEV && (
+                  {DEV && (
                   <motion.div 
                     variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } } }}
                     onClick={() => setShowEmptyState(!showEmptyState)}
@@ -819,7 +817,7 @@ export default function ProfilePage({
                   )}
 
                   {/* ⭐ DEV 전용: 에러 페이지 확인 버튼들 */}
-                  {import.meta.env.DEV && (
+                  {DEV && (
                     <motion.div 
                       variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } } }}
                       className="content-stretch flex flex-col gap-[8px] mt-[16px] px-[16px]"
@@ -870,6 +868,7 @@ export default function ProfilePage({
             </motion.div>
           )}
         </div>
+        </div>{/* ⭐ Scrollable Container 닫기 */}
       </div>
       <SessionExpiredDialog isOpen={isSessionExpired} />
     </div>
