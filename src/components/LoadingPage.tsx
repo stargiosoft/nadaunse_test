@@ -299,10 +299,15 @@ export default function LoadingPage() {
               // 타로 카드 결과 이미지 프리로드
               await preloadTarotImages(orderId, supabaseUrl);
 
-              // ⭐ 타로 게임 배경 이미지 프리로드 (TarotGame.tsx에서 사용)
-              const tarotBackgroundUrl = 'https://i.postimg.cc/WzwkjYXT/talo-seupeuledeu-batang-(wonbon).jpg';
-              preloadImages([tarotBackgroundUrl], 'high');
-              console.log('🎨 [타로배경] 프리로딩 시작...');
+              // ⭐ 타로 게임 배경 이미지 프리로드 (최초 1회만)
+              // - 모든 유료 콘텐츠에서 동일하게 사용되므로 세션 내 1번만 로드
+              const TAROT_BG_KEY = 'tarot_bg_preloaded';
+              if (!sessionStorage.getItem(TAROT_BG_KEY)) {
+                const tarotBackgroundUrl = 'https://i.postimg.cc/WzwkjYXT/talo-seupeuledeu-batang-(wonbon).jpg';
+                preloadImages([tarotBackgroundUrl], 'high');
+                sessionStorage.setItem(TAROT_BG_KEY, 'true');
+                console.log('🎨 [타로배경] 최초 프리로딩 완료!');
+              }
 
               console.log('✅ [타로캐시] 프리로딩 완료!');
             } catch (err) {
