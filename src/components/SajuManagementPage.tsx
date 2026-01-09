@@ -582,6 +582,11 @@ export default function SajuManagementPage({ onBack, onNavigateToInput, onNaviga
         }
       }
 
+      // ⭐ 캐시 무효화 (대표 사주가 변경되었을 수 있음)
+      localStorage.removeItem('primary_saju');
+      localStorage.removeItem('saju_records_cache');
+      console.log('🗑️ [사주삭제] primary_saju, saju_records_cache 캐시 무효화');
+
       // 4단계: 토스트 + 목록 새로고침
       toast.success('삭제되었습니다.');
       await loadSajuList();
@@ -649,6 +654,11 @@ export default function SajuManagementPage({ onBack, onNavigateToInput, onNaviga
       }
 
       console.log('✅ [대표사주변경] 완료:', pendingPrimarySajuId);
+
+      // ⭐ 캐시 무효화 (ProfilePage에서 새 대표 사주 로드하도록)
+      localStorage.removeItem('primary_saju');
+      localStorage.removeItem('saju_records_cache');
+      console.log('🗑️ [대표사주변경] primary_saju, saju_records_cache 캐시 무효화');
 
       // 3단계: UI 업데이트
       setSelectedSajuId(pendingPrimarySajuId);
