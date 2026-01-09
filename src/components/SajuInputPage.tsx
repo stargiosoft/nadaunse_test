@@ -33,6 +33,9 @@ export default function SajuInputPage({ onBack, onSaved }: SajuInputPageProps) {
   const sajuInfo = location.state?.sajuInfo || null; // ⭐ 케밥 메뉴에서 전달받은 사주 정보
   const returnTo = location.state?.returnTo || null; // ⭐ 돌아갈 경로
 
+  // ⭐ 유료 콘텐츠 플로우에서 진입했는지 확인 (SajuSelectPage에서 본인 사주 수정)
+  const isFromPaidContent = returnTo?.includes('/saju-select') || false;
+
   // ⭐ sajuInfo 또는 sajuData가 있으면 편집 모드로 간주
   const isEditMode = !!(sajuInfo || (editMode && sajuData));
   const editingSaju = sajuInfo || sajuData; // 수정할 사주 정보
@@ -898,7 +901,9 @@ export default function SajuInputPage({ onBack, onSaved }: SajuInputPageProps) {
             <div className="relative shrink-0 w-full">
               <div className="flex flex-row items-center size-full">
                 <div className="content-stretch flex items-center px-[4px] py-0 relative w-full">
-                  <p className="basis-0 font-normal grow leading-[16px] min-h-px min-w-px relative shrink-0 text-[#848484] text-[12px] tracking-[-0.24px]">휴대폰 번호 (선택)</p>
+                  <p className="basis-0 font-normal grow leading-[16px] min-h-px min-w-px relative shrink-0 text-[#848484] text-[12px] tracking-[-0.24px]">
+                    {isFromPaidContent ? '휴대폰 번호(풀이 완료 후 알림톡 발송에만 사용돼요)' : '휴대폰 번호 (선택)'}
+                  </p>
                 </div>
               </div>
             </div>
