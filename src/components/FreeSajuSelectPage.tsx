@@ -228,10 +228,16 @@ export default function FreeSajuSelectPage({ productId, onBack, prefetchedSajuRe
       return;
     }
 
-    // 🚀 캐시가 있으면 백그라운드에서만 업데이트 (이미 useState에서 렌더링됨)
-    // 캐시가 없으면 로딩 표시 후 API 호출
+    // 🚀 캐시가 이미 있으면 API 스킵 (즉시 렌더링 완료)
+    if (initialState.hasCache) {
+      console.log('✅ [FreeSajuSelectPage] 캐시 사용 → API 쿼리 스킵');
+      return;
+    }
+
+    // 캐시가 없을 때만 API 호출
     loadSajuRecords();
-  }, [productId, navigate, onBack, hasPrefetchedData]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [productId, hasPrefetchedData]);  // ← onBack, navigate 제거
 
   // "다음" 버튼 클릭
   const handleNext = () => {

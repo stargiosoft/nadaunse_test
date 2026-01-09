@@ -167,10 +167,16 @@ export default function SajuSelectPage() {
       console.log('💾 [SajuSelectPage] referrer 저장: /purchase-history');
     }
 
-    // 🚀 캐시가 있으면 백그라운드에서만 업데이트 (이미 useState에서 렌더링됨)
-    // 캐시가 없으면 로딩 표시 후 API 호출
+    // 🚀 캐시가 이미 있으면 API 스킵 (즉시 렌더링 완료)
+    if (initialState.hasCache) {
+      console.log('✅ [SajuSelectPage] 캐시 사용 → API 쿼리 스킵');
+      return;
+    }
+
+    // 캐시가 없을 때만 API 호출
     loadSajuList();
-  }, [location]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);  // ← location 제거: orderId는 첫 마운트에서만 처리
 
   const loadSajuList = async () => {
     try {
