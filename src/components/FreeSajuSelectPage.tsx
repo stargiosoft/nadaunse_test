@@ -226,9 +226,13 @@ export default function FreeSajuSelectPage({ productId, onBack, prefetchedSajuRe
     if (hasPrefetchedData) {
       console.log('✅ [FreeSajuSelectPage] prefetched 데이터 사용 → DB 쿼리 스킵');
       // 🚀 prefetched 데이터를 캐시에 저장 (두 번째 방문 시 즉시 로드용)
-      if (sajuRecords.length > 0) {
-        localStorage.setItem('saju_records_cache', JSON.stringify(sajuRecords));
-        console.log('💾 [FreeSajuSelectPage] prefetched 데이터 캐시 저장 완료');
+      // ⚠️ sajuRecords 대신 initialState.records 사용 (클로저 문제 방지)
+      const recordsToCache = initialState.records;
+      if (recordsToCache.length > 0) {
+        localStorage.setItem('saju_records_cache', JSON.stringify(recordsToCache));
+        console.log('💾 [FreeSajuSelectPage] prefetched 데이터 캐시 저장 완료:', recordsToCache.length, '개');
+      } else {
+        console.warn('⚠️ [FreeSajuSelectPage] prefetched 데이터 캐시 저장 실패 - 데이터 없음');
       }
       return;
     }
