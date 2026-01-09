@@ -39,25 +39,52 @@ export default function TarotResultPage() {
   const [imageLoading, setImageLoading] = useState(true);
   const [isSessionExpired, setIsSessionExpired] = useState(false);
 
-  // ⭐ 세션 체크 - 로그아웃 상태면 다이얼로그 표시
+  // ⭐ 세션 체크 상태 추가 (알림톡 링크 접속 시 세션 없으면 로그인 페이지로 리다이렉트)
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
+  const [hasValidSession, setHasValidSession] = useState(false);
+
+  // ⭐ 다른 계정 주문 에러 상태 (A 계정 구매 → B 계정 로그인 시)
+  const [isWrongAccount, setIsWrongAccount] = useState(false);
+
+  // ⭐ 세션 체크 - 알림톡 링크 접속 시 세션 없으면 로그인 페이지로 리다이렉트
   useEffect(() => {
     const checkSession = async () => {
+      console.log('🔐 [TarotResultPage] 세션 체크 시작...');
+
       // DEV 모드 우회
       if (import.meta.env.DEV) {
         const localUserJson = localStorage.getItem('user');
         if (localUserJson) {
           const localUser = JSON.parse(localUserJson);
-          if (localUser.provider === 'dev') return;
+          if (localUser.provider === 'dev') {
+            console.log('🔧 [TarotResultPage] DEV 모드 - 세션 체크 스킵');
+            setHasValidSession(true);
+            setIsCheckingSession(false);
+            return;
+          }
         }
       }
 
       const { data: { user } } = await supabase.auth.getUser();
+
       if (!user) {
-        setIsSessionExpired(true);
+        // ⭐ 세션 없음 → 현재 URL 저장 후 로그인 페이지로 리다이렉트
+        const currentUrl = `${location.pathname}${location.search}`;
+        console.log('🔐 [TarotResultPage] 세션 없음 → 로그인 페이지로 리다이렉트');
+        console.log('📍 [TarotResultPage] 로그인 후 돌아올 URL:', currentUrl);
+
+        localStorage.setItem('redirectAfterLogin', currentUrl);
+        navigate('/login/new', { replace: true });
+        return;
       }
+
+      console.log('✅ [TarotResultPage] 세션 유효:', user.id);
+      setHasValidSession(true);
+      setIsCheckingSession(false);
     };
+
     checkSession();
-  }, []);
+  }, [navigate, location.pathname, location.search]);
 
   // ⭐ 애니메이션 방향 상태 관리
   const prevOrderRef = useRef<number>(questionOrder);
@@ -79,10 +106,11 @@ export default function TarotResultPage() {
     window.scrollTo(0, 0);
   }, [orderId, questionOrder]);
 
-  // 타로 결과 로드
+  // 타로 결과 로드 - 세션 체크 완료 후에만 실행
   useEffect(() => {
     const loadResult = async () => {
-      if (!orderId) return;
+      // ⭐ 세션 체크 완료 전이거나 세션이 없으면 데이터 로드 안 함
+      if (!orderId || isCheckingSession || !hasValidSession) return;
 
       try {
         console.log('📥 [타로결과] 데이터 로드 시작:', { orderId, questionOrder });
@@ -145,11 +173,36 @@ export default function TarotResultPage() {
           .order('question_order', { ascending: true });
 
         if (allError) throw allError;
-        if (allData) {
-          setAllResults(allData);
-          setTotalQuestions(allData.length);
-          preloadNextTarotImages(allData, questionOrder);
+
+        // ⭐ order_results가 비어있으면 다른 계정 주문인지 확인
+        if (!allData || allData.length === 0) {
+          console.warn('⚠️ [타로결과] order_results가 비어있습니다.');
+
+          const { data: orderCheck, error: orderCheckError } = await supabase
+            .from('orders')
+            .select('id, content_id')
+            .eq('id', orderId)
+            .single();
+
+          console.log('🔍 [타로결과] 주문 확인:', { orderCheck, orderCheckError });
+
+          if (orderCheckError || !orderCheck) {
+            console.error('❌ [타로결과] 다른 계정의 주문이거나 존재하지 않는 주문');
+            setIsWrongAccount(true);
+            setLoading(false);
+            return;
+          }
+
+          // 주문은 있지만 결과가 없음 → AI 아직 생성 중
+          const redirectContentId = contentId || orderCheck.content_id || '';
+          console.log('🔄 [타로결과] AI 생성 중 → 로딩 페이지로 리다이렉트');
+          navigate(`/loading?orderId=${orderId}&contentId=${redirectContentId}`);
+          return;
         }
+
+        setAllResults(allData);
+        setTotalQuestions(allData.length);
+        preloadNextTarotImages(allData, questionOrder);
 
         const { data, error } = await supabase
           .from('order_results')
@@ -183,7 +236,7 @@ export default function TarotResultPage() {
     };
 
     loadResult();
-  }, [orderId, questionOrder]);
+  }, [orderId, questionOrder, isCheckingSession, hasValidSession, navigate, contentId]);
 
   const preloadNextTarotImages = (allData: any[], currentOrder: number) => {
     const tarotQuestions = allData
@@ -194,9 +247,11 @@ export default function TarotResultPage() {
 
     console.log(`🎴 [타로프리로드] ${tarotQuestions.length}장 프리로드 시작`);
     
-    tarotQuestions.forEach((q: any) => {
-      if (q.tarot_card_name && q.tarot_card_image_url) {
-        cacheTarotImage(q.tarot_card_name, q.tarot_card_image_url).catch(err => {
+    // ⭐ DB URL 대신 getTarotCardImageUrl 사용 (스테이징 Storage 공용)
+    tarotQuestions.forEach((q: { tarot_card_name: string | null }) => {
+      if (q.tarot_card_name) {
+        const imageUrl = getTarotCardImageUrl(q.tarot_card_name);
+        cacheTarotImage(q.tarot_card_name, imageUrl).catch(err => {
           console.warn(`⚠️ [타로프리로드] 실패 (무시): ${q.tarot_card_name}`, err);
         });
       }
@@ -223,11 +278,10 @@ export default function TarotResultPage() {
         const storageUrl = getTarotCardImageUrl(result.tarot_card_name, supabaseUrl);
         setCardImageUrl(storageUrl);
         
-        if (result.tarot_card_image_url) {
-          cacheTarotImage(result.tarot_card_name, result.tarot_card_image_url).catch(err => {
-            console.warn('⚠️ [타로결과] 백그라운드 캐싱 실패:', err);
-          });
-        }
+        // ⭐ DB URL 대신 getTarotCardImageUrl 사용 (스테이징 Storage 공용)
+        cacheTarotImage(result.tarot_card_name, storageUrl).catch(err => {
+          console.warn('⚠️ [타로결과] 백그라운드 캐싱 실패:', err);
+        });
       }
     };
 
@@ -297,7 +351,16 @@ export default function TarotResultPage() {
     setShowTableOfContents(!showTableOfContents);
   };
 
-  if (loading) {
+  // ⭐ 다른 계정 주문 → 로그아웃 후 다시 로그인 유도
+  const handleLogoutAndRetry = async () => {
+    const currentUrl = `${location.pathname}${location.search}`;
+    localStorage.setItem('redirectAfterLogin', currentUrl);
+    await supabase.auth.signOut();
+    navigate('/login/new', { replace: true });
+  };
+
+  // ⭐ 세션 체크 중이거나 데이터 로딩 중이면 로딩 화면 표시
+  if (isCheckingSession || loading) {
     return (
       <div className="bg-white flex items-center justify-center min-h-screen w-full max-w-[440px] mx-auto">
         <div className="animate-spin rounded-full h-[48px] w-[48px] border-b-2 border-[#48b2af]"></div>
@@ -462,6 +525,49 @@ export default function TarotResultPage() {
       )}
 
       <SessionExpiredDialog isOpen={isSessionExpired} />
+
+      {/* ⭐ 다른 계정 주문 모달 (A 계정 구매 → B 계정 로그인 시) */}
+      {isWrongAccount && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center">
+          {/* 배경 dim 처리 */}
+          <div className="absolute inset-0 bg-black/50" />
+
+          {/* 다이얼로그 */}
+          <div className="relative w-[320px] bg-white rounded-[20px] overflow-hidden border border-[#f3f3f3]">
+            {/* 텍스트 영역 */}
+            <div className="px-[28px] py-[20px]">
+              <div className="flex flex-col gap-[8px] items-center text-center">
+                <p className="font-['Pretendard_Variable:SemiBold',sans-serif] font-semibold text-[17px] leading-[25.5px] tracking-[-0.34px] text-black">
+                  다른 계정으로 구매한 운세예요
+                </p>
+                <p className="font-['Pretendard_Variable:Medium',sans-serif] font-medium text-[15px] leading-[20px] tracking-[-0.3px] text-[#868686]">
+                  운세를 구매한 계정으로<br />다시 로그인해 주세요.
+                </p>
+              </div>
+            </div>
+
+            {/* 버튼 영역 */}
+            <div className="px-[24px] pb-[20px] flex flex-col gap-[8px]">
+              <button
+                onClick={handleLogoutAndRetry}
+                className="w-full h-[48px] bg-[#48b2af] rounded-[12px] flex items-center justify-center cursor-pointer active:scale-95 transition-transform"
+              >
+                <span className="font-['Pretendard_Variable:Medium',sans-serif] font-medium text-[16px] leading-[25px] tracking-[-0.32px] text-white">
+                  다른 계정으로 로그인
+                </span>
+              </button>
+              <button
+                onClick={() => navigate('/')}
+                className="w-full h-[48px] bg-[#f5f5f5] rounded-[12px] flex items-center justify-center cursor-pointer active:scale-95 transition-transform"
+              >
+                <span className="font-['Pretendard_Variable:Medium',sans-serif] font-medium text-[16px] leading-[25px] tracking-[-0.32px] text-[#666666]">
+                  홈으로 이동
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -80,6 +80,6 @@ export function getTarotCardImageUrl(cardName: string, _supabaseUrl?: string): s
   const encodedFileName = encodeURIComponent(fileName);
   const encodedFolder = encodeURIComponent('tarot cards');
 
-  // 스테이징 Storage 공용 사용
-  return `${storageBaseUrl}/${encodedFolder}/${encodedFileName}`;
+  // 스테이징 Storage 공용 사용 (assets 버킷)
+  return `${storageBaseUrl}/assets/${encodedFolder}/${encodedFileName}`;
 }
