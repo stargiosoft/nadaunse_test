@@ -550,7 +550,7 @@ export default function PaymentNew({
   }
 
   return (
-    <div className="bg-white relative min-h-screen w-full flex justify-center">
+    <div className="bg-white fixed inset-0 flex justify-center">
       <style>{`
         body::-webkit-scrollbar {
           display: none;
@@ -572,43 +572,34 @@ export default function PaymentNew({
         </div>
       )}
 
-      <div className="w-full max-w-[440px] relative pb-[100px]">
+      <div className="w-full max-w-[440px] h-full flex flex-col bg-white">
         {/* Top Navigation */}
-        <div className="bg-white h-[52px] sticky top-0 z-20 w-full">
-          <div className="flex flex-col justify-center size-full">
-            <div className="sticky top-0 z-50 bg-white box-border content-stretch flex flex-col gap-[10px] h-[52px] items-start justify-center px-[12px] py-[4px] w-full max-w-[440px] mx-auto">
-              <div className="content-stretch flex items-center justify-between relative shrink-0 w-full">
-                <button
-                  onClick={onBack}
-                  className="box-border content-stretch flex gap-[10px] items-center justify-center p-[4px] relative rounded-[12px] shrink-0 size-[44px] bg-transparent border-none cursor-pointer transition-all duration-200 ease-out active:bg-gray-100 active:scale-90"
-                >
-                  <svg
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                  >
-                    <path
-                      d="M15 19.92L8.48 13.4C7.71 12.63 7.71 11.37 8.48 10.6L15 4.08"
-                      stroke="#848484"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeMiterlimit="10"
-                      strokeWidth="1.7"
-                    />
-                  </svg>
-                </button>
-                <p className="basis-0 font-['Pretendard_Variable:SemiBold',sans-serif] font-semibold grow leading-[25.5px] min-h-px min-w-px overflow-ellipsis overflow-hidden relative shrink-0 text-[18px] text-black text-center text-nowrap tracking-[-0.36px]">
-                  결제
-                </p>
-                <div className="box-border content-stretch flex gap-[10px] items-center justify-center opacity-0 p-[4px] relative rounded-[12px] shrink-0 size-[44px]">
-                  <div className="relative shrink-0 size-[24px]" />
-                </div>
-              </div>
-            </div>
+        <div className="bg-white h-[52px] shrink-0 w-full z-20">
+          <div className="flex items-center justify-between px-[12px] h-full w-full">
+            <button
+              onClick={onBack}
+              className="flex items-center justify-center p-[4px] rounded-[12px] size-[44px] bg-transparent border-none cursor-pointer transition-all duration-200 ease-out active:bg-gray-100 active:scale-90"
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M15 19.92L8.48 13.4C7.71 12.63 7.71 11.37 8.48 10.6L15 4.08"
+                  stroke="#848484"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeMiterlimit="10"
+                  strokeWidth="1.7"
+                />
+              </svg>
+            </button>
+            <p className="font-['Pretendard_Variable:SemiBold',sans-serif] font-semibold text-[18px] text-black text-center tracking-[-0.36px]">
+              결제
+            </p>
+            <div className="opacity-0 p-[4px] size-[44px]" />
           </div>
         </div>
 
+        {/* ⭐ Scrollable Content Area - overscroll-contain으로 iOS 바운스 방지 */}
+        <div className="flex-1 overflow-y-auto overscroll-contain pb-[100px]">
         {/* Main Content */}
         <motion.div
           initial="hidden"
@@ -1175,6 +1166,7 @@ export default function PaymentNew({
             />
           </motion.div>
         </motion.div>
+        </div>{/* ⭐ Scrollable Container 닫기 */}
 
         {/* Bottom Button */}
         <div className="fixed bottom-0 left-1/2 -translate-x-1/2 box-border content-stretch flex flex-col items-start shadow-[0px_-8px_16px_0px_rgba(255,255,255,0.76)] w-full max-w-[440px] z-10">
