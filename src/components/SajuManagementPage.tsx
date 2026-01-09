@@ -646,7 +646,7 @@ export default function SajuManagementPage({ onBack, onNavigateToInput, onNaviga
   if (isLoading) {
     return (
       <div className="bg-white relative min-h-screen w-full flex justify-center items-center">
-        <p className="text-[#848484]">로딩 중...</p>
+        <div className="animate-spin rounded-full h-[32px] w-[32px] border-b-2 border-[#48b2af]"></div>
       </div>
     );
   }

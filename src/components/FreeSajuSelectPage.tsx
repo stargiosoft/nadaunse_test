@@ -19,6 +19,7 @@ import SajuCard, { SajuCardData } from './SajuCard';
 interface FreeSajuSelectPageProps {
   productId: string;
   onBack: () => void;
+  prefetchedMySaju?: SajuRecord | null; // ⭐ ProductDetailPage에서 전달받은 본인 사주
 }
 
 interface SajuRecord {
@@ -38,12 +39,18 @@ interface SajuRecord {
   zodiac?: string;
 }
 
-export default function FreeSajuSelectPage({ productId, onBack }: FreeSajuSelectPageProps) {
+export default function FreeSajuSelectPage({ productId, onBack, prefetchedMySaju }: FreeSajuSelectPageProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const [sajuRecords, setSajuRecords] = useState<SajuRecord[]>([]);
-  const [selectedSajuId, setSelectedSajuId] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  // ⭐ prefetchedMySaju가 있으면 초기값으로 사용 (로딩 스킵)
+  const [sajuRecords, setSajuRecords] = useState<SajuRecord[]>(
+    prefetchedMySaju ? [prefetchedMySaju] : []
+  );
+  const [selectedSajuId, setSelectedSajuId] = useState<string | null>(
+    prefetchedMySaju?.id || null
+  );
+  // ⭐ prefetchedMySaju가 있으면 로딩 스킵
+  const [isLoading, setIsLoading] = useState(!prefetchedMySaju);
   const [isDeleting, setIsDeleting] = useState(false);
   
   // ⭐ 케밥 메뉴 상태
@@ -143,17 +150,20 @@ export default function FreeSajuSelectPage({ productId, onBack }: FreeSajuSelect
 
       setSajuRecords(records);
 
-      // 대표 사주 자동 선택
-      const primarySaju = records.find(r => r.is_primary);
-      const mySaju = records.find(r => r.notes === '본인');
+      // ⭐ prefetchedMySaju로 이미 선택된 경우 유지, 아니면 대표 사주 자동 선택
+      setSelectedSajuId(prev => {
+        // 이미 유효한 선택이 있으면 유지
+        if (prev && records.find(r => r.id === prev)) {
+          return prev;
+        }
+        // 대표 사주 자동 선택
+        const primarySaju = records.find(r => r.is_primary);
+        const mySaju = records.find(r => r.notes === '본인');
 
-      if (primarySaju) {
-        setSelectedSajuId(primarySaju.id);
-      } else if (mySaju) {
-        setSelectedSajuId(mySaju.id);
-      } else {
-        setSelectedSajuId(records[0].id);
-      }
+        if (primarySaju) return primarySaju.id;
+        if (mySaju) return mySaju.id;
+        return records[0].id;
+      });
     } catch (error) {
       console.error('❌ [FreeSajuSelectPage] 에러:', error);
       alert('사주 정보를 불러올 수 없습니다.');
@@ -420,7 +430,7 @@ export default function FreeSajuSelectPage({ productId, onBack }: FreeSajuSelect
   if (isLoading) {
     return (
       <div className="bg-white relative min-h-screen w-full flex justify-center items-center">
-        <p className="text-[#848484]">로딩 중...</p>
+        <div className="animate-spin rounded-full h-[32px] w-[32px] border-b-2 border-[#48b2af]"></div>
       </div>
     );
   }

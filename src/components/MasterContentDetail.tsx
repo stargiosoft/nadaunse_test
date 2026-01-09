@@ -964,10 +964,7 @@ export default function MasterContentDetail({ contentId, onBack, onHome }: Maste
   if (isLoading) {
     return (
       <div className="bg-white flex items-center justify-center min-h-screen w-full">
-        <div className="flex flex-col items-center gap-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#41a09e]"></div>
-          <p className="text-[#151515]">로딩 중...</p>
-        </div>
+        <div className="animate-spin rounded-full h-[32px] w-[32px] border-b-2 border-[#48b2af]"></div>
       </div>
     );
   }

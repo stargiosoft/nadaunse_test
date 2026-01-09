@@ -367,13 +367,16 @@ function ProductDetailPage() {
         console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
         if (sajuRecords && sajuRecords.length > 0) {
-          // 사주 정보 있음 → 사주 선택 페이지
+          // 사주 정보 있음 → 사주 선택 페이지 (이미 조회한 데이터 전달로 로딩 최적화)
           console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
           console.log('✅ [ProductDetailPage] 사주 정보 있음 (' + sajuRecords.length + '개)');
-          console.log('🔀 [ProductDetailPage] FreeSajuSelectPage로 이동');
+          console.log('🔀 [ProductDetailPage] FreeSajuSelectPage로 이동 (사주 데이터 전달)');
           console.log('📍 [ProductDetailPage] navigate to:', `/product/${id}/free-saju-select`);
           console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-          navigate(`/product/${id}/free-saju-select`);
+          // ⭐ 이미 조회한 본인 사주는 전달하고, 전체 목록은 FreeSajuSelectPage에서 조회
+          navigate(`/product/${id}/free-saju-select`, {
+            state: { prefetchedMySaju: sajuRecords[0] }
+          });
           return;
         } else {
           // 사주 정보 없음 → 사주 입력 페이지
@@ -940,10 +943,8 @@ function FreeResultPage() {
   // 로딩 중
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <p className="text-[#999999]">로딩 중...</p>
-        </div>
+      <div className="flex items-center justify-center min-h-screen bg-white">
+        <div className="animate-spin rounded-full h-[32px] w-[32px] border-b-2 border-[#48b2af]"></div>
       </div>
     );
   }
