@@ -291,7 +291,9 @@ export function GlobalAIMonitor() {
       {isExpanded && (
         <div className="px-4 py-3 max-h-48 overflow-y-auto bg-gray-50">
           {logs.length === 0 ? (
-            <p className="text-sm text-gray-500">대기 중...</p>
+            <div className="flex items-center justify-center py-2">
+              <Loader2 className="w-5 h-5 text-gray-400 animate-spin" />
+            </div>
           ) : (
             <div className="space-y-1">
               {logs.map((log, index) => (
