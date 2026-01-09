@@ -231,17 +231,6 @@
 - **주요 기능**: 생성된 운세 결과 표시
 - **파일 경로**: `/components/FreeContentResult.tsx`
 
-### FreeProductDetail.tsx
-- **역할**: 무료 콘텐츠 상품 상세 정보
-- **사용처**: App.tsx ProductDetailPage (type === 'free')
-- **타입**: Page Component
-- **주요 기능**: 
-  - 무료 콘텐츠 소개
-  - "무료로 풀이받기" 시작 버튼
-  - **iOS Safari 최적화**: `transform-gpu` 적용 (맛보기 카드)
-- **파일 경로**: `/components/FreeProductDetail.tsx`
-- **최근 업데이트**: 2026-01-06 - iOS Safari 렌더링 최적화
-
 ### GlobalAIMonitor.tsx
 - **역할**: AI 생성 상태 전역 모니터링 컴포넌트
 - **사용처**: App.tsx 전역
@@ -630,20 +619,27 @@
 - **백업 날짜**: 2026-01-06
 - **파일 경로**: `/components/_backup/ProductDetail.tsx`
 
+### FreeProductDetail.tsx
+- **상태**: 백업됨 (`/components/_backup/`)
+- **사유**: 하드코딩된 더미 데이터 버그 - FreeContentDetail.tsx로 대체
+- **버그 내용**: 운세 구성 섹션에 하드코딩된 질문 3개가 DB 데이터 대신 노출됨
+- **백업 날짜**: 2026-01-09
+- **파일 경로**: `/components/_backup/FreeProductDetail.tsx`
+
 ---
 
 ## 📊 통계
 
-- **총 컴포넌트**: 51개
-- **페이지 컴포넌트**: 38개
+- **총 컴포넌트**: 50개
+- **페이지 컴포넌트**: 37개
 - **UI/유틸리티 컴포넌트**: 13개
-- **백업된 컴포넌트**: 6개
+- **백업된 컴포넌트**: 7개
 
 ### 카테고리별 분포
 - UI 컴포넌트: 8개
 - 인증 관련: 3개
 - 결제 관련: 4개
-- 무료 콘텐츠: 10개
+- 무료 콘텐츠: 9개 (FreeProductDetail 백업)
 - 마스터 콘텐츠 관리: 6개
 - 사주 정보 관리: 10개 (SajuCard 추가)
 - 타로 콘텐츠: 4개
@@ -698,6 +694,17 @@
 ---
 
 ## 🔄 업데이트 이력
+
+### 2026-01-09
+- **FreeProductDetail.tsx 백업 처리**
+  - 하드코딩된 더미 데이터 버그로 인해 백업 폴더로 이동
+  - 버그: 운세 구성 섹션에 하드코딩된 질문 3개가 DB 데이터 대신 노출
+  - FreeContentDetail.tsx + FreeContentDetailComponents.tsx로 대체
+- **App.tsx 수정**
+  - ProductDetailPage에서 무료 콘텐츠 렌더링 시 FreeContentDetail 사용
+- **통계 업데이트**
+  - 총 50개 컴포넌트 유지 (FreeProductDetail 백업)
+  - 백업된 컴포넌트: 6개 → 7개
 
 ### 2026-01-07
 - **SajuCard.tsx 컴포넌트 추가**

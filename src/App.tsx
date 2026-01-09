@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, useNavigate, useParams, useLocation, Navigate } from 'react-router-dom';
 import { useGoBack } from './hooks/useIOSSafeNavigate';
-// ProductDetail은 MasterContentDetailPage로 대체됨 (2026-01-07 백업 처리)
-import FreeProductDetail from './components/FreeProductDetail';
+// ProductDetail, FreeProductDetail은 백업 처리됨 (2026-01-09)
+// FreeProductDetail → FreeContentDetail로 대체 (하드코딩 더미 데이터 버그 수정)
 import PaymentNew from './components/PaymentNew';
 import BirthInfoInput from './components/BirthInfoInput';
 import SajuDetail from './components/SajuDetail';
@@ -257,7 +257,7 @@ function ProductDetailPage() {
               category: data.category_main,
               image: data.thumbnail_url,
               description: data.description,  // ⭐️ 추가: 운세 설명
-              fullDescription: data.description || '',  // ⭐️ 추가: FreeProductDetail에서 사용
+              fullDescription: data.description || '',  // ⭐️ FreeContentDetail에서 사용
               price: data.price_original || 0,  // ⭐️ DB에서 가져온 원가
               discountPrice: data.price_discount || data.price_original || 0,  // ⭐️ DB에서 가져온 할인가
               discountPercent: data.discount_rate || 0,  // ⭐️ DB에서 가져온 할인율
@@ -432,12 +432,16 @@ function ProductDetailPage() {
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   };
 
+  // ⭐ 무료 콘텐츠: FreeContentDetail 사용 (FreeProductDetail 백업 처리됨 2026-01-09)
+  // FreeProductDetail은 하드코딩된 더미 데이터 버그가 있어서 FreeContentDetail로 대체
   if (product.type === 'free') {
     return (
-      <FreeProductDetail
-        product={product}
+      <FreeContentDetail
+        contentId={product.id.toString()}
         onBack={() => navigate('/')}
-        onPurchase={handlePurchase}  // ✅ productId 파라미터 없이 호출
+        onHome={() => navigate('/')}
+        onContentClick={(contentId) => navigate(`/product/${contentId}`)}
+        onBannerClick={() => navigate('/')}
       />
     );
   }

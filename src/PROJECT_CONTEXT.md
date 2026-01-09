@@ -200,12 +200,12 @@ export const publicAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "<product
 <summary><b>무료 콘텐츠 (사주)</b></summary>
 
 ```
-/components/FreeProductDetail.tsx       → 무료 상세
+/components/FreeContentDetail.tsx       → 무료 상세 (메인)
+/components/FreeContentDetailComponents.tsx → UI 컴포넌트 모음
 /components/FreeBirthInfoInput.tsx      → 사주 입력
 /components/FreeSajuSelectPage.tsx      → 사주 선택
 /components/FreeContentLoading.tsx      → 로딩
 /components/FreeSajuDetail.tsx          → 결과
-/components/FreeContentDetail.tsx       → 메인 로직
 /lib/freeContentService.ts              → 비즈니스 로직
 ```
 </details>
@@ -326,10 +326,10 @@ export const publicAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "<product
 /pages/TarotDemo.tsx            → 타로 데모
 
 # 무료 콘텐츠
-/components/FreeProductDetail.tsx       → 무료 콘텐츠 상세
+/components/FreeContentDetail.tsx       → 무료 상세 (메인)
+/components/FreeContentDetailComponents.tsx → UI 컴포넌트 모음
 /components/FreeBirthInfoInput.tsx      → 무료 사주 입력
 /components/FreeSajuSelectPage.tsx      → 무료 사주 선택
-/components/FreeContentDetail.tsx       → 무료 상세 (메인 로직)
 /components/FreeContentLoading.tsx      → 무료 로딩
 /components/FreeSajuDetail.tsx          → 무료 결과
 
@@ -521,7 +521,7 @@ created_at
 ### 1. 무료 콘텐츠 플로우 (사주/타로)
 
 ```
-홈 → 무료 상세 (FreeProductDetail) → "무료로 풀이받기" 클릭
+홈 → 무료 상세 (FreeContentDetail) → "무료로 보기" 클릭
     ↓
 로그인 체크 (Supabase Auth)
     ↓
@@ -554,7 +554,8 @@ AI 생성 요청 (Edge Function)
 **핵심 클래스**: `FreeContentService` (`/lib/freeContentService.ts`)
 
 **주요 파일**:
-- `/components/FreeProductDetail.tsx` - 무료 상세 페이지
+- `/components/FreeContentDetail.tsx` - 무료 상세 페이지 (메인)
+- `/components/FreeContentDetailComponents.tsx` - UI 컴포넌트 모음
 - `/components/FreeBirthInfoInput.tsx` - 사주 입력 (로그인/로그아웃 분기)
 - `/components/FreeSajuSelectPage.tsx` - 사주 선택 (로그인 사용자만)
 - `/components/FreeContentLoading.tsx` - 로딩 (폴링)
@@ -924,12 +925,22 @@ useEffect(() => {
 | 1.3.0 | 2026-01-07 | iOS 스와이프 뒤로가기 히스토리 관리 버그 해결 추가 | AI Assistant |
 | 1.4.0 | 2026-01-07 | 개발 안정성 강화 - Sentry, 로거, 재시도 로직, 결제 웹훅/환불, Edge Functions 20개 | AI Assistant |
 | 1.4.1 | 2026-01-09 | 마스터 콘텐츠 관리 섹션 추가 (6개 컴포넌트 상세화) | AI Assistant |
+| 1.5.0 | 2026-01-09 | FreeProductDetail 백업, FreeContentDetail로 대체 (하드코딩 더미 데이터 버그 수정) | AI Assistant |
 
 ---
 
-## 🎯 최근 주요 개선사항 (2026-01-07)
+## 🎯 최근 주요 개선사항 (2026-01-09)
 
-### ✅ iOS 스와이프 뒤로가기 히스토리 관리 (NEW!)
+### ✅ 무료 콘텐츠 상세 페이지 버그 수정 (NEW!)
+- **문제**: 뒤로가기 시 `FreeProductDetail` 컴포넌트의 하드코딩된 더미 데이터 노출
+- **원인**: `ProductDetailPage`에서 구버전 `FreeProductDetail` 사용 (운세 구성이 하드코딩됨)
+- **해결**: `FreeProductDetail.tsx` → `_backup` 폴더로 이동, `FreeContentDetail` 사용하도록 변경
+- **핵심 파일**:
+  - `App.tsx` (ProductDetailPage에서 FreeContentDetail 렌더링)
+  - `FreeContentDetail.tsx` (DB에서 질문 데이터 조회)
+  - `FreeContentDetailComponents.tsx` (FortuneComposition 등 UI 컴포넌트)
+
+### ✅ iOS 스와이프 뒤로가기 히스토리 관리
 - OAuth 회원가입 플로우에서 발생하는 히스토리 스택 문제 해결
 - 각 페이지에서 마운트 시 상태 체크 후 적절한 페이지로 리다이렉트
 - **핵심 파일**: `App.tsx` (LoginPageNewWrapper, TermsPageWrapper, WelcomeCouponPageWrapper)
@@ -998,6 +1009,6 @@ useEffect(() => {
 
 ---
 
-**문서 버전**: 1.4.1
+**문서 버전**: 1.5.0
 **최종 업데이트**: 2026-01-09
 **문서 끝**
