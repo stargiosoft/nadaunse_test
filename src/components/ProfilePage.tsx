@@ -172,6 +172,8 @@ export default function ProfilePage({
       // 🚀 캐시 우선 렌더링: localStorage에 user 정보가 있으면 먼저 표시
       const cachedUserJson = localStorage.getItem('user');
       const cachedSajuJson = localStorage.getItem('primary_saju');
+      // ⭐ 캐시 버스터 플래그: 사주 수정 시 설정됨
+      const needsRefresh = localStorage.getItem('profile_needs_refresh') === 'true';
       let cachedUser = null;
       let hasCachedSaju = false;
 
@@ -200,6 +202,20 @@ export default function ProfilePage({
           console.error('JSON parse error (saju)', e);
           localStorage.removeItem('primary_saju');
         }
+      }
+
+      // ⭐ 캐시 버스터: 캐시가 있고 refresh 플래그가 없으면 백그라운드 API 호출 스킵
+      // → iOS 스와이프 뒤로가기 시 불필요한 리로드 방지
+      if (hasCachedSaju && cachedUser && !needsRefresh) {
+        console.log('🚀 [ProfilePage] 캐시 유효 + refresh 불필요 → API 호출 스킵');
+        setIsLoadingSaju(false);
+        return;
+      }
+
+      // ⭐ refresh 플래그가 설정된 경우 → 플래그 제거 후 백그라운드 refresh 진행
+      if (needsRefresh) {
+        localStorage.removeItem('profile_needs_refresh');
+        console.log('🔄 [ProfilePage] profile_needs_refresh 플래그 감지 → 백그라운드 refresh 진행');
       }
 
       // 백그라운드에서 최신 데이터 로드

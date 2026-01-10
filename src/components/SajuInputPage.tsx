@@ -459,6 +459,27 @@ export default function SajuInputPage({ onBack, onSaved }: SajuInputPageProps) {
         });
       }
       
+      // ⭐ 캐시 선행 업데이트: 저장 후 최신 사주 데이터 조회해서 캐시에 저장
+      // → ProfilePage에서 백그라운드 API 호출 없이 즉시 표시
+      const { data: updatedSajuList, error: fetchUpdatedError } = await supabase
+        .from('saju_records')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: true });
+
+      if (!fetchUpdatedError && updatedSajuList && updatedSajuList.length > 0) {
+        // 새 대표 사주 찾기 (is_primary=true 또는 첫 번째)
+        const newPrimary = updatedSajuList.find((s: any) => s.is_primary) || updatedSajuList[0];
+        localStorage.setItem('primary_saju', JSON.stringify(newPrimary));
+        localStorage.setItem('saju_records_cache', JSON.stringify(updatedSajuList));
+        console.log('✅ [SajuInputPage] 캐시 선행 업데이트 완료 - 대표 사주:', newPrimary.full_name);
+      } else {
+        // 조회 실패 시 캐시 무효화
+        localStorage.removeItem('saju_records_cache');
+        localStorage.removeItem('primary_saju');
+        console.log('🗑️ [SajuInputPage] 캐시 무효화 (조회 실패)');
+      }
+
       // 프로필용이므로 로딩 페이지 없이 바로 이동
       setTimeout(() => {
         onSaved();

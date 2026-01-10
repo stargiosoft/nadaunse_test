@@ -582,10 +582,31 @@ export default function SajuManagementPage({ onBack, onNavigateToInput, onNaviga
         }
       }
 
-      // ⭐ 캐시 무효화 (대표 사주가 변경되었을 수 있음)
-      localStorage.removeItem('primary_saju');
-      localStorage.removeItem('saju_records_cache');
-      console.log('🗑️ [사주삭제] primary_saju, saju_records_cache 캐시 무효화');
+      // ⭐ 캐시 선행 업데이트: 삭제 후 새 대표 사주 조회해서 캐시에 저장
+      // → ProfilePage에서 백그라운드 API 호출 없이 즉시 표시
+      const { data: updatedSajuList, error: fetchUpdatedError } = await supabase
+        .from('saju_records')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: true });
+
+      if (!fetchUpdatedError && updatedSajuList && updatedSajuList.length > 0) {
+        // 새 대표 사주 찾기 (is_primary=true 또는 첫 번째)
+        const newPrimary = updatedSajuList.find((s: any) => s.is_primary) || updatedSajuList[0];
+        localStorage.setItem('primary_saju', JSON.stringify(newPrimary));
+        localStorage.setItem('saju_records_cache', JSON.stringify(updatedSajuList));
+        console.log('✅ [사주삭제] 캐시 선행 업데이트 완료 - 새 대표 사주:', newPrimary.full_name);
+      } else if (updatedSajuList && updatedSajuList.length === 0) {
+        // 모든 사주가 삭제된 경우
+        localStorage.removeItem('primary_saju');
+        localStorage.removeItem('saju_records_cache');
+        console.log('🗑️ [사주삭제] 모든 사주 삭제됨 - 캐시 무효화');
+      } else {
+        // 조회 실패 시 기존 방식대로 무효화
+        localStorage.removeItem('primary_saju');
+        localStorage.removeItem('saju_records_cache');
+        console.log('🗑️ [사주삭제] primary_saju, saju_records_cache 캐시 무효화');
+      }
 
       // 4단계: 토스트 + 목록 새로고침
       toast.success('삭제되었습니다.');
@@ -655,10 +676,34 @@ export default function SajuManagementPage({ onBack, onNavigateToInput, onNaviga
 
       console.log('✅ [대표사주변경] 완료:', pendingPrimarySajuId);
 
-      // ⭐ 캐시 무효화 (ProfilePage에서 새 대표 사주 로드하도록)
-      localStorage.removeItem('primary_saju');
-      localStorage.removeItem('saju_records_cache');
-      console.log('🗑️ [대표사주변경] primary_saju, saju_records_cache 캐시 무효화');
+      // ⭐ 캐시 선행 업데이트: 새 대표 사주 조회해서 캐시에 저장
+      // → ProfilePage에서 백그라운드 API 호출 없이 즉시 표시
+      const { data: newPrimarySaju, error: fetchNewPrimaryError } = await supabase
+        .from('saju_records')
+        .select('*')
+        .eq('id', pendingPrimarySajuId)
+        .single();
+
+      if (!fetchNewPrimaryError && newPrimarySaju) {
+        localStorage.setItem('primary_saju', JSON.stringify(newPrimarySaju));
+        console.log('✅ [대표사주변경] 캐시 선행 업데이트 완료 - 새 대표 사주:', newPrimarySaju.full_name);
+
+        // saju_records_cache도 업데이트 (is_primary 상태 반영)
+        const { data: updatedSajuList } = await supabase
+          .from('saju_records')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: true });
+
+        if (updatedSajuList) {
+          localStorage.setItem('saju_records_cache', JSON.stringify(updatedSajuList));
+        }
+      } else {
+        // 조회 실패 시 기존 방식대로 무효화
+        localStorage.removeItem('primary_saju');
+        localStorage.removeItem('saju_records_cache');
+        console.log('🗑️ [대표사주변경] 캐시 무효화 (조회 실패)');
+      }
 
       // 3단계: UI 업데이트
       setSelectedSajuId(pendingPrimarySajuId);
