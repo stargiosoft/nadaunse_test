@@ -11,13 +11,6 @@ import { SessionExpiredDialog } from "./SessionExpiredDialog";
 import PaymentSkeleton from "./skeletons/PaymentSkeleton";
 import { DEV } from "../lib/env";
 import { preloadLoadingPageImages } from "../lib/imagePreloader";
-import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogFooter,
-  AlertDialogAction,
-  AlertDialogCancel,
-} from "./ui/alert-dialog";
 
 // 포트원 타입 선언
 declare global {
@@ -102,9 +95,6 @@ export default function PaymentNew({
   >(null);
   const [isSessionExpired, setIsSessionExpired] =
     useState(false);
-  // ⭐ 재구매 확인 다이얼로그 상태
-  const [showRepurchaseDialog, setShowRepurchaseDialog] =
-    useState(false);
 
   const navigate = useNavigate();
 
@@ -148,12 +138,11 @@ export default function PaymentNew({
       console.log('🔍 [PaymentNew] completed주문찾음:', completedOrder ? 'YES' : 'NO');
 
       if (completedOrder) {
-        // ⭐ 결제 완료된 주문이 있으면 재구매 확인 다이얼로그 표시
-        // (ai_generation_completed 여부와 상관없이)
+        // 결제 완료된 주문이 있으면 상세 페이지로 리다이렉트
         console.log('🔍 [PaymentNew] ai_generation_completed:', completedOrder.ai_generation_completed);
-        console.log('🔄 [PaymentNew] 기존 구매 발견 → 재구매 확인 다이얼로그 표시');
-        setShowRepurchaseDialog(true);
-        return false; // 리다이렉트하지 않음
+        console.log('🔄 [PaymentNew] 기존 구매 발견 → 상세 페이지로 리다이렉트');
+        navigate(`/master/content/detail/${currentContentId}`, { replace: true });
+        return true;
       }
     } else {
       console.log('⚠️ [PaymentNew] contentId가 없음');

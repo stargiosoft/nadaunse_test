@@ -167,7 +167,24 @@ export default function ProfilePage({
 
   const navigate = useNavigate(); // ⭐ useNavigate 사용
 
+  // 🔍 DEBUG: 컴포넌트 렌더 시점 로깅
+  console.log('🔍 [ProfilePage] 컴포넌트 렌더 - initialState.hasCache:', initialState.hasCache);
+
+  // ⭐ iOS Safari bfcache 복원 감지
   useEffect(() => {
+    const handlePageShow = (event: PageTransitionEvent) => {
+      console.log('🔍 [ProfilePage] pageshow 이벤트 - persisted:', event.persisted);
+      // persisted=true면 bfcache에서 복원된 것 (useEffect가 다시 실행되지 않음)
+      // persisted=false면 새로운 페이지 로드
+    };
+
+    window.addEventListener('pageshow', handlePageShow);
+    return () => window.removeEventListener('pageshow', handlePageShow);
+  }, []);
+
+  useEffect(() => {
+    console.log('🔍 [ProfilePage] loadUser useEffect 실행 시작');
+
     const loadUser = async () => {
       // ⭐️ 개발용 우회 로직: 개발 환경에서만 localStorage 개발 유저 사용
       if (DEV) {
@@ -203,6 +220,8 @@ export default function ProfilePage({
 
       // ⭐ 캐시 버스터 플래그: 사주 수정 시 설정됨
       const needsRefresh = localStorage.getItem('profile_needs_refresh') === 'true';
+
+      console.log('🔍 [ProfilePage] 캐시 체크 - hasCache:', initialState.hasCache, ', needsRefresh:', needsRefresh);
 
       // 🚀 초기화 시점에 이미 캐시가 로드되었고, refresh가 필요 없으면 API 호출 스킵
       // → iOS 스와이프 뒤로가기 시 불필요한 리로드 완전 방지
