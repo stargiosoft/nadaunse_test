@@ -130,13 +130,16 @@ export default function PaymentNew({
         .eq('user_id', user.id)
         .eq('content_id', currentContentId);
 
-      console.log('🔍 [PaymentNew] 해당 콘텐츠의 모든 주문 (에러):', allOrdersError);
-      console.log('🔍 [PaymentNew] 해당 콘텐츠의 모든 주문 (개수):', allOrders?.length);
-      // 각 주문의 pstatus를 개별적으로 출력
+      console.log('🔍 [PaymentNew] 모든주문에러:', allOrdersError);
+      console.log('🔍 [PaymentNew] 모든주문개수:', allOrders?.length);
+      // 첫 3개 주문만 JSON으로 출력
       if (allOrders && allOrders.length > 0) {
-        allOrders.forEach((order, idx) => {
-          console.log(`🔍 [PaymentNew] 주문[${idx}] id:${order.id?.substring(0,8)}... pstatus:"${order.pstatus}" content_id:${order.content_id?.substring(0,8)}...`);
-        });
+        console.log('🔍 [PaymentNew] 첫번째주문:', JSON.stringify(allOrders[0]));
+        if (allOrders.length > 1) console.log('🔍 [PaymentNew] 두번째주문:', JSON.stringify(allOrders[1]));
+        if (allOrders.length > 2) console.log('🔍 [PaymentNew] 세번째주문:', JSON.stringify(allOrders[2]));
+        // pstatus가 completed인 주문 필터
+        const completedOrders = allOrders.filter(o => o.pstatus === 'completed');
+        console.log('🔍 [PaymentNew] completed주문수:', completedOrders.length);
       }
 
       const { data: existingOrder } = await supabase
