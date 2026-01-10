@@ -90,21 +90,29 @@ export default function SajuResultPage() {
     checkSession();
   }, [navigate, location.pathname, location.search]);
 
-  // ⭐ 뒤로가기 감지 - 콘텐츠 상세 페이지로 리다이렉트
+  // ⭐ 첫 번째 질문에서 뒤로가기 감지 - 구매내역 또는 콘텐츠 상세 페이지로 리다이렉트
   useEffect(() => {
+    // 첫 번째 질문이 아니면 리다이렉트 로직 적용 안함
+    if (startPage !== 1) return;
     if (!contentId) return;
 
     // 히스토리에 현재 페이지 상태 추가 (뒤로가기 감지용)
     window.history.pushState({ sajuResultPage: true }, '');
 
     const handlePopState = (event: PopStateEvent) => {
-      console.log('🔙 [SajuResultPage] 뒤로가기 감지 → 콘텐츠 상세 페이지로 이동');
-      navigate(`/master/content/detail/${contentId}`, { replace: true });
+      // 구매내역에서 진입한 경우 구매내역으로, 아니면 콘텐츠 상세로
+      if (from === 'purchase') {
+        console.log('🔙 [SajuResultPage] 뒤로가기 감지 → 구매내역 페이지로 이동');
+        navigate('/purchase-history', { replace: true });
+      } else {
+        console.log('🔙 [SajuResultPage] 뒤로가기 감지 → 콘텐츠 상세 페이지로 이동');
+        navigate(`/master/content/detail/${contentId}`, { replace: true });
+      }
     };
 
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [contentId, navigate]);
+  }, [startPage, contentId, from, navigate]);
 
   // 🔝 페이지 진입 시 스크롤을 최상단으로 이동
   useEffect(() => {
