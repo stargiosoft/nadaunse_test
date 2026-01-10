@@ -148,29 +148,12 @@ export default function PaymentNew({
       console.log('🔍 [PaymentNew] completed주문찾음:', completedOrder ? 'YES' : 'NO');
 
       if (completedOrder) {
-        // ⭐ AI 생성 완료 여부에 따라 분기
-        // - ai_generation_completed = true → 재구매 확인 다이얼로그 표시
-        // - ai_generation_completed = false → 결제 후 사주선택에서 뒤로가기한 경우 → 상세 페이지로 리다이렉트
+        // ⭐ 결제 완료된 주문이 있으면 재구매 확인 다이얼로그 표시
+        // (ai_generation_completed 여부와 상관없이)
         console.log('🔍 [PaymentNew] ai_generation_completed:', completedOrder.ai_generation_completed);
-
-        if (completedOrder.ai_generation_completed) {
-          // ⭐ AI 생성 완료된 기존 구매 → 재구매 확인 다이얼로그 표시
-          console.log('🔄 [PaymentNew] AI 생성 완료된 기존 구매 → 재구매 확인 다이얼로그 표시');
-          setShowRepurchaseDialog(true);
-          return false; // 리다이렉트하지 않음
-        } else {
-          // ⭐ 결제 후 사주선택에서 뒤로가기한 경우 → 상세 페이지로 리다이렉트
-          const targetUrl = `/master/content/detail/${currentContentId}`;
-          console.log('🔄 [PaymentNew] AI 생성 미완료 (뒤로가기) → 상세 페이지로 리다이렉트:', targetUrl);
-
-          if (useBrowserRedirect) {
-            console.log('🔄 [PaymentNew] window.location.replace 사용');
-            window.location.replace(targetUrl);
-          } else {
-            navigate(targetUrl, { replace: true });
-          }
-          return true;
-        }
+        console.log('🔄 [PaymentNew] 기존 구매 발견 → 재구매 확인 다이얼로그 표시');
+        setShowRepurchaseDialog(true);
+        return false; // 리다이렉트하지 않음
       }
     } else {
       console.log('⚠️ [PaymentNew] contentId가 없음');
