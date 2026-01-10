@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { motion } from "motion/react";
@@ -98,55 +98,72 @@ export default function PaymentNew({
 
   const navigate = useNavigate();
 
-  // ⭐ 결제 완료 체크 함수 (재사용)
-  const checkAndRedirectIfPaid = async () => {
+  // ⭐ contentId를 ref로 저장 (bfcache 복원 시 클로저 문제 해결)
+  const contentIdRef = useRef(contentId);
+  useEffect(() => {
+    contentIdRef.current = contentId;
+  }, [contentId]);
+
+  // ⭐ 결제 완료 체크 함수 (재사용) - ref를 사용하여 항상 최신 contentId 참조
+  const checkAndRedirectIfPaid = useCallback(async () => {
+    const currentContentId = contentIdRef.current;
+    console.log('🔍 [PaymentNew] checkAndRedirectIfPaid 호출, contentId:', currentContentId);
+
     const {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) {
+      console.log('❌ [PaymentNew] 로그인 안됨');
       setIsSessionExpired(true);
       return;
     }
 
     // 이미 결제 완료된 주문이 있는지 확인
-    if (contentId) {
+    if (currentContentId) {
       const { data: existingOrder } = await supabase
         .from('orders')
         .select('id, pstatus')
         .eq('user_id', user.id)
-        .eq('content_id', contentId)
+        .eq('content_id', currentContentId)
         .eq('pstatus', 'completed')
         .maybeSingle();
 
+      console.log('🔍 [PaymentNew] 기존 완료 주문 조회 결과:', existingOrder);
+
       if (existingOrder) {
-        console.log('🔄 [PaymentNew] 이미 결제 완료됨 → 상세 페이지로 리다이렉트');
-        navigate(`/content/${contentId}`, { replace: true });
+        console.log('🔄 [PaymentNew] 이미 결제 완료됨 → 상세 페이지로 리다이렉트:', `/content/${currentContentId}`);
+        navigate(`/content/${currentContentId}`, { replace: true });
         return true;
       }
+    } else {
+      console.log('⚠️ [PaymentNew] contentId가 없음');
     }
     return false;
-  };
+  }, [navigate]);
 
   // ⭐ 세션 체크 및 결제 완료 체크 - 결제 페이지 진입 시
   useEffect(() => {
     checkAndRedirectIfPaid();
-  }, [contentId]);
+  }, [checkAndRedirectIfPaid]);
 
   // ⭐ bfcache 복원 시 처리 (iOS Safari 스와이프 뒤로가기 대응)
   useEffect(() => {
     const handlePageShow = async (event: PageTransitionEvent) => {
       if (event.persisted) {
-        console.log('🔄 [PaymentNew] bfcache 복원 감지');
+        console.log('🔄 [PaymentNew] bfcache 복원 감지 (pageshow persisted)');
         // 결제 처리 중 상태 리셋
         setIsProcessingPayment(false);
         // 결제 완료 체크 후 리다이렉트
-        await checkAndRedirectIfPaid();
+        const redirected = await checkAndRedirectIfPaid();
+        console.log('🔄 [PaymentNew] bfcache 리다이렉트 결과:', redirected);
       }
     };
 
+    // visibilitychange는 bfcache와 무관하게 탭 전환 등에서도 발생하므로 별도 처리
     const handleVisibilityChange = async () => {
-      if (document.visibilityState === 'visible' && isProcessingPayment) {
-        console.log('🔄 [PaymentNew] 페이지 visible + isProcessingPayment=true → 체크');
+      if (document.visibilityState === 'visible') {
+        console.log('🔄 [PaymentNew] 페이지 visible');
+        // isProcessingPayment 상태와 무관하게 결제 완료 여부 체크
         setIsProcessingPayment(false);
         await checkAndRedirectIfPaid();
       }
@@ -159,7 +176,7 @@ export default function PaymentNew({
       window.removeEventListener('pageshow', handlePageShow);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [contentId, isProcessingPayment]);
+  }, [checkAndRedirectIfPaid]);
 
   // contentId가 있으면 DB에서 데이터 로드
   useEffect(() => {
