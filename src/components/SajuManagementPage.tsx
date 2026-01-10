@@ -72,10 +72,21 @@ export default function SajuManagementPage({ onBack, onNavigateToInput, onNaviga
           console.log('🚀 [SajuManagementPage] 초기화 시 캐시 발견 → 즉시 렌더링');
           const ownerSaju = cached.find(s => s.notes === '본인');
           const others = cached.filter(s => s.notes !== '본인');
+
+          // ⭐ setSajuList와 동일한 정렬 적용 (최신순)
+          const sortedOthers = [...others].sort((a, b) => {
+            const dateA = new Date(a.created_at || 0).getTime();
+            const dateB = new Date(b.created_at || 0).getTime();
+            if (dateB !== dateA) {
+              return dateB - dateA; // 최신순 (내림차순)
+            }
+            return (b.id || '').localeCompare(a.id || '');
+          });
+
           // 대표 사주 선택
           const primarySaju = cached.find(s => s.is_primary === true);
           const selectedId = primarySaju?.id || ownerSaju?.id || (cached.length > 0 ? cached[0].id : null);
-          return { mySaju: ownerSaju || null, otherSajuList: others, selectedId, hasCache: true };
+          return { mySaju: ownerSaju || null, otherSajuList: sortedOthers, selectedId, hasCache: true };
         }
       }
     } catch (e) {
@@ -315,8 +326,22 @@ export default function SajuManagementPage({ onBack, onNavigateToInput, onNaviga
   };
 
   useEffect(() => {
-    // 🚀 캐시가 있으면 백그라운드에서만 업데이트 (이미 useState에서 렌더링됨)
-    // 캐시가 없으면 로딩 표시 후 API 호출
+    // ⭐ 캐시 버스터 플래그: 사주 수정 시 설정됨
+    const needsRefresh = localStorage.getItem('saju_management_needs_refresh') === 'true';
+
+    // 🚀 캐시가 있고 refresh 불필요하면 API 호출 스킵 → 정렬 순서 변경 방지
+    if (initialState.hasCache && !needsRefresh) {
+      console.log('🚀 [SajuManagementPage] 캐시 유효 + refresh 불필요 → API 호출 스킵');
+      return;
+    }
+
+    // refresh 플래그가 있으면 제거
+    if (needsRefresh) {
+      localStorage.removeItem('saju_management_needs_refresh');
+      console.log('🔄 [SajuManagementPage] refresh 플래그 감지 → API 호출');
+    }
+
+    // 캐시가 없거나 refresh 필요시 API 호출
     loadSajuList();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {

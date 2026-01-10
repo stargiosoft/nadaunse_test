@@ -72,6 +72,27 @@ export default function SajuInputPage({ onBack, onSaved }: SajuInputPageProps) {
     document.body.scrollTop = 0;
   }, []);
 
+  // ⭐ 뒤로가기 감지 - 유료 콘텐츠 플로우에서 진입한 경우 콘텐츠 상세 페이지로 리다이렉트
+  useEffect(() => {
+    if (!isFromPaidContent || !returnTo) return;
+
+    // returnTo에서 productId 추출 (예: /product/123/saju-select → 123)
+    const match = returnTo.match(/\/product\/(\d+)\//);
+    const productId = match?.[1];
+    if (!productId) return;
+
+    // 히스토리에 현재 페이지 상태 추가 (뒤로가기 감지용)
+    window.history.pushState({ sajuInputPage: true }, '');
+
+    const handlePopState = (event: PopStateEvent) => {
+      console.log('🔙 [SajuInputPage] 뒤로가기 감지 → 콘텐츠 상세 페이지로 이동');
+      navigate(`/master/content/detail/${productId}`, { replace: true });
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [isFromPaidContent, returnTo, navigate]);
+
   // 세션 체크
   useEffect(() => {
     const checkSession = async () => {

@@ -78,6 +78,22 @@ export default function SajuSelectPage() {
     document.body.scrollTop = 0;
   }, []);
 
+  // ⭐ 뒤로가기 감지 - 콘텐츠 상세 페이지로 리다이렉트
+  useEffect(() => {
+    if (!productId) return;
+
+    // 히스토리에 현재 페이지 상태 추가 (뒤로가기 감지용)
+    window.history.pushState({ sajuSelectPage: true }, '');
+
+    const handlePopState = (event: PopStateEvent) => {
+      console.log('🔙 [SajuSelectPage] 뒤로가기 감지 → 콘텐츠 상세 페이지로 이동');
+      navigate(`/master/content/detail/${productId}`, { replace: true });
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [productId, navigate]);
+
   // ⭐ iOS Safari 스와이프 뒤로가기 대응 - 페이지가 다시 보일 때 케밥 메뉴 닫기
   useEffect(() => {
     const handleVisibilityChange = () => {
@@ -102,13 +118,6 @@ export default function SajuSelectPage() {
       }
     };
 
-    // ⭐ popstate: 브라우저 뒤로가기/앞으로가기 시 바텀시트 닫기
-    const handlePopState = () => {
-      console.log('🔄 [SajuSelectPage] popstate → 케밥 메뉴 닫기');
-      setKebabMenuOpen(false);
-      setSelectedSajuForKebab(null);
-    };
-
     // ⭐ focus: 윈도우가 포커스를 받을 때 바텀시트 닫기 (iOS Safari 추가 보호)
     const handleFocus = () => {
       console.log('🔄 [SajuSelectPage] focus → 케밥 메뉴 닫기');
@@ -118,13 +127,11 @@ export default function SajuSelectPage() {
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('pageshow', handlePageShow);
-    window.addEventListener('popstate', handlePopState);
     window.addEventListener('focus', handleFocus);
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('pageshow', handlePageShow);
-      window.removeEventListener('popstate', handlePopState);
       window.removeEventListener('focus', handleFocus);
     };
   }, []);
