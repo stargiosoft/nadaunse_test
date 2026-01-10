@@ -151,39 +151,66 @@ export default function PaymentNew({
 
   // ⭐ 세션 체크 및 결제 완료 체크 - 결제 페이지 진입 시
   useEffect(() => {
+    console.log('🔄 [PaymentNew] 컴포넌트 마운트/업데이트, contentId:', contentId);
     checkAndRedirectIfPaid();
   }, [checkAndRedirectIfPaid]);
 
+  // ⭐ isProcessingPayment가 true인 상태로 렌더링되면 체크 (bfcache 복원 대응)
+  // bfcache에서 복원되면 React 상태는 유지되지만 useEffect가 다시 실행되지 않을 수 있음
+  // 따라서 렌더링 시점에 직접 체크
+  useEffect(() => {
+    if (isProcessingPayment) {
+      console.log('🔄 [PaymentNew] isProcessingPayment=true 감지 → 결제 완료 체크');
+      // 약간의 딜레이 후 체크 (bfcache 복원 직후 상태 안정화)
+      const timer = setTimeout(async () => {
+        const redirected = await checkAndRedirectIfPaid(true);
+        if (!redirected) {
+          // 결제가 완료되지 않았으면 다이얼로그 숨김
+          console.log('🔄 [PaymentNew] 결제 미완료 → 다이얼로그 숨김');
+          setIsProcessingPayment(false);
+        }
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [isProcessingPayment, checkAndRedirectIfPaid]);
+
   // ⭐ bfcache 복원 시 처리 (iOS Safari 스와이프 뒤로가기 대응)
   useEffect(() => {
+    console.log('🔄 [PaymentNew] 이벤트 리스너 등록');
+
     const handlePageShow = async (event: PageTransitionEvent) => {
+      console.log('🔄 [PaymentNew] pageshow 이벤트, persisted:', event.persisted);
       if (event.persisted) {
         console.log('🔄 [PaymentNew] bfcache 복원 감지 (pageshow persisted)');
-        // 결제 처리 중 상태 리셋
         setIsProcessingPayment(false);
-        // 결제 완료 체크 후 리다이렉트 (bfcache에서는 브라우저 리다이렉트 사용)
         const redirected = await checkAndRedirectIfPaid(true);
         console.log('🔄 [PaymentNew] bfcache 리다이렉트 결과:', redirected);
       }
     };
 
-    // visibilitychange는 bfcache와 무관하게 탭 전환 등에서도 발생하므로 별도 처리
     const handleVisibilityChange = async () => {
+      console.log('🔄 [PaymentNew] visibilitychange, state:', document.visibilityState);
       if (document.visibilityState === 'visible') {
-        console.log('🔄 [PaymentNew] 페이지 visible');
-        // isProcessingPayment 상태와 무관하게 결제 완료 여부 체크
         setIsProcessingPayment(false);
-        // visibilitychange에서도 브라우저 리다이렉트 사용 (bfcache 복원일 수 있음)
         await checkAndRedirectIfPaid(true);
       }
     };
 
+    // popstate 이벤트도 추가 (React Router 내 뒤로가기 감지)
+    const handlePopState = async () => {
+      console.log('🔄 [PaymentNew] popstate 이벤트 감지');
+      setIsProcessingPayment(false);
+      await checkAndRedirectIfPaid(true);
+    };
+
     window.addEventListener('pageshow', handlePageShow);
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('popstate', handlePopState);
 
     return () => {
       window.removeEventListener('pageshow', handlePageShow);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('popstate', handlePopState);
     };
   }, [checkAndRedirectIfPaid]);
 

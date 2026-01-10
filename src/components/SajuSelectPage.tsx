@@ -88,12 +88,18 @@ export default function SajuSelectPage() {
       }
     };
 
-    // ⭐ pageshow: bfcache 복원 시 (event.persisted=true) 바텀시트 닫기
+    // ⭐ pageshow: bfcache 복원 시 (event.persisted=true) 바텀시트 닫기 + 상태 리셋
     const handlePageShow = (event: PageTransitionEvent) => {
       console.log('🔄 [SajuSelectPage] pageshow → persisted:', event.persisted);
       // bfcache에서 복원되었거나 일반 pageshow 모두 처리
       setKebabMenuOpen(false);
       setSelectedSajuForKebab(null);
+
+      // 🛡️ bfcache 복원 시 isGenerating 리셋 (이전 시도가 중단된 경우 대응)
+      if (event.persisted) {
+        console.log('🔄 [SajuSelectPage] bfcache 복원 → isGenerating 리셋');
+        setIsGenerating(false);
+      }
     };
 
     // ⭐ popstate: 브라우저 뒤로가기/앞으로가기 시 바텀시트 닫기
