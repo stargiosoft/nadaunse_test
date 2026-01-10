@@ -137,9 +137,9 @@ export default function LoadingPage() {
     window.history.pushState({ loadingPage: true }, '');
 
     const handlePopState = (event: PopStateEvent) => {
-      // 뒤로가기 감지 시 콘텐츠 상세 페이지로 이동
+      // 뒤로가기 감지 시 콘텐츠 상세 페이지로 이동 (유료 콘텐츠)
       console.log('🔙 [LoadingPage] 뒤로가기 감지 → 콘텐츠 상세 페이지로 이동');
-      navigate(`/content/${contentId}`, { replace: true });
+      navigate(`/master/content/detail/${contentId}`, { replace: true });
     };
 
     window.addEventListener('popstate', handlePopState);

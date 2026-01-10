@@ -138,7 +138,8 @@ export default function PaymentNew({
       console.log('🔍 [PaymentNew] completed주문찾음:', completedOrder ? 'YES' : 'NO');
 
       if (completedOrder) {
-        const targetUrl = `/content/${currentContentId}`;
+        // ⭐ 유료 콘텐츠이므로 /master/content/detail/:id로 리다이렉트
+        const targetUrl = `/master/content/detail/${currentContentId}`;
         console.log('🔄 [PaymentNew] 이미 결제 완료됨 → 상세 페이지로 리다이렉트:', targetUrl);
 
         // bfcache에서 복원된 경우 React Router가 제대로 동작하지 않을 수 있으므로 브라우저 리다이렉트 사용
