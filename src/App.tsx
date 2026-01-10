@@ -1015,6 +1015,7 @@ function FreeResultPage() {
 // Profile Page Wrapper
 function ProfilePageWrapper() {
   const navigate = useNavigate();
+  const goBack = useGoBack('/'); // 🛡️ iOS 스와이프 뒤로가기 대응: navigate(-1) 사용
 
   const handleLogout = () => {
     localStorage.removeItem('user');
@@ -1023,7 +1024,7 @@ function ProfilePageWrapper() {
 
   return (
     <ProfilePage
-      onBack={() => navigate('/')}
+      onBack={goBack}
       onLogout={handleLogout}
       onNavigateToMasterContent={() => navigate('/master/content')}
       onNavigateToTermsOfService={() => navigate('/terms-of-service')}
