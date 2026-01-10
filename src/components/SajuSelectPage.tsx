@@ -356,12 +356,22 @@ export default function SajuSelectPage() {
 
       console.log('✅ [사주선택] 진행 중인 주문 발견:', orderId);
 
-      // ⭐ 사주 정보 없이 생성된 결과인지 확인 (구매 후 이탈 → 나중에 사주 선택한 케이스)
-      // 로딩 페이지 이동 전에 먼저 리셋해야 race condition 방지
+      // ⭐ 재생성이 필요한 케이스 확인 (로딩 페이지 이동 전에 먼저 리셋해야 race condition 방지)
+      // 케이스 1: 사주 정보 없이 생성된 결과 (구매 후 이탈 → 나중에 사주 선택)
+      // 케이스 2: 다른 사주로 재생성 요청 (bfcache 복원 후 다른 사주 선택)
       let needsRegeneration = false;
+      const differentSajuSelected = existingOrder.saju_record_id !== null && existingOrder.saju_record_id !== selectedSajuId;
+
       if (existingOrder.ai_generation_completed === true && existingOrder.saju_record_id === null) {
         console.log('⚠️ [사주선택] 사주 정보 없이 생성된 결과 발견 → 로딩 전 리셋 필요');
         needsRegeneration = true;
+      } else if (existingOrder.ai_generation_completed === true && differentSajuSelected) {
+        console.log('⚠️ [사주선택] 다른 사주 선택됨 (기존:', existingOrder.saju_record_id, '→ 선택:', selectedSajuId, ') → 재생성 필요');
+        needsRegeneration = true;
+      }
+
+      if (needsRegeneration) {
+        console.log('🔄 [사주선택] 재생성 시작...');
 
         // 기존 order_results 삭제
         const { error: deleteError } = await supabase
@@ -460,9 +470,9 @@ export default function SajuSelectPage() {
 
       // ⭐️ 백그라운드에서 AI 응답 생성 시작 (비동기, 결과 대기 안 함)
       // 이미 AI 생성이 완료되었는지 확인
-      // (사주 정보 없이 생성된 케이스는 위에서 이미 리셋됨)
+      // (재생성 필요 케이스는 위에서 이미 리셋됨: 사주 없이 생성 / 다른 사주로 변경)
       if (existingOrder.ai_generation_completed === true) {
-        console.log('✅ [사주선택] AI 생성 이미 완료됨 (사주 정보 포함)');
+        console.log('✅ [사주선택] AI 생성 이미 완료됨 (동일 사주로 재접속)');
         return;
       }
 

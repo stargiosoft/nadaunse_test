@@ -107,7 +107,9 @@ export default function PaymentNew({
   // ⭐ 결제 완료 체크 함수 (재사용) - ref를 사용하여 항상 최신 contentId 참조
   const checkAndRedirectIfPaid = useCallback(async (useBrowserRedirect = false) => {
     const currentContentId = contentIdRef.current;
-    console.log('🔍 [PaymentNew] checkAndRedirectIfPaid 호출, contentId:', currentContentId, 'useBrowserRedirect:', useBrowserRedirect);
+    console.log('🔍 [PaymentNew] checkAndRedirectIfPaid 호출');
+    console.log('🔍 [PaymentNew] contentId:', currentContentId);
+    console.log('🔍 [PaymentNew] useBrowserRedirect:', useBrowserRedirect);
 
     const {
       data: { user },
@@ -117,9 +119,19 @@ export default function PaymentNew({
       setIsSessionExpired(true);
       return false;
     }
+    console.log('🔍 [PaymentNew] user.id:', user.id);
 
     // 이미 결제 완료된 주문이 있는지 확인
     if (currentContentId) {
+      // 먼저 해당 콘텐츠에 대한 모든 주문 조회 (디버깅용)
+      const { data: allOrders } = await supabase
+        .from('orders')
+        .select('id, pstatus, content_id, created_at')
+        .eq('user_id', user.id)
+        .eq('content_id', currentContentId);
+
+      console.log('🔍 [PaymentNew] 해당 콘텐츠의 모든 주문:', allOrders);
+
       const { data: existingOrder } = await supabase
         .from('orders')
         .select('id, pstatus')
@@ -128,7 +140,7 @@ export default function PaymentNew({
         .eq('pstatus', 'completed')
         .maybeSingle();
 
-      console.log('🔍 [PaymentNew] 기존 완료 주문 조회 결과:', existingOrder);
+      console.log('🔍 [PaymentNew] 완료된 주문:', existingOrder);
 
       if (existingOrder) {
         const targetUrl = `/content/${currentContentId}`;
