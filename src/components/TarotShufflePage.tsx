@@ -91,6 +91,32 @@ export default function TarotShufflePage() {
     checkSession();
   }, [navigate, location.pathname, location.search]);
 
+  // ⭐ 첫 번째 질문에서 뒤로가기 감지 - 구매내역 또는 콘텐츠 상세 페이지로 리다이렉트
+  useEffect(() => {
+    // 첫 번째 질문이 아니면 리다이렉트 로직 적용 안함
+    if (questionOrder !== 1) return;
+
+    const contentId = contentIdParam || contentIdState;
+    if (!contentId) return;
+
+    // 히스토리에 현재 페이지 상태 추가 (뒤로가기 감지용)
+    window.history.pushState({ tarotShufflePage: true }, '');
+
+    const handlePopState = (event: PopStateEvent) => {
+      // 구매내역에서 진입한 경우 구매내역으로, 아니면 콘텐츠 상세로
+      if (from === 'purchase') {
+        console.log('🔙 [TarotShufflePage] 뒤로가기 감지 → 구매내역 페이지로 이동');
+        navigate('/purchase-history', { replace: true });
+      } else {
+        console.log('🔙 [TarotShufflePage] 뒤로가기 감지 → 콘텐츠 상세 페이지로 이동');
+        navigate(`/master/content/detail/${contentId}`, { replace: true });
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [questionOrder, contentIdParam, contentIdState, from, navigate]);
+
   // DB에서 데이터 가져오기 - 세션 체크 완료 후에만 실행
   useEffect(() => {
     async function fetchData() {
