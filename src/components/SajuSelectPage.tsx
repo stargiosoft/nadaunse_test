@@ -398,62 +398,56 @@ export default function SajuSelectPage() {
         setLoadingName(sajuData.full_name);
       }
 
-      // ⭐️ 2단계: 즉시 로딩 페이지로 이동 (사용자 대기 시간 최소화!)
-      console.log('🚀 [사주선택] 로딩 페이지로 즉시 이동');
+      // ⭐️ 2단계: 주문에 사주 정보 업데이트 (navigate 전에 반드시 완료)
+      console.log('🔄 [사주선택] 주문 업데이트 시작...');
+      if (sajuData) {
+        const { error: updateError } = await supabase
+          .from('orders')
+          .update({
+            saju_record_id: selectedSajuId,
+            full_name: sajuData.full_name,
+            gender: sajuData.gender,
+            birth_date: sajuData.birth_date,
+            birth_time: sajuData.birth_time,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', orderId);
+
+        if (updateError) {
+          console.error('❌ [사주선택] 주문 업데이트 실패:', updateError);
+        } else {
+          console.log('✅ [사주선택] 주문 업데이트 완료');
+        }
+      }
+
+      // ⭐️ 3단계: 로딩 페이지로 이동
+      console.log('🚀 [사주선택] 로딩 페이지로 이동');
       navigate(`/loading?contentId=${contentId}&orderId=${orderId}`);
 
-      // ⭐️ 3단계: 백그라운드에서 대표 사주 업데이트 및 주문 업데이트 (비동기)
+      // ⭐️ 4단계: 백그라운드에서 대표 사주 업데이트 (비동기)
       console.log('🔄 [사주선택] 백그라운드 업데이트 시작...');
-      
-      // 백그라운드 작업을 Promise로 감싸서 비동기 처리
-      Promise.all([
-        // 대표 사주 업데이트
-        (async () => {
-          try {
-            // 모든 사주 is_primary=false로 변경
-            await supabase
-              .from('saju_records')
-              .update({ is_primary: false })
-              .eq('user_id', user.id);
 
-            // 선택된 사주만 is_primary=true로 변경
-            await supabase
-              .from('saju_records')
-              .update({ is_primary: true })
-              .eq('id', selectedSajuId)
-              .eq('user_id', user.id);
+      // 대표 사주 업데이트 (백그라운드)
+      (async () => {
+        try {
+          // 모든 사주 is_primary=false로 변경
+          await supabase
+            .from('saju_records')
+            .update({ is_primary: false })
+            .eq('user_id', user.id);
 
-            console.log('✅ [백그라운드] 대표 사주 업데이트 완료');
-          } catch (error) {
-            console.error('❌ [백그라운드] 대표 사주 업데이트 실패:', error);
-          }
-        })(),
-        
-        // 주문에 사주 정보 업데이트
-        (async () => {
-          if (sajuData) {
-            try {
-              await supabase
-                .from('orders')
-                .update({
-                  saju_record_id: selectedSajuId,
-                  full_name: sajuData.full_name,
-                  gender: sajuData.gender,
-                  birth_date: sajuData.birth_date,
-                  birth_time: sajuData.birth_time,
-                  updated_at: new Date().toISOString()
-                })
-                .eq('id', orderId);
+          // 선택된 사주만 is_primary=true로 변경
+          await supabase
+            .from('saju_records')
+            .update({ is_primary: true })
+            .eq('id', selectedSajuId)
+            .eq('user_id', user.id);
 
-              console.log('✅ [백그라운드] 주문 업데이트 완료');
-            } catch (error) {
-              console.error('❌ [백그라운드] 주문 업데이트 실패:', error);
-            }
-          }
-        })()
-      ]).then(() => {
-        console.log('✅ [백그라운드] 모든 업데이트 완료');
-      });
+          console.log('✅ [백그라운드] 대표 사주 업데이트 완료');
+        } catch (error) {
+          console.error('❌ [백그라운드] 대표 사주 업데이트 실패:', error);
+        }
+      })();
 
       // ⭐️ 백그라운드에서 AI 응답 생성 시작 (비동기, 결과 대기 안 함)
       // 이미 AI 생성이 완료되었는지 확인
