@@ -59,7 +59,7 @@ export default function PaymentComplete() {
             }
           }
           
-          console.log('✅ 최종 저장할 결제 정보:', { paidAmount, payMethod });
+          console.log('✅ 최종 저장할 결제 정보:', { paidAmount, payMethod, contentId, userId, merchantUid });
 
           // ⭐️ 주문이 아직 저장되지 않았을 수 있으므로 저장
           const { data: savedOrder, error: orderError } = await supabase.from('orders').upsert({
@@ -77,7 +77,9 @@ export default function PaymentComplete() {
           if (orderError) {
             console.error('❌ 주문 저장 실패:', orderError);
           } else {
-            console.log('✅ 주문 저장 완료');
+            console.log('✅ 주문 저장 완료:', savedOrder);
+            console.log('✅ 저장된 주문 pstatus:', savedOrder?.pstatus);
+            console.log('✅ 저장된 주문 content_id:', savedOrder?.content_id);
           }
 
           // ⭐ 쿠폰 사용 처리 (모바일 결제)

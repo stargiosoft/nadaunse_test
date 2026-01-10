@@ -124,13 +124,20 @@ export default function PaymentNew({
     // 이미 결제 완료된 주문이 있는지 확인
     if (currentContentId) {
       // 먼저 해당 콘텐츠에 대한 모든 주문 조회 (디버깅용)
-      const { data: allOrders } = await supabase
+      const { data: allOrders, error: allOrdersError } = await supabase
         .from('orders')
         .select('id, pstatus, content_id, created_at')
         .eq('user_id', user.id)
         .eq('content_id', currentContentId);
 
-      console.log('🔍 [PaymentNew] 해당 콘텐츠의 모든 주문:', allOrders);
+      console.log('🔍 [PaymentNew] 해당 콘텐츠의 모든 주문 (에러):', allOrdersError);
+      console.log('🔍 [PaymentNew] 해당 콘텐츠의 모든 주문 (개수):', allOrders?.length);
+      // 각 주문의 pstatus를 개별적으로 출력
+      if (allOrders && allOrders.length > 0) {
+        allOrders.forEach((order, idx) => {
+          console.log(`🔍 [PaymentNew] 주문[${idx}] id:${order.id?.substring(0,8)}... pstatus:"${order.pstatus}" content_id:${order.content_id?.substring(0,8)}...`);
+        });
+      }
 
       const { data: existingOrder } = await supabase
         .from('orders')
