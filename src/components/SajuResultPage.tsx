@@ -90,6 +90,22 @@ export default function SajuResultPage() {
     checkSession();
   }, [navigate, location.pathname, location.search]);
 
+  // ⭐ 뒤로가기 감지 - 콘텐츠 상세 페이지로 리다이렉트
+  useEffect(() => {
+    if (!contentId) return;
+
+    // 히스토리에 현재 페이지 상태 추가 (뒤로가기 감지용)
+    window.history.pushState({ sajuResultPage: true }, '');
+
+    const handlePopState = (event: PopStateEvent) => {
+      console.log('🔙 [SajuResultPage] 뒤로가기 감지 → 콘텐츠 상세 페이지로 이동');
+      navigate(`/master/content/detail/${contentId}`, { replace: true });
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [contentId, navigate]);
+
   // 🔝 페이지 진입 시 스크롤을 최상단으로 이동
   useEffect(() => {
     scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'instant' });

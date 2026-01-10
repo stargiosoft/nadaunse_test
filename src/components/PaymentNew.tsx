@@ -98,6 +98,48 @@ export default function PaymentNew({
 
   const navigate = useNavigate();
 
+  // ⭐ 뒤로가기 감지 - 콘텐츠 상세 페이지로 리다이렉트
+  useEffect(() => {
+    if (!contentId) return;
+
+    // 히스토리에 현재 페이지 상태 추가 (뒤로가기 감지용)
+    window.history.pushState({ paymentPage: true }, '');
+
+    const handlePopState = (event: PopStateEvent) => {
+      console.log('🔙 [PaymentNew] 뒤로가기 감지 → 콘텐츠 상세 페이지로 이동');
+      navigate(`/master/content/detail/${contentId}`, { replace: true });
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [contentId, navigate]);
+
+  // ⭐ bfcache 복원 시 처리 (iOS Safari 스와이프 뒤로가기 대응)
+  useEffect(() => {
+    const handlePageShow = (event: PageTransitionEvent) => {
+      console.log('🔄 [PaymentNew] pageshow 이벤트, persisted:', event.persisted);
+      if (event.persisted) {
+        console.log('🔄 [PaymentNew] bfcache 복원 감지 → isProcessingPayment 리셋');
+        setIsProcessingPayment(false);
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log('🔄 [PaymentNew] visibilitychange visible → isProcessingPayment 리셋');
+        setIsProcessingPayment(false);
+      }
+    };
+
+    window.addEventListener('pageshow', handlePageShow);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('pageshow', handlePageShow);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
+
   // contentId가 있으면 DB에서 데이터 로드
   useEffect(() => {
     if (contentId) {
