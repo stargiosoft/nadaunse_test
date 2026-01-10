@@ -538,36 +538,36 @@ export default function FreeSajuSelectPage({ productId, onBack, prefetchedSajuRe
   const hasOtherSaju = otherSajus.length > 0;
 
   return (
-    <div className="bg-white relative min-h-screen w-full flex justify-center">
-      <div className="w-full max-w-[390px] relative">
-        {/* Top Navigation */}
-        <div className="fixed content-stretch flex flex-col items-start left-1/2 -translate-x-1/2 top-0 w-full max-w-[390px] z-10 bg-white">
-          {/* Navigation Bar */}
-          <div className="bg-white h-[52px] relative shrink-0 w-full">
-            <div className="flex flex-col justify-center size-full">
-              <div className="content-stretch flex flex-col items-start justify-center px-[12px] py-[4px] relative size-full">
-                <div className="content-stretch flex items-center justify-between relative shrink-0 w-full">
-                  <div onClick={onBack} className="content-stretch flex items-center justify-center p-[4px] relative rounded-[12px] shrink-0 size-[44px] cursor-pointer">
-                    <div className="relative shrink-0 size-[24px]">
-                      <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
-                        <path d={svgPaths.p2a5cd480} stroke="#848484" strokeLinecap="round" strokeLinejoin="round" strokeMiterlimit="10" strokeWidth="1.7" />
-                      </svg>
-                    </div>
+    <div className="fixed top-0 bottom-0 left-1/2 -translate-x-1/2 bg-white flex flex-col w-full max-w-[390px]">
+      {/* Top Navigation - shrink-0로 고정 높이 */}
+      <div className="bg-white shrink-0 w-full z-10">
+        {/* Navigation Bar */}
+        <div className="bg-white h-[52px] relative shrink-0 w-full">
+          <div className="flex flex-col justify-center size-full">
+            <div className="content-stretch flex flex-col items-start justify-center px-[12px] py-[4px] relative size-full">
+              <div className="content-stretch flex items-center justify-between relative shrink-0 w-full">
+                <div onClick={onBack} className="content-stretch flex items-center justify-center p-[4px] relative rounded-[12px] shrink-0 size-[44px] cursor-pointer">
+                  <div className="relative shrink-0 size-[24px]">
+                    <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
+                      <path d={svgPaths.p2a5cd480} stroke="#848484" strokeLinecap="round" strokeLinejoin="round" strokeMiterlimit="10" strokeWidth="1.7" />
+                    </svg>
                   </div>
-                  <p className="basis-0 grow leading-[25.5px] font-semibold min-h-px min-w-px overflow-ellipsis overflow-hidden relative shrink-0 text-[18px] text-black text-center text-nowrap tracking-[-0.36px]">
-                    사주 정보 선택
-                  </p>
-                  <div className="content-stretch flex items-center justify-center opacity-0 p-[4px] relative rounded-[12px] shrink-0 size-[44px]" />
                 </div>
+                <p className="basis-0 grow leading-[25.5px] font-semibold min-h-px min-w-px overflow-ellipsis overflow-hidden relative shrink-0 text-[18px] text-black text-center text-nowrap tracking-[-0.36px]">
+                  사주 정보 선택
+                </p>
+                <div className="content-stretch flex items-center justify-center opacity-0 p-[4px] relative rounded-[12px] shrink-0 size-[44px]" />
               </div>
             </div>
           </div>
-
-          <div className="h-[16px] shrink-0 w-full" />
         </div>
 
-        {/* Content */}
-        <div className="pt-[68px] pb-[120px] px-[20px]">
+        <div className="h-[16px] shrink-0 w-full" />
+      </div>
+
+      {/* Scrollable Content Area - flex-1로 남은 공간 차지, overscroll-contain으로 바운스 방지 */}
+      <div className="flex-1 overflow-y-auto overscroll-contain">
+        <div className="px-[20px] pb-[20px]">
           {/* 내 사주 섹션 */}
           {mySaju && (
             <div className="content-stretch flex flex-col gap-[8px] items-start relative shrink-0 w-full">
@@ -663,12 +663,11 @@ export default function FreeSajuSelectPage({ productId, onBack, prefetchedSajuRe
             )}
           </div>
         </div>
+      </div>
 
-        {/* Bottom Button - 프로필용과 다른 부분 */}
-        <div className="fixed bottom-0 left-1/2 -translate-x-1/2 content-stretch flex flex-col items-start shadow-[0px_-8px_16px_0px_rgba(255,255,255,0.76)] w-full max-w-[390px] z-10">
-          <div className="bg-white relative shrink-0 w-full">
-            <div className="flex flex-col items-center justify-center size-full">
-              <div className="content-stretch flex flex-col items-center justify-center px-[20px] py-[12px] relative w-full">
+      {/* Bottom Button - shrink-0로 고정 */}
+      <div className="bg-white shrink-0 w-full shadow-[0px_-8px_16px_0px_rgba(255,255,255,0.76)] z-10">
+        <div className="content-stretch flex flex-col items-center justify-center px-[20px] py-[12px] relative w-full">
                 {/* Button Group - 사주 정보 추가 + 다음 */}
                 <div className="content-stretch flex gap-[12px] items-start relative shrink-0 w-full">
                   {/* 사주 정보 추가 버튼 */}
@@ -708,32 +707,29 @@ export default function FreeSajuSelectPage({ productId, onBack, prefetchedSajuRe
                       </div>
                     </div>
                   </motion.button>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
-
-        {/* 케밥 메뉴 */}
-        {kebabMenuOpen && selectedSajuForKebab && (
-          <SajuKebabMenu
-            isOpen={kebabMenuOpen}
-            position={kebabMenuPosition}
-            isOwnerSaju={selectedSajuForKebab.notes === '본인'}
-            onEdit={handleEditSaju}
-            onDelete={handleDeleteClick}
-            onClose={() => setKebabMenuOpen(false)}
-          />
-        )}
-
-        {/* 삭제 확인 다이얼로그 */}
-        <ConfirmDialog
-          isOpen={isDeleteDialogOpen}
-          title="등록된 사주를 삭제하시겠어요?"
-          onConfirm={handleConfirmDelete}
-          onCancel={() => setIsDeleteDialogOpen(false)}
-        />
       </div>
+
+      {/* 케밥 메뉴 */}
+      {kebabMenuOpen && selectedSajuForKebab && (
+        <SajuKebabMenu
+          isOpen={kebabMenuOpen}
+          position={kebabMenuPosition}
+          isOwnerSaju={selectedSajuForKebab.notes === '본인'}
+          onEdit={handleEditSaju}
+          onDelete={handleDeleteClick}
+          onClose={() => setKebabMenuOpen(false)}
+        />
+      )}
+
+      {/* 삭제 확인 다이얼로그 */}
+      <ConfirmDialog
+        isOpen={isDeleteDialogOpen}
+        title="등록된 사주를 삭제하시겠어요?"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setIsDeleteDialogOpen(false)}
+      />
     </div>
   );
 }
