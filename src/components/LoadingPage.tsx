@@ -128,6 +128,27 @@ export default function LoadingPage() {
     checkSession();
   }, [navigate]);
 
+  // ⭐ 뒤로가기 감지 - 콘텐츠 상세 페이지로 리다이렉트
+  // iOS 스와이프 뒤로가기, 브라우저 뒤로가기 버튼 모두 대응
+  useEffect(() => {
+    if (!contentId) return;
+
+    // 히스토리에 더미 상태 추가 (뒤로가기 감지용)
+    window.history.pushState({ loadingPage: true }, '');
+
+    const handlePopState = (event: PopStateEvent) => {
+      // 뒤로가기 감지 시 콘텐츠 상세 페이지로 이동
+      console.log('🔙 [LoadingPage] 뒤로가기 감지 → 콘텐츠 상세 페이지로 이동');
+      navigate(`/content/${contentId}`, { replace: true });
+    };
+
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [contentId, navigate]);
+
   // 🚀 콘텐츠 제목 로드 (캐시 우선)
   useEffect(() => {
     if (!contentId) return;
