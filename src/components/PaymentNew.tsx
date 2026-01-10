@@ -132,27 +132,12 @@ export default function PaymentNew({
 
       console.log('🔍 [PaymentNew] 모든주문에러:', allOrdersError);
       console.log('🔍 [PaymentNew] 모든주문개수:', allOrders?.length);
-      // 첫 3개 주문만 JSON으로 출력
-      if (allOrders && allOrders.length > 0) {
-        console.log('🔍 [PaymentNew] 첫번째주문:', JSON.stringify(allOrders[0]));
-        if (allOrders.length > 1) console.log('🔍 [PaymentNew] 두번째주문:', JSON.stringify(allOrders[1]));
-        if (allOrders.length > 2) console.log('🔍 [PaymentNew] 세번째주문:', JSON.stringify(allOrders[2]));
-        // pstatus가 completed인 주문 필터
-        const completedOrders = allOrders.filter(o => o.pstatus === 'completed');
-        console.log('🔍 [PaymentNew] completed주문수:', completedOrders.length);
-      }
 
-      const { data: existingOrder } = await supabase
-        .from('orders')
-        .select('id, pstatus')
-        .eq('user_id', user.id)
-        .eq('content_id', currentContentId)
-        .eq('pstatus', 'completed')
-        .maybeSingle();
+      // 이미 조회한 데이터에서 completed 주문 찾기 (maybeSingle 버그 회피)
+      const completedOrder = allOrders?.find(o => o.pstatus === 'completed');
+      console.log('🔍 [PaymentNew] completed주문찾음:', completedOrder ? 'YES' : 'NO');
 
-      console.log('🔍 [PaymentNew] 완료된 주문:', existingOrder);
-
-      if (existingOrder) {
+      if (completedOrder) {
         const targetUrl = `/content/${currentContentId}`;
         console.log('🔄 [PaymentNew] 이미 결제 완료됨 → 상세 페이지로 리다이렉트:', targetUrl);
 
