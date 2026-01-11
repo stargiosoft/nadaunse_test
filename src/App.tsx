@@ -1294,15 +1294,17 @@ function SajuManagementPageWrapper() {
   return (
     <SajuManagementPage
       onBack={goBack}
-      onNavigateToInput={() => navigate('/saju/input')}
-      onNavigateToAdd={() => navigate('/saju/add')}
+      onNavigateToInput={() => navigate('/saju/input', { replace: true })}
+      onNavigateToAdd={() => navigate('/saju/add', { replace: true })}
       onEditMySaju={(sajuInfo) => {
         // 내 사주 수정 → SajuInputPage로 이동 (편집 모드)
-        navigate('/saju/input', { state: { editMode: true, sajuData: sajuInfo, returnTo: '/saju/management' } });
+        // ⭐ replace: true로 히스토리 교체 → iOS 스와이프 뒤로가기 정상 동작
+        navigate('/saju/input', { replace: true, state: { editMode: true, sajuData: sajuInfo, returnTo: '/saju/management' } });
       }}
       onEditOtherSaju={(sajuInfo) => {
         // 함께 보는 사주 수정 → SajuAddPage로 이동 (편집 모드)
-        navigate('/saju/add', { state: { editMode: true, sajuData: sajuInfo, returnTo: '/saju/management' } });
+        // ⭐ replace: true로 히스토리 교체 → iOS 스와이프 뒤로가기 정상 동작
+        navigate('/saju/add', { replace: true, state: { editMode: true, sajuData: sajuInfo, returnTo: '/saju/management' } });
       }}
     />
   );
