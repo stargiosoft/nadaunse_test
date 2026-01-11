@@ -303,21 +303,20 @@ serve(async (req) => {
       if (orderInfoError || !orderInfo || !orderInfo.user_id) {
         console.error('❌ 주문 정보 조회 실패 또는 user_id 없음:', orderInfoError)
       } else {
-        // 2단계: 본인 사주에서 전화번호 조회 (is_primary=true 우선, 없으면 notes='본인')
-        const { data: primarySaju, error: primarySajuError } = await supabase
+        // 2단계: 본인 사주에서 전화번호 조회 (notes='본인'인 사주)
+        // ⭐️ is_primary는 대표 사주 (함께보는 사주일 수 있음), notes='본인'이 실제 본인 사주
+        const { data: mySaju, error: mySajuError } = await supabase
           .from('saju_records')
           .select('full_name, phone_number')
           .eq('user_id', orderInfo.user_id)
-          .or('is_primary.eq.true,notes.eq.본인')
-          .order('is_primary', { ascending: false, nullsFirst: false })
-          .limit(1)
+          .eq('notes', '본인')
           .single()
 
-        if (primarySajuError || !primarySaju) {
-          console.warn('⚠️ 본인 사주 조회 실패:', primarySajuError)
+        if (mySajuError || !mySaju) {
+          console.warn('⚠️ 본인 사주 조회 실패:', mySajuError)
         } else {
-          const phoneNumber = primarySaju.phone_number
-          const customerName = primarySaju.full_name
+          const phoneNumber = mySaju.phone_number
+          const customerName = mySaju.full_name
 
           if (!phoneNumber) {
             console.warn('⚠️ 본인 사주에 전화번호 없음, 알림톡 발송 스킵')
