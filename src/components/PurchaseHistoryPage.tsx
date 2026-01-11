@@ -238,13 +238,65 @@ export default function PurchaseHistoryPage() {
       // 무료 콘텐츠는 무료 사주 결과 페이지로
       navigate(`/free-saju/${item.id}`);
     } else {
-      // ⭐ 유료 콘텐츠: 사주 정보 입력 여부 & order_results 체크
+      // ⭐ 유료 콘텐츠: order_results 먼저 체크 (사주 정보 삭제 여부와 무관)
       console.log('🔍 [구매내역] 유료 콘텐츠 상태 체크 시작:', item.id);
 
       try {
-        // 1️⃣ 사주 정보 없음 → 사주 선택/입력 페이지로 이동
+        // 1️⃣ 전체 질문 개수 조회
+        const { data: questionsData, error: questionsError } = await supabase
+          .from('master_content_questions')
+          .select('id')
+          .eq('content_id', item.content_id);
+
+        if (questionsError) {
+          console.error('❌ [구매내역] 질문 개수 조회 실패:', questionsError);
+          // 에러 시 일단 결과 페이지로 이동 (from=purchase 포함)
+          navigate(`/result/saju?orderId=${item.id}&contentId=${item.content_id}&from=purchase`);
+          return;
+        }
+
+        const totalQuestions = questionsData?.length || 0;
+        console.log(`📋 [구매내역] 전체 질문 개수: ${totalQuestions}`);
+
+        // 2️⃣ 생성 완료된 답변 개수 조회
+        const { data: resultsData, error: resultsError } = await supabase
+          .from('order_results')
+          .select('id')
+          .eq('order_id', item.id);
+
+        if (resultsError) {
+          console.error('❌ [구매내역] order_results 조회 실패:', resultsError);
+        }
+
+        const completedAnswers = resultsData?.length || 0;
+        console.log(`📊 [구매내역] 완료된 답변 개수: ${completedAnswers} / ${totalQuestions}`);
+
+        // 3️⃣ order_results가 있으면 → 결과 페이지 (saju_record_id null이어도 OK)
+        // orders 테이블에 사주 스냅샷(full_name, gender, birth_date, birth_time)이 저장되어 있음
+        if (completedAnswers > 0 && completedAnswers >= totalQuestions) {
+          // ✅ 모든 답변 완료 → 결과 페이지로 즉시 이동
+          console.log('✅ [구매내역] 모든 답변 완료 → 결과 페이지로 즉시 이동');
+
+          // ⭐ 타로 이미지 프리로드 (백그라운드 처리, 완료 대기 안함)
+          preloadTarotImages(item.id, supabaseUrl).catch(err => {
+            console.log('⚠️ [구매내역] 타로 프리로드 실패 (무시):', err);
+          });
+
+          // 즉시 결과 페이지로 이동 (히스토리 유지 - 뒤로가기 시 구매내역으로 이동)
+          navigate(`/result/saju?orderId=${item.id}&contentId=${item.content_id}&from=purchase`);
+          return;
+        }
+
+        // 4️⃣ order_results가 일부만 있으면 → 로딩 페이지 (계속 생성 중)
+        if (completedAnswers > 0 && completedAnswers < totalQuestions) {
+          console.log(`⚠️ [구매내역] 일부 생성 완료 (${completedAnswers}/${totalQuestions}) → 로딩 페이지로 이동`);
+          navigate(`/loading?orderId=${item.id}&contentId=${item.content_id}&from=purchase`);
+          return;
+        }
+
+        // 5️⃣ order_results가 없음 → 사주 정보 체크
         if (!item.saju_record_id) {
-          console.log('⚠️ [구매내역] saju_record_id null → 사주 선택/입력 페이지로 이동');
+          console.log('⚠️ [구매내역] AI 결과 없음 + saju_record_id null → 사주 선택/입력 필요');
 
           // 등록된 사주 정보가 있는지 확인
           const { data: { user } } = await supabase.auth.getUser();
@@ -283,55 +335,9 @@ export default function PurchaseHistoryPage() {
           return;
         }
 
-        // 2️⃣ 사주 정보는 있음 → order_results 체크 (API call 완료 여부 확인)
-        console.log('🔍 [구매내역] order_results 체크 시작:', item.id);
-        
-        // 전체 질문 개수 조회
-        const { data: questionsData, error: questionsError } = await supabase
-          .from('master_content_questions')
-          .select('id')
-          .eq('content_id', item.content_id);
-
-        if (questionsError) {
-          console.error('❌ [구매내역] 질문 개수 조회 실패:', questionsError);
-          // 에러 시 일단 결과 페이지로 이동 (from=purchase 포함)
-          navigate(`/result/saju?orderId=${item.id}&contentId=${item.content_id}&from=purchase`);
-          return;
-        }
-
-        const totalQuestions = questionsData?.length || 0;
-        console.log(`📋 [구매내역] 전체 질문 개수: ${totalQuestions}`);
-
-        // 생성 완료된 답변 개수 조회
-        const { data: resultsData, error: resultsError } = await supabase
-          .from('order_results')
-          .select('id')
-          .eq('order_id', item.id);
-
-        if (resultsError) {
-          console.error('❌ [구매내역] order_results 조회 실패:', resultsError);
-        }
-
-        const completedAnswers = resultsData?.length || 0;
-        console.log(`📊 [구매내역] 완료된 답변 개수: ${completedAnswers} / ${totalQuestions}`);
-
-        // 모든 질문에 답변이 완료되었는지 확인
-        if (completedAnswers > 0 && completedAnswers >= totalQuestions) {
-          // ✅ 모든 답변 완료 → 결과 페이지로 즉시 이동
-          console.log('✅ [구매내역] 모든 답변 완료 → 결과 페이지로 즉시 이동');
-          
-          // ⭐ 타로 이미지 프리로드 (백그라운드 처리, 완료 대기 안함)
-          preloadTarotImages(item.id, supabaseUrl).catch(err => {
-            console.log('⚠️ [구매내역] 타로 프리로드 실패 (무시):', err);
-          });
-          
-          // 즉시 결과 페이지로 이동 (히스토리 유지 - 뒤로가기 시 구매내역으로 이동)
-          navigate(`/result/saju?orderId=${item.id}&contentId=${item.content_id}&from=purchase`);
-        } else {
-          // ⚠️ 아직 생성 중 → 로딩 페이지로 이동
-          console.log(`⚠️ [구매내역] 아직 생성 중 (${completedAnswers}/${totalQuestions}) → 로딩 페이지로 이동`);
-          navigate(`/loading?orderId=${item.id}&contentId=${item.content_id}&from=purchase`);
-        }
+        // 6️⃣ order_results 없고 saju_record_id 있음 → 로딩 페이지
+        console.log('⚠️ [구매내역] AI 결과 없음 + saju_record_id 있음 → 로딩 페이지로 이동');
+        navigate(`/loading?orderId=${item.id}&contentId=${item.content_id}&from=purchase`)
       } catch (error) {
         console.error('❌ [구매내역] order_results 체크 에러:', error);
         // 에러 시 일단 결과 페이지로 이동 (결과 페이지에서 다시 체크)
