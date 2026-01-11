@@ -1312,7 +1312,7 @@ function SajuAddPageWrapper() {
   return (
     <SajuAddPage
       onBack={() => navigate('/saju/management')}
-      onSaved={() => navigate('/saju/management', { replace: true })}
+      onSaved={() => navigate(-2)}
     />
   );
 }

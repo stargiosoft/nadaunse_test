@@ -17,6 +17,62 @@
 
 ## 2026-01-11
 
+### iOS 스와이프 뒤로가기: 사주 추가 후 히스토리 2단계 뒤로가기
+**결정**: 사주 추가 완료 후 `navigate(-2)`로 2단계 뒤로 이동
+**배경**:
+- 프로필 → 사주관리 → 사주추가 → 저장 후
+- iOS 스와이프 뒤로가기 시 사주관리가 아닌 프로필로 돌아가야 함
+- 기존 `replace: true` 방식은 현재 엔트리만 교체하여 불완전
+
+**문제 시나리오**:
+```
+히스토리 스택:
+98: /profile
+99: /saju/management  ← 첫 방문
+100: /saju/add
+
+저장 후 navigate('/saju/management', { replace: true }):
+98: /profile
+99: /saju/management  ← 여전히 존재
+100: /saju/management  ← 교체됨
+
+→ 스와이프 뒤로가기 시 #99 /saju/management로 이동 (버그!)
+```
+
+**해결 방법**:
+```typescript
+// App.tsx - SajuAddPageWrapper
+function SajuAddPageWrapper() {
+  const navigate = useNavigate();
+
+  return (
+    <SajuAddPage
+      onBack={() => navigate('/saju/management')}
+      onSaved={() => navigate(-2)}  // ⭐ 2단계 뒤로 이동
+    />
+  );
+}
+```
+
+**수정 후 히스토리**:
+```
+히스토리 스택:
+98: /profile
+99: /saju/management
+100: /saju/add
+
+저장 후 navigate(-2):
+98: /profile  ← 바로 프로필로 이동
+(99, 100은 스택에서 제거)
+
+→ 스와이프 뒤로가기 시 프로필 이전 페이지로 정상 이동
+```
+
+**영향**: `/App.tsx` (SajuAddPageWrapper)
+**테스트**: iOS Safari에서 사주 추가 후 스와이프 뒤로가기 → 프로필 → 홈 순서 확인
+
+---
+
 ### iOS 스와이프 뒤로가기: PaymentNew popstate 핸들러 제거
 **결정**: PaymentNew.tsx에서 `pushState` + `popstate` 패턴 제거, bfcache 핸들러만 유지
 **배경**:
@@ -1009,10 +1065,10 @@ export const isFigmaSite(): boolean    // Figma Make 환경 체크
 
 ## 📊 주요 결정 통계 (2026-01-11 기준)
 
-- **총 결정 기록**: 32개
+- **총 결정 기록**: 33개
 - **아키텍처 변경**: 10개
 - **성능 최적화**: 5개
-- **사용자 경험 개선**: 8개 (iOS 스와이프 뒤로가기 대응 +3)
+- **사용자 경험 개선**: 9개 (iOS 스와이프 뒤로가기 대응 +4)
 - **보안 강화**: 6개
 - **개발 안정성**: 3개
 
