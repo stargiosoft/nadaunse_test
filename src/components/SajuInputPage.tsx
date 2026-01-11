@@ -139,8 +139,17 @@ export default function SajuInputPage({ onBack, onSaved }: SajuInputPageProps) {
         setBirthTime(displayTime);
       }
       
-      // phone_number 로드 (선택 필드)
-      setPhoneNumber(dataToLoad.phone_number || '');
+      // phone_number 로드 (선택 필드) - 자동 포매팅 적용
+      // DB에는 '01087675829' 형태로 저장되어 있으므로 '010-8767-5829' 형태로 포매팅
+      const formatPhoneNumber = (phone: string): string => {
+        if (!phone) return '';
+        const numbers = phone.replace(/[^\d]/g, '');
+        if (numbers.length >= 4) {
+          return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}${numbers.length > 7 ? `-${numbers.slice(7, 11)}` : ''}`;
+        }
+        return numbers;
+      };
+      setPhoneNumber(formatPhoneNumber(dataToLoad.phone_number || ''));
     }
   }, [isEditMode, editingSaju]);
 
