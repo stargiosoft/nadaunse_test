@@ -1158,6 +1158,9 @@ function WelcomeCouponPageWrapper() {
     // ⭐ 신규 회원 로그인 완료 토스트 표시 플래그 저장
     sessionStorage.setItem('show_login_toast', 'true');
 
+    // ⭐ 프로필 페이지 강제 리로드 플래그 저장
+    sessionStorage.setItem('force_profile_reload', 'true');
+
     // redirectAfterLogin 확인
     const redirectUrl = localStorage.getItem('redirectAfterLogin');
 
