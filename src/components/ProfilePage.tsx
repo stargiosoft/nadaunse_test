@@ -230,13 +230,21 @@ export default function ProfilePage({
       // ⭐ 캐시 버스터 플래그: 사주 수정 시 설정됨
       const needsRefresh = localStorage.getItem('profile_needs_refresh') === 'true';
 
-      console.log('🔍 [ProfilePage] 캐시 체크 - hasCache:', initialState.hasCache, ', needsRefresh:', needsRefresh);
+      // ⭐ 최초 로그인 플래그: 로그인 직후 한 번만 강제 API 호출
+      const isFirstLogin = sessionStorage.getItem('show_login_toast') === 'true';
 
-      // 🚀 초기화 시점에 이미 캐시가 로드되었고, refresh가 필요 없으면 API 호출 스킵
+      console.log('🔍 [ProfilePage] 캐시 체크 - hasCache:', initialState.hasCache, ', needsRefresh:', needsRefresh, ', isFirstLogin:', isFirstLogin);
+
+      // 🚀 초기화 시점에 이미 캐시가 로드되었고, refresh가 필요 없고, 최초 로그인도 아니면 API 호출 스킵
       // → iOS 스와이프 뒤로가기 시 불필요한 리로드 완전 방지
-      if (initialState.hasCache && !needsRefresh) {
-        console.log('🚀 [ProfilePage] 초기 캐시 유효 + refresh 불필요 → API 호출 완전 스킵');
+      if (initialState.hasCache && !needsRefresh && !isFirstLogin) {
+        console.log('🚀 [ProfilePage] 초기 캐시 유효 + refresh 불필요 + 최초 로그인 아님 → API 호출 완전 스킵');
         return;
+      }
+
+      // ⭐ 최초 로그인 시 무조건 API 호출
+      if (isFirstLogin) {
+        console.log('🎉 [ProfilePage] 최초 로그인 감지 → 강제 API 호출');
       }
 
       // ⭐ refresh 플래그가 설정된 경우 → 플래그 제거 후 백그라운드 refresh 진행
@@ -278,19 +286,28 @@ export default function ProfilePage({
           console.error('❌ 사주 정보 로드 실패:', sajuError);
           setPrimarySaju(null);
           localStorage.removeItem('primary_saju');
+          localStorage.removeItem('saju_records_cache');
         } else if (sajuList && sajuList.length > 0) {
           const primary = sajuList.find((s: any) => s.is_primary) || sajuList[0];
           setPrimarySaju(primary);
-          // ⭐ 사주 정보 캐시에 저장
+          // ⭐ 사주 정보 캐시에 저장 (primary + 전체 리스트)
           localStorage.setItem('primary_saju', JSON.stringify(primary));
+          localStorage.setItem('saju_records_cache', JSON.stringify(sajuList));
           console.log('✅ 대표 사주 로드 완료:', primary);
         } else {
           setPrimarySaju(null);
           localStorage.removeItem('primary_saju');
+          localStorage.removeItem('saju_records_cache');
           console.log('📭 등록된 사주 없음');
         }
 
         setIsLoadingSaju(false);
+
+        // ⭐ 최초 로그인 플래그 제거 (한 번만 API 호출)
+        if (isFirstLogin) {
+          sessionStorage.removeItem('show_login_toast');
+          console.log('✅ [ProfilePage] 최초 로그인 API 호출 완료 → 플래그 제거');
+        }
       } else {
         // ⭐ 세션 만료 → 바로 로그인 페이지로 이동 (다이얼로그 없이)
         console.log('🔐 [ProfilePage] 세션 만료 → 로그인 페이지로 이동');

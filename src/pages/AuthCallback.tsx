@@ -143,36 +143,6 @@ export default function AuthCallback() {
         // ⭐ 로그인 성공 토스트 표시 플래그 저장
         sessionStorage.setItem('show_login_toast', 'true');
 
-        // ⭐ 사주 정보 프리페칭 및 캐시 저장
-        console.log('🔍 [AuthCallback] 사주 정보 프리페칭 시작...');
-        try {
-          const { data: sajuList, error: sajuError } = await supabase
-            .from('saju_records')
-            .select('*')
-            .eq('user_id', session.user.id)
-            .order('created_at', { ascending: true });
-
-          if (sajuError) {
-            console.error('❌ [AuthCallback] 사주 정보 조회 실패:', sajuError);
-          } else if (sajuList && sajuList.length > 0) {
-            console.log(`✅ [AuthCallback] 사주 정보 ${sajuList.length}개 조회 완료`);
-
-            // 캐시에 저장
-            localStorage.setItem('saju_records_cache', JSON.stringify(sajuList));
-
-            // 대표 사주 캐시 저장
-            const primarySaju = sajuList.find((s: any) => s.is_primary) || sajuList[0];
-            localStorage.setItem('primary_saju', JSON.stringify(primarySaju));
-
-            console.log('💾 [AuthCallback] 사주 정보 캐시 저장 완료 - 대표:', primarySaju.full_name);
-          } else {
-            console.log('ℹ️ [AuthCallback] 등록된 사주 정보 없음');
-          }
-        } catch (prefetchError) {
-          console.error('❌ [AuthCallback] 사주 정보 프리페칭 실패:', prefetchError);
-          // 프리페칭 실패해도 로그인 플로우는 계속 진행
-        }
-
         // 리다이렉트 URL 확인
         const redirectUrl = localStorage.getItem('redirectAfterLogin');
         console.log('📍 저장된 리다이렉트 URL:', redirectUrl);
