@@ -143,6 +143,9 @@ export default function AuthCallback() {
         // ⭐ 로그인 성공 토스트 표시 플래그 저장
         sessionStorage.setItem('show_login_toast', 'true');
 
+        // ⭐ 프로필 페이지 강제 리로드 플래그 저장
+        sessionStorage.setItem('force_profile_reload', 'true');
+
         // 리다이렉트 URL 확인
         const redirectUrl = localStorage.getItem('redirectAfterLogin');
         console.log('📍 저장된 리다이렉트 URL:', redirectUrl);
@@ -155,7 +158,7 @@ export default function AuthCallback() {
           console.log('❌ 리다이렉트 URL 없음 → 홈으로 이동');
           navigate('/', { replace: true });
         }
-        
+
         return;
       }
 

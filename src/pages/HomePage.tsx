@@ -18,10 +18,14 @@ type TabCategory = '전체' | '개인운세' | '연애' | '이별' | '궁합' | 
  */
 let homeFilterCache: { category: TabCategory; contentType: 'all' | 'paid' | 'free' } | null = null;
 
+/** 세션 스토리지 키 - 사용자가 선택한 필터 상태 유지 */
+const SESSION_FILTER_KEY = 'homepage_filter_state';
+
 /**
  * ⭐ 홈 필터 초기값 헬퍼 함수
- * - '다른 운세 보기' 버튼으로 이동 시 카테고리 필터 자동 선택
- * - localStorage의 homeFilter를 읽고 즉시 제거 (일회성)
+ * - 우선순위: localStorage(일회성) > sessionStorage(세션 유지) > 기본값
+ * - '다른 운세 보기' 버튼으로 이동 시 카테고리 필터 자동 선택 (localStorage)
+ * - 사용자가 직접 선택한 필터는 sessionStorage에 유지
  */
 function getInitialHomeFilter(): { category: TabCategory; contentType: 'all' | 'paid' | 'free' } {
   // 이미 캐시가 있으면 반환 (같은 마운트 사이클에서 두 번 호출 방지)
@@ -30,28 +34,47 @@ function getInitialHomeFilter(): { category: TabCategory; contentType: 'all' | '
   }
 
   const defaultFilter = { category: '전체' as TabCategory, contentType: 'all' as const };
+  const validCategories: TabCategory[] = ['전체', '개인운세', '연애', '이별', '궁합', '재물', '직업', '시험/학업', '건강', '인간관계', '자녀', '이사/매매', '기타'];
+  const validTypes = ['all', 'paid', 'free'] as const;
 
   try {
+    // 1️⃣ 우선순위 1: localStorage의 homeFilter (일회성 - 다른 운세 보기 버튼 등)
     const homeFilter = localStorage.getItem('homeFilter');
     if (homeFilter) {
       const parsed = JSON.parse(homeFilter);
       localStorage.removeItem('homeFilter'); // 일회성이므로 바로 제거
-      console.log('🎯 [HomePage] homeFilter 적용:', parsed);
+      console.log('🎯 [HomePage] homeFilter 적용 (일회성):', parsed);
 
-      // category 유효성 검사
-      const validCategories: TabCategory[] = ['전체', '개인운세', '연애', '이별', '궁합', '재물', '직업', '시험/학업', '건강', '인간관계', '자녀', '이사/매매', '기타'];
       const category = validCategories.includes(parsed.category) ? parsed.category : '전체';
-
-      // contentType 유효성 검사
-      const validTypes = ['all', 'paid', 'free'] as const;
       const contentType = validTypes.includes(parsed.contentType) ? parsed.contentType : 'all';
 
       homeFilterCache = { category, contentType };
-    } else {
-      homeFilterCache = defaultFilter;
+
+      // 일회성 필터도 세션에 저장 (이후 복원을 위해)
+      sessionStorage.setItem(SESSION_FILTER_KEY, JSON.stringify(homeFilterCache));
+
+      setTimeout(() => { homeFilterCache = null; }, 0);
+      return homeFilterCache;
     }
+
+    // 2️⃣ 우선순위 2: sessionStorage의 필터 상태 (사용자가 직접 선택한 값)
+    const sessionFilter = sessionStorage.getItem(SESSION_FILTER_KEY);
+    if (sessionFilter) {
+      const parsed = JSON.parse(sessionFilter);
+      console.log('🔄 [HomePage] 세션 필터 복원:', parsed);
+
+      const category = validCategories.includes(parsed.category) ? parsed.category : '전체';
+      const contentType = validTypes.includes(parsed.contentType) ? parsed.contentType : 'all';
+
+      homeFilterCache = { category, contentType };
+      setTimeout(() => { homeFilterCache = null; }, 0);
+      return homeFilterCache;
+    }
+
+    // 3️⃣ 기본값
+    homeFilterCache = defaultFilter;
   } catch (e) {
-    console.error('❌ [HomePage] homeFilter 파싱 실패:', e);
+    console.error('❌ [HomePage] 필터 파싱 실패:', e);
     homeFilterCache = defaultFilter;
   }
 
@@ -188,11 +211,27 @@ interface TabContainerProps {
 
 function TabContainer({ selectedCategory, onCategoryChange, availableCategories }: TabContainerProps) {
   const sliderRef = useRef<HTMLDivElement>(null);
+  const tabRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const [isDown, setIsDown] = useState(false);
   const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
   const isDraggingRef = useRef(false);
   const moveDistanceRef = useRef(0);
+
+  // ⭐ 선택된 카테고리가 보이도록 자동 스크롤 (마운트 시 + 카테고리 변경 시)
+  useEffect(() => {
+    const selectedTab = tabRefs.current.get(selectedCategory);
+    if (selectedTab && sliderRef.current) {
+      // 약간의 딜레이 후 스크롤 (렌더링 완료 대기)
+      requestAnimationFrame(() => {
+        selectedTab.scrollIntoView({
+          behavior: 'instant', // 마운트 시에는 즉시 이동 (깜빡임 방지)
+          block: 'nearest',
+          inline: 'center' // 중앙에 위치하도록
+        });
+      });
+    }
+  }, [selectedCategory, availableCategories]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (!sliderRef.current) return;
@@ -257,6 +296,9 @@ function TabContainer({ selectedCategory, onCategoryChange, availableCategories 
       {availableCategories.map((category) => (
         <div
           key={category}
+          ref={(el) => {
+            if (el) tabRefs.current.set(category, el);
+          }}
           onClick={() => handleCategoryClick(category)}
           className="box-border content-stretch flex gap-[10px] items-center justify-center px-[16px] py-[8px] relative rounded-[12px] shrink-0 cursor-pointer"
           data-name="Navigation / Tab Item"
@@ -1496,10 +1538,18 @@ export default function HomePage() {
 
   const handleCategoryChange = (category: TabCategory) => {
     setSelectedCategory(category);
+    // ⭐ 세션 스토리지에 필터 상태 저장 (페이지 이동 후에도 유지)
+    const filterState = { category, contentType: selectedType };
+    sessionStorage.setItem(SESSION_FILTER_KEY, JSON.stringify(filterState));
+    console.log('💾 [HomePage] 카테고리 필터 저장:', filterState);
   };
 
   const handleTypeChange = (type: 'all' | 'paid' | 'free') => {
     setSelectedType(type);
+    // ⭐ 세션 스토리지에 필터 상태 저장 (페이지 이동 후에도 유지)
+    const filterState = { category: selectedCategory, contentType: type };
+    sessionStorage.setItem(SESSION_FILTER_KEY, JSON.stringify(filterState));
+    console.log('💾 [HomePage] 타입 필터 저장:', filterState);
   };
 
   return (

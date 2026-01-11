@@ -1158,6 +1158,9 @@ function WelcomeCouponPageWrapper() {
     // ⭐ 신규 회원 로그인 완료 토스트 표시 플래그 저장
     sessionStorage.setItem('show_login_toast', 'true');
 
+    // ⭐ 프로필 페이지 강제 리로드 플래그 저장
+    sessionStorage.setItem('force_profile_reload', 'true');
+
     // redirectAfterLogin 확인
     const redirectUrl = localStorage.getItem('redirectAfterLogin');
 
@@ -1291,15 +1294,17 @@ function SajuManagementPageWrapper() {
   return (
     <SajuManagementPage
       onBack={goBack}
-      onNavigateToInput={() => navigate('/saju/input')}
-      onNavigateToAdd={() => navigate('/saju/add')}
+      onNavigateToInput={() => navigate('/saju/input', { replace: true })}
+      onNavigateToAdd={() => navigate('/saju/add', { replace: true })}
       onEditMySaju={(sajuInfo) => {
         // 내 사주 수정 → SajuInputPage로 이동 (편집 모드)
-        navigate('/saju/input', { state: { editMode: true, sajuData: sajuInfo, returnTo: '/saju/management' } });
+        // ⭐ replace: true로 히스토리 교체 → iOS 스와이프 뒤로가기 정상 동작
+        navigate('/saju/input', { replace: true, state: { editMode: true, sajuData: sajuInfo, returnTo: '/saju/management' } });
       }}
       onEditOtherSaju={(sajuInfo) => {
         // 함께 보는 사주 수정 → SajuAddPage로 이동 (편집 모드)
-        navigate('/saju/add', { state: { editMode: true, sajuData: sajuInfo, returnTo: '/saju/management' } });
+        // ⭐ replace: true로 히스토리 교체 → iOS 스와이프 뒤로가기 정상 동작
+        navigate('/saju/add', { replace: true, state: { editMode: true, sajuData: sajuInfo, returnTo: '/saju/management' } });
       }}
     />
   );
@@ -1308,11 +1313,21 @@ function SajuManagementPageWrapper() {
 // Saju Add Page Wrapper
 function SajuAddPageWrapper() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const returnTo = location.state?.returnTo;
 
   return (
     <SajuAddPage
       onBack={() => navigate('/saju/management')}
-      onSaved={() => navigate('/saju/management', { replace: true })}
+      onSaved={() => {
+        // 저장 완료 후 returnTo가 있으면 해당 경로로, 없으면 관리 페이지로 이동
+        // ⭐ replace: true로 히스토리 교체 → iOS 스와이프 뒤로가기 시 올바른 페이지로 이동
+        if (returnTo) {
+          navigate(returnTo, { replace: true });
+        } else {
+          navigate('/saju/management', { replace: true });
+        }
+      }}
     />
   );
 }

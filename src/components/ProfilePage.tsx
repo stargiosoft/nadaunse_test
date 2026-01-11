@@ -8,6 +8,7 @@ import { signOut } from '../lib/auth';
 import { SessionExpiredDialog } from './SessionExpiredDialog';
 import Footer from './Footer';
 import { getZodiacImageUrl, getConstellation } from '../lib/zodiacUtils';
+import { getChineseZodiacByLichun } from '../lib/zodiacCalculator';
 import { ProfileSkeletonWithSaju } from './skeletons/ProfileSkeleton';
 import { ProfileImage } from './ProfileImage';
 import { DEV } from '../lib/env';
@@ -108,11 +109,9 @@ function formatBirthDate(birthDate: string, calendarType?: string): string {
   return `${calendarPrefix} ${year}.${month}.${day}`;
 }
 
-// 띠 계산 (간단 버전 - 생년 기준)
-function getChineseZodiac(birthDate: string): string {
-  const year = parseInt(birthDate.split('-')[0] || birthDate.substring(0, 4));
-  const zodiacs = ['원숭이띠', '닭띠', '개띠', '돼지띠', '쥐띠', '소띠', '호랑이띠', '토끼띠', '용띠', '뱀띠', '말띠', '양띠'];
-  return zodiacs[year % 12];
+// 띠 계산 (입춘 기준 - zodiacCalculator 사용)
+function getChineseZodiac(birthDate: string, birthTime?: string): string {
+  return getChineseZodiacByLichun(birthDate, birthTime);
 }
 
 export default function ProfilePage({
@@ -131,16 +130,26 @@ export default function ProfilePage({
       const cachedUserJson = localStorage.getItem('user');
       const cachedSajuJson = localStorage.getItem('primary_saju');
 
-      if (cachedUserJson && cachedSajuJson) {
+      if (cachedUserJson) {
         const cachedUser = JSON.parse(cachedUserJson);
-        const cachedSaju = JSON.parse(cachedSajuJson);
-        console.log('🚀 [ProfilePage] 초기화 시 캐시 발견 → 즉시 렌더링');
+        const cachedSaju = cachedSajuJson ? JSON.parse(cachedSajuJson) : null;
+
+        // ⭐ 유효성 검사: user 정보와 primary_saju 정보가 모두 있어야 완전한 캐시로 간주
+        const hasValidCache = !!(cachedUser && cachedSaju);
+
+        console.log('🚀 [ProfilePage] 초기화 시 캐시 확인');
+        console.log('  - User 정보:', cachedUser ? '있음' : '없음');
+        console.log('  - Primary Saju:', cachedSaju ? '있음' : '없음');
+        console.log('  - 유효한 캐시:', hasValidCache ? 'YES' : 'NO');
+
+        // ⭐ 완전한 캐시가 있으면 → 즉시 렌더링 (로딩 스킵)
+        // ⭐ user만 있고 사주가 없으면 → API 호출 필요 (isLoadingSaju: true)
         return {
           user: cachedUser,
           isMaster: cachedUser.role === 'master',
           primarySaju: cachedSaju,
-          isLoadingSaju: false, // 캐시가 있으면 로딩 없이 시작
-          hasCache: true
+          isLoadingSaju: !hasValidCache, // 유효한 캐시가 없으면 로딩 표시
+          hasCache: hasValidCache // user + primary_saju가 모두 있어야 true
         };
       }
     } catch (e) {
@@ -228,13 +237,36 @@ export default function ProfilePage({
       // ⭐ 캐시 버스터 플래그: 사주 수정 시 설정됨
       const needsRefresh = localStorage.getItem('profile_needs_refresh') === 'true';
 
-      console.log('🔍 [ProfilePage] 캐시 체크 - hasCache:', initialState.hasCache, ', needsRefresh:', needsRefresh);
+      // ⭐ 최초 로그인 플래그: 로그인 직후 한 번만 강제 API 호출
+      const forceReload = sessionStorage.getItem('force_profile_reload') === 'true';
 
-      // 🚀 초기화 시점에 이미 캐시가 로드되었고, refresh가 필요 없으면 API 호출 스킵
+      console.log('🔍 [ProfilePage] 캐시 & 플래그 체크');
+      console.log('  - hasCache:', initialState.hasCache);
+      console.log('  - needsRefresh:', needsRefresh);
+      console.log('  - forceReload:', forceReload);
+
+      // 🚀 초기화 시점에 이미 유효한 캐시가 로드되었고, refresh가 필요 없고, 강제 리로드도 아니면 API 호출 스킵
       // → iOS 스와이프 뒤로가기 시 불필요한 리로드 완전 방지
-      if (initialState.hasCache && !needsRefresh) {
-        console.log('🚀 [ProfilePage] 초기 캐시 유효 + refresh 불필요 → API 호출 완전 스킵');
+      if (initialState.hasCache && !needsRefresh && !forceReload) {
+        console.log('✅ [ProfilePage] 유효한 캐시 존재 + refresh 불필요 + 강제 리로드 아님');
+        console.log('   → API 호출 완전 스킵 (캐시만 사용)');
         return;
+      }
+
+      // ⭐ API 호출이 필요한 경우 로깅
+      if (!initialState.hasCache) {
+        console.log('⚠️ [ProfilePage] 유효한 캐시 없음 → API 호출 필요');
+      }
+      if (needsRefresh) {
+        console.log('⚠️ [ProfilePage] 캐시 refresh 필요 → API 호출 필요');
+      }
+      if (forceReload) {
+        console.log('⚠️ [ProfilePage] 강제 리로드 플래그 → API 호출 필요');
+      }
+
+      // ⭐ 최초 로그인 시 무조건 API 호출
+      if (forceReload) {
+        console.log('🎉 [ProfilePage] 강제 리로드 감지 → API 호출');
       }
 
       // ⭐ refresh 플래그가 설정된 경우 → 플래그 제거 후 백그라운드 refresh 진행
@@ -276,19 +308,28 @@ export default function ProfilePage({
           console.error('❌ 사주 정보 로드 실패:', sajuError);
           setPrimarySaju(null);
           localStorage.removeItem('primary_saju');
+          localStorage.removeItem('saju_records_cache');
         } else if (sajuList && sajuList.length > 0) {
           const primary = sajuList.find((s: any) => s.is_primary) || sajuList[0];
           setPrimarySaju(primary);
-          // ⭐ 사주 정보 캐시에 저장
+          // ⭐ 사주 정보 캐시에 저장 (primary + 전체 리스트)
           localStorage.setItem('primary_saju', JSON.stringify(primary));
+          localStorage.setItem('saju_records_cache', JSON.stringify(sajuList));
           console.log('✅ 대표 사주 로드 완료:', primary);
         } else {
           setPrimarySaju(null);
           localStorage.removeItem('primary_saju');
+          localStorage.removeItem('saju_records_cache');
           console.log('📭 등록된 사주 없음');
         }
 
         setIsLoadingSaju(false);
+
+        // ⭐ 강제 리로드 플래그 제거 (한 번만 API 호출)
+        if (forceReload) {
+          sessionStorage.removeItem('force_profile_reload');
+          console.log('✅ [ProfilePage] 강제 리로드 API 호출 완료 → 플래그 제거');
+        }
       } else {
         // ⭐ 세션 만료 → 바로 로그인 페이지로 이동 (다이얼로그 없이)
         console.log('🔐 [ProfilePage] 세션 만료 → 로그인 페이지로 이동');
@@ -459,9 +500,9 @@ export default function ProfilePage({
                         />
                       </div>
 
-                      <img 
-                        alt={primarySaju.zodiac || getChineseZodiac(primarySaju.birth_date)}
-                        src={getZodiacImageUrl(primarySaju.zodiac || getChineseZodiac(primarySaju.birth_date))}
+                      <img
+                        alt={primarySaju.zodiac || getChineseZodiac(primarySaju.birth_date, primarySaju.birth_time)}
+                        src={getZodiacImageUrl(primarySaju.zodiac || getChineseZodiac(primarySaju.birth_date, primarySaju.birth_time))}
                         className="absolute inset-0 max-w-none object-cover rounded-[12px] size-full z-0"
                         loading="lazy"
                         onLoad={(e) => e.currentTarget.setAttribute('data-loaded', 'true')}
@@ -471,7 +512,7 @@ export default function ProfilePage({
 
                     <div className="basis-0 content-stretch flex flex-col gap-[3px] grow items-start min-h-px min-w-px text-nowrap">
                       <p className="font-['Pretendard_Variable:Regular',sans-serif] h-[16px] leading-[16px] overflow-ellipsis overflow-hidden text-[#848484] text-[12px] tracking-[-0.24px] w-full">
-                        {primarySaju.zodiac || getChineseZodiac(primarySaju.birth_date)}
+                        {primarySaju.zodiac || getChineseZodiac(primarySaju.birth_date, primarySaju.birth_time)}
                       </p>
                       <p className="font-['Pretendard_Variable',sans-serif] font-semibold leading-[25px] min-w-full overflow-ellipsis overflow-hidden text-[16px] text-black tracking-[-0.32px] w-[min-content]">
                         {primarySaju.full_name} ({primarySaju.notes})
@@ -492,7 +533,7 @@ export default function ProfilePage({
                           </p>
                           <TextDivider />
                           <p className="font-['Pretendard_Variable:Regular',sans-serif] leading-[19px] overflow-ellipsis overflow-hidden text-[#525252] text-[13px] text-nowrap tracking-[-0.26px]">
-                            {primarySaju.zodiac || getChineseZodiac(primarySaju.birth_date)}
+                            {primarySaju.zodiac || getChineseZodiac(primarySaju.birth_date, primarySaju.birth_time)}
                           </p>
                           <TextDivider />
                           <p className="font-['Pretendard_Variable:Regular',sans-serif] leading-[19px] overflow-ellipsis overflow-hidden text-[#525252] text-[13px] text-nowrap tracking-[-0.26px]">

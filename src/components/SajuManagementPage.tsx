@@ -14,6 +14,7 @@ import { PrimarySajuChangeDialog } from './PrimarySajuChangeDialog';
 import { SajuKebabMenu } from './SajuKebabMenu';
 import { ConfirmDialog } from './ConfirmDialog';
 import { getZodiacImageUrl, getConstellation } from '../lib/zodiacUtils';
+import { getChineseZodiacByLichun } from '../lib/zodiacCalculator';
 import { Radio } from './ui/Radio';
 import { motion } from "motion/react";
 
@@ -149,19 +150,6 @@ export default function SajuManagementPage({ onBack, onNavigateToInput, onNaviga
       setSelectedSajuForKebab(null);
     };
 
-    // ⭐ popstate: 브라우저 뒤로가기/앞으로가기 시 바텀시트 닫기
-    // 🛡️ bfcache 대응: 현재 페이지가 /saju/management일 때만 처리 (iOS Chrome 버그 방지)
-    const handlePopState = () => {
-      // 🛡️ bfcache에서 복원된 후 다른 페이지에 있을 때는 무시
-      if (window.location.pathname !== '/saju/management') {
-        console.log('🔄 [SajuManagementPage] popstate → 다른 페이지에서 발생, 무시');
-        return;
-      }
-      console.log('🔄 [SajuManagementPage] popstate → 케밥 메뉴 닫기');
-      setKebabMenuOpen(false);
-      setSelectedSajuForKebab(null);
-    };
-
     // ⭐ focus: 윈도우가 포커스를 받을 때 바텀시트 닫기 (iOS Safari 추가 보호)
     // 🛡️ bfcache 대응: 현재 페이지가 /saju/management일 때만 처리
     const handleFocus = () => {
@@ -173,15 +161,17 @@ export default function SajuManagementPage({ onBack, onNavigateToInput, onNaviga
       setSelectedSajuForKebab(null);
     };
 
+    // ⚠️ popstate 이벤트 제거: iOS 스와이프 뒤로가기와 충돌
+    // PaymentNew.tsx와 동일한 이슈 (DECISIONS.md 참고)
+    // iOS 스와이프 뒤로가기는 브라우저가 자연스럽게 처리하도록 둠
+
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('pageshow', handlePageShow);
-    window.addEventListener('popstate', handlePopState);
     window.addEventListener('focus', handleFocus);
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('pageshow', handlePageShow);
-      window.removeEventListener('popstate', handlePopState);
       window.removeEventListener('focus', handleFocus);
     };
   }, []);
@@ -398,11 +388,9 @@ export default function SajuManagementPage({ onBack, onNavigateToInput, onNaviga
     return `${calendarPrefix} ${year}.${month}.${day}`;
   };
 
-  // 띠 계산 (간단 버전 - 생년 기준)
-  const getChineseZodiac = (birthDate: string): string => {
-    const year = parseInt(birthDate.split('-')[0] || birthDate.substring(0, 4));
-    const zodiacs = ['원숭이띠', '닭띠', '개띠', '돼지띠', '쥐띠', '소띠', '호랑이띠', '토끼띠', '용띠', '뱀띠', '말띠', '양띠'];
-    return zodiacs[year % 12];
+  // 띠 계산 (입춘 기준)
+  const getChineseZodiac = (birthDate: string, birthTime?: string): string => {
+    return getChineseZodiacByLichun(birthDate, birthTime);
   };
 
   /**
@@ -848,10 +836,10 @@ export default function SajuManagementPage({ onBack, onNavigateToInput, onNaviga
                 {/* Profile Image */}
                 <div className="-ml-[11px] pl-[1px] mr-[-3px] grid-cols-[max-content] grid-rows-[max-content] inline-grid leading-[0] place-items-start relative shrink-0">
                   <div className="[grid-area:1_/_1] ml-0 mt-0 pointer-events-none relative rounded-[8px] shrink-0 size-[60px]">
-                    <img 
-                      alt={mySaju.zodiac || getChineseZodiac(mySaju.birth_date)}
+                    <img
+                      alt={mySaju.zodiac || getChineseZodiac(mySaju.birth_date, mySaju.birth_time)}
                       className="absolute inset-0 max-w-none object-cover rounded-[8px] size-full"
-                      src={getZodiacImageUrl(mySaju.zodiac || getChineseZodiac(mySaju.birth_date))}
+                      src={getZodiacImageUrl(mySaju.zodiac || getChineseZodiac(mySaju.birth_date, mySaju.birth_time))}
                       loading="lazy"
                     />
                     <div aria-hidden="true" className="absolute border border-[#f8f8f8] border-solid inset-0 rounded-[8px]" />
@@ -883,7 +871,7 @@ export default function SajuManagementPage({ onBack, onNavigateToInput, onNaviga
                     </div>
                     <div className="content-stretch flex gap-[6px] items-center relative rounded-[12px] shrink-0 w-full">
                       <p className="font-normal leading-[16px] overflow-ellipsis overflow-hidden relative shrink-0 text-[#848484] text-[12px] text-nowrap tracking-[-0.24px]">
-                        {mySaju.zodiac || getChineseZodiac(mySaju.birth_date)}
+                        {mySaju.zodiac || getChineseZodiac(mySaju.birth_date, mySaju.birth_time)}
                       </p>
                       <div className="h-[6px] relative shrink-0 w-[1px]">
                         <div className="absolute inset-[-8.33%_-0.4px]">
@@ -980,10 +968,10 @@ export default function SajuManagementPage({ onBack, onNavigateToInput, onNaviga
                     {/* Profile Image */}
                     <div className="-ml-[11px] pl-[1px] mr-[-3px] grid-cols-[max-content] grid-rows-[max-content] inline-grid leading-[0] place-items-start relative shrink-0">
                       <div className="[grid-area:1_/_1] ml-0 mt-0 pointer-events-none relative rounded-[8px] shrink-0 size-[60px]">
-                        <img 
-                          alt={saju.zodiac || getChineseZodiac(saju.birth_date)}
+                        <img
+                          alt={saju.zodiac || getChineseZodiac(saju.birth_date, saju.birth_time)}
                           className="absolute inset-0 max-w-none object-cover rounded-[8px] size-full"
-                          src={getZodiacImageUrl(saju.zodiac || getChineseZodiac(saju.birth_date))}
+                          src={getZodiacImageUrl(saju.zodiac || getChineseZodiac(saju.birth_date, saju.birth_time))}
                           loading="lazy"
                         />
                         <div aria-hidden="true" className="absolute border border-[#f8f8f8] border-solid inset-0 rounded-[8px]" />
@@ -1015,7 +1003,7 @@ export default function SajuManagementPage({ onBack, onNavigateToInput, onNaviga
                         </div>
                         <div className="content-stretch flex gap-[6px] items-center relative rounded-[12px] shrink-0 w-full">
                           <p className="font-normal leading-[16px] overflow-ellipsis overflow-hidden relative shrink-0 text-[#848484] text-[12px] text-nowrap tracking-[-0.24px]">
-                            {saju.zodiac || getChineseZodiac(saju.birth_date)}
+                            {saju.zodiac || getChineseZodiac(saju.birth_date, saju.birth_time)}
                           </p>
                           <div className="h-[6px] relative shrink-0 w-[1px]">
                             <div className="absolute inset-[-8.33%_-0.4px]">
@@ -1059,22 +1047,14 @@ export default function SajuManagementPage({ onBack, onNavigateToInput, onNaviga
                 <div className="w-full max-w-[440px] px-[20px] py-[12px]">
                   <div
                     onClick={handleNavigateToAdd}
-                    className="bg-[#48b2af] h-[56px] relative rounded-[16px] shrink-0 w-full cursor-pointer hover:bg-[#3a9794] active:bg-[#2d7a78] active:scale-96 transition-all duration-150 ease-in-out"
+                    className="bg-[#48b2af] h-[56px] rounded-[16px] w-full cursor-pointer hover:bg-[#3a9794] active:bg-[#2d7a78] active:scale-96 transition-all duration-150 ease-in-out flex items-center justify-center gap-[4px]"
                   >
-                    <div className="flex flex-row items-center justify-center size-full">
-                      <div className="content-stretch flex h-[56px] items-center justify-center px-[12px] py-0 relative w-full">
-                        <div className="content-stretch flex gap-[4px] items-center relative shrink-0">
-                          <p className="leading-[25px] relative shrink-0 text-[16px] text-nowrap text-white tracking-[-0.32px]">
-                            사주 정보 추가
-                          </p>
-                          <div className="relative shrink-0 size-[16px]">
-                            <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 16 16">
-                              <path d={svgPaths.p46c90f0} fill="white" />
-                            </svg>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                    <p className="font-['Pretendard_Variable:Medium',sans-serif] font-medium leading-[25px] text-[16px] text-nowrap text-white tracking-[-0.32px]">
+                      사주 정보 추가
+                    </p>
+                    <svg className="size-[16px]" fill="none" viewBox="0 0 24 24">
+                      <path d={svgPaths.p2a89300} fill="white" />
+                    </svg>
                   </div>
                 </div>
               </div>

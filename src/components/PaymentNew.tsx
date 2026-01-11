@@ -98,22 +98,6 @@ export default function PaymentNew({
 
   const navigate = useNavigate();
 
-  // ⭐ 뒤로가기 감지 - 콘텐츠 상세 페이지로 리다이렉트
-  useEffect(() => {
-    if (!contentId) return;
-
-    // 히스토리에 현재 페이지 상태 추가 (뒤로가기 감지용)
-    window.history.pushState({ paymentPage: true }, '');
-
-    const handlePopState = (event: PopStateEvent) => {
-      console.log('🔙 [PaymentNew] 뒤로가기 감지 → 콘텐츠 상세 페이지로 이동');
-      navigate(`/master/content/detail/${contentId}`, { replace: true });
-    };
-
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
-  }, [contentId, navigate]);
-
   // ⭐ bfcache 복원 시 처리 (iOS Safari 스와이프 뒤로가기 대응)
   useEffect(() => {
     const handlePageShow = (event: PageTransitionEvent) => {
@@ -366,6 +350,10 @@ export default function PaymentNew({
 
         console.log("✅ 0원 주문 저장 완료:", savedOrder);
 
+        // ⭐ 구매내역 캐시 무효화 (새 구매 즉시 반영)
+        localStorage.removeItem('purchase_history_cache');
+        console.log('🗑️ 구매내역 캐시 무효화 완료');
+
         // ⭐️ 쿠폰 사용 처리
         if (selectedCouponId && savedOrder?.id) {
           console.log("🎟️ [0원결제] 쿠폰 사용 처리 시작:", {
@@ -494,6 +482,10 @@ export default function PaymentNew({
               response.imp_uid,
               response.merchant_uid,
             );
+
+            // ⭐ 구매내역 캐시 무효화 (새 구매 즉시 반영)
+            localStorage.removeItem('purchase_history_cache');
+            console.log('🗑️ 구매내역 캐시 무효화 완료');
 
             // ⭐️ 폰 사용 처리 (유료 결제)
             if (selectedCouponId && savedOrder?.id) {

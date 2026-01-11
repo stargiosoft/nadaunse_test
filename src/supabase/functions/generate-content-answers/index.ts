@@ -141,23 +141,35 @@ serve(async (req) => {
               throw new Error(`사주 답변 생성 실패: ${data.error}`)
             }
 
-            // ⭐️ order_results 테이블에 저장
-            const { error: insertError } = await supabase
+            // ⭐️ order_results 테이블에 저장 (upsert로 중복 방지)
+            // ⚠️ 먼저 기존 답변이 있는지 확인
+            const { data: existingResult } = await supabase
               .from('order_results')
-              .insert({
-                order_id: orderId,
-                question_id: question.id,  // ⭐️ 필수! NOT NULL 컬럼
-                question_order: question.question_order,
-                question_text: question.question_text,
-                gpt_response: data.answerText,
-                question_type: 'saju',  // 질문 타입 추가
-                created_at: new Date().toISOString()
-              })
+              .select('id')
+              .eq('order_id', orderId)
+              .eq('question_id', question.id)
+              .single()
 
-            if (insertError) {
-              console.error(`❌ order_results 저장 실패 (질문 ${question.question_order}):`, insertError)
+            if (existingResult) {
+              console.log(`⚠️ 이미 존재하는 답변 스킵 (질문 ${question.question_order})`)
             } else {
-              console.log(`✅ order_results 저장 완료 (질문 ${question.question_order})`)
+              const { error: insertError } = await supabase
+                .from('order_results')
+                .insert({
+                  order_id: orderId,
+                  question_id: question.id,  // ⭐️ 필수! NOT NULL 컬럼
+                  question_order: question.question_order,
+                  question_text: question.question_text,
+                  gpt_response: data.answerText,
+                  question_type: 'saju',  // 질문 타입 추가
+                  created_at: new Date().toISOString()
+                })
+
+              if (insertError) {
+                console.error(`❌ order_results 저장 실패 (질문 ${question.question_order}):`, insertError)
+              } else {
+                console.log(`✅ order_results 저장 완료 (질문 ${question.question_order})`)
+              }
             }
 
             console.log(`✅ 사주 답변 생성 완료 (질문 ${question.question_order})`)
@@ -189,32 +201,44 @@ serve(async (req) => {
               throw new Error(`타로 답변 생성 실패: ${data.error}`)
             }
 
-            // ⭐️ order_results 테이블에 저장
-            const { error: insertError } = await supabase
+            // ⭐️ order_results 테이블에 저장 (upsert로 중복 방지)
+            // ⚠️ 먼저 기존 답변이 있는지 확인
+            const { data: existingTarotResult } = await supabase
               .from('order_results')
-              .insert({
-                order_id: orderId,
-                question_id: question.id,  // ⭐️ 필수! NOT NULL 컬럼
-                question_order: question.question_order,
-                question_text: question.question_text,
-                gpt_response: data.answerText,
-                question_type: 'tarot',  // 질문 타입 추가
-                tarot_card_id: data.tarotCardId || null,  // ⭐ 타로 카드 ID
-                tarot_card_name: data.tarotCard || null,  // ⭐ 타로 카드 이름
-                tarot_card_image_url: data.imageUrl || null,  // ⭐ 타로 카드 이미지 URL
-                created_at: new Date().toISOString()
-              })
-            
-            console.log('🎴 [타로] DB 저장 데이터:', {
-              tarot_card_id: data.tarotCardId,
-              tarot_card_name: data.tarotCard,
-              tarot_card_image_url: data.imageUrl
-            })
+              .select('id')
+              .eq('order_id', orderId)
+              .eq('question_id', question.id)
+              .single()
 
-            if (insertError) {
-              console.error(`❌ order_results 저장 실패 (질문 ${question.question_order}):`, insertError)
+            if (existingTarotResult) {
+              console.log(`⚠️ 이미 존재하는 타로 답변 스킵 (질문 ${question.question_order})`)
             } else {
-              console.log(`✅ order_results 저장 완료 (질문 ${question.question_order})`)
+              const { error: insertError } = await supabase
+                .from('order_results')
+                .insert({
+                  order_id: orderId,
+                  question_id: question.id,  // ⭐️ 필수! NOT NULL 컬럼
+                  question_order: question.question_order,
+                  question_text: question.question_text,
+                  gpt_response: data.answerText,
+                  question_type: 'tarot',  // 질문 타입 추가
+                  tarot_card_id: data.tarotCardId || null,  // ⭐ 타로 카드 ID
+                  tarot_card_name: data.tarotCard || null,  // ⭐ 타로 카드 이름
+                  tarot_card_image_url: data.imageUrl || null,  // ⭐ 타로 카드 이미지 URL
+                  created_at: new Date().toISOString()
+                })
+
+              console.log('🎴 [타로] DB 저장 데이터:', {
+                tarot_card_id: data.tarotCardId,
+                tarot_card_name: data.tarotCard,
+                tarot_card_image_url: data.imageUrl
+              })
+
+              if (insertError) {
+                console.error(`❌ order_results 저장 실패 (질문 ${question.question_order}):`, insertError)
+              } else {
+                console.log(`✅ order_results 저장 완료 (질문 ${question.question_order})`)
+              }
             }
 
             console.log(`✅ 타로 답변 생성 완료 (질문 ${question.question_order})`)
@@ -289,54 +313,84 @@ serve(async (req) => {
     // - send-alimtalk Edge Function에서 총 4번 시도 (1회 + 3회 재시도)
     // - 4번 모두 실패해도 AI 답변은 정상적으로 저장되며, 사용자는 결과를 볼 수 있음
     // - 알림톡 실패 로그는 alimtalk_logs 테이블에 기록됨
+    // ⭐️ 본인 사주에서 전화번호 조회 (함께보는 사주로 지인 사주 선택해도 본인에게 알림톡 발송)
     try {
       console.log('📱 알림톡 발송 시작...')
-      
+
+      // 1단계: 주문에서 user_id 조회
       const { data: orderInfo, error: orderInfoError } = await supabase
         .from('orders')
-        .select(`
-          user_id,
-          saju_records!inner(full_name, phone_number)
-        `)
+        .select('user_id')
         .eq('id', orderId)
         .single()
 
-      if (orderInfoError || !orderInfo) {
-        console.error('❌ 주문 정보 조회 실패:', orderInfoError)
+      if (orderInfoError || !orderInfo || !orderInfo.user_id) {
+        console.error('❌ 주문 정보 조회 실패 또는 user_id 없음:', orderInfoError)
       } else {
-        const phoneNumber = orderInfo.saju_records?.phone_number
-        const customerName = orderInfo.saju_records?.full_name
+        // 2단계: 본인 사주에서 전화번호 조회 (notes='본인'인 사주)
+        // ⭐️ is_primary는 대표 사주 (함께보는 사주일 수 있음), notes='본인'이 실제 본인 사주
+        const { data: mySaju, error: mySajuError } = await supabase
+          .from('saju_records')
+          .select('full_name, phone_number')
+          .eq('user_id', orderInfo.user_id)
+          .eq('notes', '본인')
+          .single()
 
-        if (!phoneNumber) {
-          console.warn('⚠️ 전화번호 없음, 알림톡 발송 스킵')
-        } else if (!customerName) {
-          console.warn('⚠️ 고객명 없음, 알림톡 발송 스킵')
+        if (mySajuError || !mySaju) {
+          console.warn('⚠️ 본인 사주 조회 실패:', mySajuError)
         } else {
-          console.log('📞 알림톡 발송 대상:', customerName, phoneNumber)
-          
-          // 알림톡 발송 Edge Function 호출
-          const alimtalkResponse = await fetch(`${supabaseUrl}/functions/v1/send-alimtalk`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${supabaseServiceKey}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
+          const phoneNumber = mySaju.phone_number
+          const customerName = mySaju.full_name
+
+          if (!phoneNumber) {
+            console.warn('⚠️ 본인 사주에 전화번호 없음, 알림톡 발송 스킵')
+          } else if (!customerName) {
+            console.warn('⚠️ 본인 사주에 고객명 없음, 알림톡 발송 스킵')
+          } else {
+            console.log('📞 알림톡 발송 대상:', customerName, phoneNumber)
+
+            // 알림톡 발송 Edge Function 호출
+            const alimtalkUrl = `${supabaseUrl}/functions/v1/send-alimtalk`
+            const alimtalkPayload = {
               orderId: orderId,
               userId: orderInfo.user_id || 'anonymous',  // ⭐️ 방어 코드: user_id가 NULL일 경우 대비
               mobile: phoneNumber,
               customerName: customerName,
               contentId: contentId
+            }
+
+            console.log('📱 [알림톡] 호출 URL:', alimtalkUrl)
+            console.log('📱 [알림톡] 요청 payload:', JSON.stringify(alimtalkPayload, null, 2))
+
+            const alimtalkResponse = await fetch(alimtalkUrl, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${supabaseServiceKey}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(alimtalkPayload)
             })
-          })
 
-          const alimtalkResult = await alimtalkResponse.json()
+            console.log('📱 [알림톡] 응답 상태:', alimtalkResponse.status)
+            console.log('📱 [알림톡] 응답 헤더:', JSON.stringify(Object.fromEntries(alimtalkResponse.headers.entries()), null, 2))
 
-          if (alimtalkResult.success) {
-            console.log('✅ 알림톡 발송 완료:', alimtalkResult.messageId)
-          } else {
-            console.warn('⚠️ 알림톡 발송 실패 (무시하고 계속):', alimtalkResult.error)
-            console.warn('⚠️ 사용자는 여전히 결과를 확인할 수 있습니다.')
+            const alimtalkResultText = await alimtalkResponse.text()
+            console.log('📱 [알림톡] 응답 원본:', alimtalkResultText)
+
+            let alimtalkResult
+            try {
+              alimtalkResult = JSON.parse(alimtalkResultText)
+            } catch (parseError) {
+              console.error('📱 [알림톡] JSON 파싱 실패:', parseError)
+              alimtalkResult = { success: false, error: `JSON 파싱 실패: ${alimtalkResultText.substring(0, 200)}` }
+            }
+
+            if (alimtalkResult.success) {
+              console.log('✅ 알림톡 발송 완료:', alimtalkResult.messageId)
+            } else {
+              console.warn('⚠️ 알림톡 발송 실패 (무시하고 계속):', alimtalkResult.error)
+              console.warn('⚠️ 사용자는 여전히 결과를 확인할 수 있습니다.')
+            }
           }
         }
       }

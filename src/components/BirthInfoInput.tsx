@@ -345,12 +345,15 @@ export default function BirthInfoInput({ productId, onBack, onComplete }: BirthI
     }
   };
 
-  // 필수값 검사: 이름, 성별, 생년월일
+  // 필수값 검사: 이름, 성별, 생년월일, 휴대폰 번호
   const isFormValid = () => {
     const nameValid = name.trim().length >= 1;
     const birthDateValid = birthDate.replace(/[^\d]/g, '').length === 8 && isValidDate(birthDate);
-    
-    return nameValid && birthDateValid;
+    // ⭐ 휴대폰 번호 필수 (11자리, 01로 시작)
+    const phoneNumbers = phoneNumber.replace(/[^\d]/g, '');
+    const phoneNumberValid = phoneNumbers.length === 11 && phoneNumbers.startsWith('01');
+
+    return nameValid && birthDateValid && phoneNumberValid;
   };
 
   // 저장 버튼 클릭 시 유효성 검사
@@ -377,12 +380,12 @@ export default function BirthInfoInput({ productId, onBack, onComplete }: BirthI
       newErrors.birthTime = '태어난 시를 정확하게 입력해주세요.';
     }
     
-    // 휴대폰 번호 검증 (선택 필드)
-    if (phoneNumber.trim() !== '') {
-      const phoneNumbers = phoneNumber.replace(/[^\d]/g, '');
-      if (phoneNumbers.length !== 11 || !phoneNumbers.startsWith('01')) {
-        newErrors.phoneNumber = '휴대폰 번호를 다시 확인해 주세요.';
-      }
+    // 휴대폰 번호 검증 (필수 필드 - 알림톡 발송용)
+    const phoneNumbers = phoneNumber.replace(/[^\d]/g, '');
+    if (phoneNumbers.length === 0) {
+      newErrors.phoneNumber = '휴대폰 번호를 입력해 주세요.';
+    } else if (phoneNumbers.length !== 11 || !phoneNumbers.startsWith('01')) {
+      newErrors.phoneNumber = '휴대폰 번호를 다시 확인해 주세요.';
     }
     
     setErrors(newErrors);
@@ -432,10 +435,17 @@ export default function BirthInfoInput({ productId, onBack, onComplete }: BirthI
         birthDate: birthDate,
         birthTime: finalBirthTime,
         unknownTime: unknownTime || birthTime.trim() === '',
-        phoneNumber: phoneNumber.replace(/[^\\d]/g, '') || undefined
+        phoneNumber: phoneNumber.replace(/[^\d]/g, '') || undefined
       });
 
       console.log('✅ [사주입력] 저장 성공:', sajuData);
+
+      // ⭐️ 프로필 페이지 캐시 업데이트 (프로필 돌아갈 때 새로운 사주 정보 표시)
+      if (sajuData) {
+        localStorage.setItem('primary_saju', JSON.stringify(sajuData));
+        localStorage.setItem('profile_needs_refresh', 'true');
+        console.log('✅ [BirthInfoInput] primary_saju 캐시 업데이트 완료');
+      }
 
       // ⭐️ localStorage 대신 DB에서 진행 중인 주문 직접 조회 (GlobalAIMonitor와 동일한 로직)
       console.log('🔍 [사주입력] 진행 중인 주문 조회 시작...');
@@ -491,51 +501,46 @@ export default function BirthInfoInput({ productId, onBack, onComplete }: BirthI
         console.log('✅ [사주입력] 주문 업데이트 완료');
       }
 
-      // ⭐️ 즉시 로딩 페이지로 이동 (SajuSelectPage와 동일한 UX)
-      console.log('🚀 [사주입력] 로딩 페이지로 즉시 이동');
-      console.log('📌 contentId:', existingOrder.content_id);
-      console.log('📌 orderId:', pendingOrderId);
-      
-      // ⭐ navigate 호출 직전 로그
-      console.log('⏰ [사주입력] navigate 호출 직전!');
-      navigate(`/loading?contentId=${existingOrder.content_id}&orderId=${pendingOrderId}`);
-      console.log('⏰ [사주입력] navigate 호출 완료!');
-
-      // ⭐️ 백그라운드에서 AI 답변 생성 시작 (비동기, 결과 대기 안 )
+      // ⭐️ 백그라운드에서 AI 답변 생성 시작 (비동기, 결과 대기 안 함)
+      // ⚠️ 중요: navigate 호출 전에 Edge Function 호출해야 안정적으로 실행됨
       console.log('🚀 AI 답변 생성 시작 (백그라운드)');
       console.log('📌 sajuRecordId:', sajuData.id);
-      
+      console.log('📌 contentId:', existingOrder.content_id);
+      console.log('📌 orderId:', pendingOrderId);
+
       // ⭐ 타로 콘텐츠인지 확인하고 타로 카드 선택
       const { data: contentData } = await supabase
         .from('master_contents')
         .select('category_main')
         .eq('id', existingOrder.content_id)
         .single();
-      
+
       const { data: questionsData } = await supabase
         .from('master_content_questions')
         .select('question_type')
         .eq('content_id', existingOrder.content_id)
         .eq('question_type', 'tarot');
-      
+
       const isTarotContent = contentData?.category_main?.includes('타로') || contentData?.category_main?.toLowerCase() === 'tarot';
       const tarotQuestionCount = questionsData?.length || 0;
-      
-      let requestBody: any = {
+
+      let requestBody: Record<string, unknown> = {
         contentId: existingOrder.content_id,
         orderId: pendingOrderId,
         sajuRecordId: sajuData.id
       };
-      
+
       // 타로 콘텐츠이고 타로 질문이 있으면 랜덤 카드 선택
       if (isTarotContent && tarotQuestionCount > 0) {
         const tarotCards = getTarotCardsForQuestions(tarotQuestionCount);
         requestBody.tarotCards = tarotCards;
         console.log('🎴 [타로] 랜덤 카드 선택:', tarotCards);
       }
-      
+
       console.log('📤 Edge Function 호출 파라미터:', requestBody);
 
+      // ⭐ Edge Function 호출을 먼저 시작 (fire and forget)
+      // navigate 이전에 호출해야 component unmount 전에 요청이 확실히 시작됨
       supabase.functions
         .invoke('generate-content-answers', {
           body: requestBody
@@ -552,6 +557,11 @@ export default function BirthInfoInput({ productId, onBack, onComplete }: BirthI
           console.error('❌ AI 생성 오류:', err);
           console.error('❌ 오류 상세:', JSON.stringify(err));
         });
+
+      // ⭐️ 로딩 페이지로 이동 (Edge Function 호출 후)
+      console.log('🚀 [사주입력] 로딩 페이지로 이동');
+      console.log('⏰ [사주입력] navigate 호출!');
+      navigate(`/loading?contentId=${existingOrder.content_id}&orderId=${pendingOrderId}`);
       
     } catch (error) {
       console.error('❌ [사주입력] 처리 중 오류:', error);

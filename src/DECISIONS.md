@@ -17,6 +17,243 @@
 
 ## 2026-01-11
 
+### 로그인 직후 프로필 페이지 강제 리로드: 별도 플래그 사용
+**결정**: `show_login_toast`와 `force_profile_reload` 별도 플래그로 분리
+**배경**:
+- 로그인 후 프로필 접속 시 사주 정보가 표시되지 않는 문제
+- `show_login_toast` 플래그가 HomePage에서 즉시 제거되어 ProfilePage 도달 시 플래그 없음
+- AuthCallback에서 사주 프리페칭 시도 시 무한 로딩 발생
+- 로그인 로직을 건드리지 않고 해결 필요
+
+**문제 시나리오**:
+```
+1. 로그인 → AuthCallback (show_login_toast = true)
+2. 홈 리다이렉트 → HomePage
+   - LoginToast 컴포넌트에서 show_login_toast 감지
+   - 토스트 표시 후 즉시 플래그 제거
+3. 프로필 클릭 → ProfilePage
+   - show_login_toast 이미 없음
+   - 캐시 있으면 API 호출 스킵
+   - 사주 정보 없음으로 표시 (버그!)
+```
+
+**해결 방법**:
+```typescript
+// AuthCallback.tsx - 두 개의 독립적인 플래그 설정
+sessionStorage.setItem('show_login_toast', 'true');        // 토스트 표시용
+sessionStorage.setItem('force_profile_reload', 'true');    // 프로필 API 강제 호출용
+
+// ProfilePage.tsx - 별도 플래그로 강제 리로드 감지
+const forceReload = sessionStorage.getItem('force_profile_reload') === 'true';
+
+// 캐시가 있어도 강제 리로드 시 API 호출
+if (initialState.hasCache && !needsRefresh && !forceReload) {
+  return; // API 호출 스킵
+}
+
+if (forceReload) {
+  // API 호출 → 사주 정보 + 캐시 저장
+  // ...
+  sessionStorage.removeItem('force_profile_reload'); // 한 번만 호출
+}
+```
+
+**동작 흐름**:
+```
+1. 로그인 → AuthCallback
+   - show_login_toast = true (토스트용)
+   - force_profile_reload = true (프로필 리로드용)
+
+2. 홈 리다이렉트 → HomePage
+   - show_login_toast 감지 → 토스트 표시
+   - show_login_toast 제거 (HomePage에서)
+
+3. 프로필 클릭 → ProfilePage
+   - force_profile_reload = true 감지 ✅
+   - API 강제 호출 → 사주 정보 + 캐시 저장
+   - force_profile_reload 제거
+
+4. 다음 프로필 방문
+   - force_profile_reload 없음
+   - 캐시 사용 (API 호출 스킵)
+```
+
+**핵심 원리**:
+- 토스트 표시와 프로필 리로드를 별도 플래그로 분리
+- show_login_toast: HomePage LoginToast에서만 사용 (즉시 제거)
+- force_profile_reload: ProfilePage에서만 사용 (API 호출 후 제거)
+- 각 플래그의 생명주기가 독립적으로 관리됨
+
+**영향**:
+- `/src/pages/AuthCallback.tsx`
+- `/src/components/ProfilePage.tsx`
+- `/src/App.tsx` (WelcomeCouponPageWrapper)
+**테스트**: 로그아웃 → 로그인 → 프로필 클릭 → 사주 정보 표시 확인
+
+---
+
+### iOS 스와이프 뒤로가기: 사주 관리 네비게이션에 replace: true 적용
+**결정**: 사주 관리 페이지에서 사주 추가/수정 페이지로 이동할 때 `replace: true` 옵션 사용
+**배경**:
+- 프로필 → 사주관리 → 사주추가/수정 → 저장 → 사주관리 이동 후
+- iOS 스와이프 뒤로가기 시 프로필이 아닌 사주관리로 다시 돌아가는 버그
+- 히스토리 스택에 사주관리 페이지가 중복으로 쌓이는 문제
+
+**문제 시나리오**:
+```
+히스토리 스택:
+98: /profile
+99: /saju/management  ← 첫 방문
+100: /saju/add        ← 새 엔트리 추가
+
+저장 후 navigate('/saju/management', { replace: true }):
+98: /profile
+99: /saju/management  ← 원래 엔트리 (여전히 존재!)
+100: /saju/management ← 100번이 교체됨
+
+→ 스와이프 뒤로가기 시 #99 /saju/management로 이동 (버그!)
+→ 다시 스와이프 뒤로가기해야 프로필로 이동
+```
+
+**근본 원인**:
+- 사주관리 → 사주추가/수정 이동 시 `push` 방식으로 새 엔트리 생성
+- 저장 후 `replace: true`로 현재 엔트리만 교체
+- 하지만 이전에 push된 사주관리 엔트리(#99)는 그대로 남음
+
+**해결 방법**:
+```typescript
+// App.tsx - SajuManagementPageWrapper
+// ⭐ 사주관리 → 사주추가/수정 이동 시 replace: true 적용
+function SajuManagementPageWrapper() {
+  const navigate = useNavigate();
+
+  return (
+    <SajuManagementPage
+      onBack={goBack}
+      // ⭐ replace: true로 현재 히스토리 엔트리를 교체
+      onNavigateToInput={() => navigate('/saju/input', { replace: true })}
+      onNavigateToAdd={() => navigate('/saju/add', { replace: true })}
+      onEditMySaju={(sajuInfo) => {
+        navigate('/saju/input', {
+          replace: true,  // ⭐ 히스토리 교체
+          state: { editMode: true, sajuData: sajuInfo, returnTo: '/saju/management' }
+        });
+      }}
+      onEditOtherSaju={(sajuInfo) => {
+        navigate('/saju/add', {
+          replace: true,  // ⭐ 히스토리 교체
+          state: { editMode: true, sajuData: sajuInfo, returnTo: '/saju/management' }
+        });
+      }}
+    />
+  );
+}
+
+// SajuAddPageWrapper, SajuInputPageWrapper도 동일하게 replace: true 사용
+onSaved={() => {
+  if (returnTo) {
+    navigate(returnTo, { replace: true });
+  } else {
+    navigate('/saju/management', { replace: true });
+  }
+}}
+```
+
+**수정 후 히스토리**:
+```
+히스토리 스택:
+98: /profile
+99: /saju/management  ← 첫 방문
+
+navigate('/saju/add', { replace: true }):
+98: /profile
+99: /saju/add  ← #99가 교체됨 (새 엔트리 추가 안 됨!)
+
+저장 후 navigate('/saju/management', { replace: true }):
+98: /profile
+99: /saju/management  ← 다시 교체
+
+→ 스와이프 뒤로가기 시 #98 /profile로 정상 이동 ✅
+```
+
+**핵심 원리**:
+- 히스토리 스택에서 중복 엔트리를 만들지 않는 것이 핵심
+- 사주관리 ↔ 사주추가/수정 간 이동은 모두 `replace: true` 사용
+- 이렇게 하면 히스토리가 `[프로필, 사주관리]` 또는 `[프로필, 사주추가]`로만 유지됨
+- iOS 스와이프 뒤로가기가 브라우저의 자연스러운 히스토리 탐색으로 동작
+
+**popstate 이벤트는 제거**:
+- SajuManagementPage에서 `popstate` 이벤트 리스너 제거
+- iOS 스와이프 뒤로가기와 충돌 방지
+- bfcache 핸들러(`pageshow`, `visibilitychange`, `focus`)만 유지
+
+**영향**:
+- `/src/App.tsx` (SajuManagementPageWrapper, SajuAddPageWrapper, SajuInputPageWrapper)
+- `/src/components/SajuManagementPage.tsx` (popstate 제거)
+
+**테스트**:
+- iOS Safari에서 프로필 → 사주관리 → 사주추가 → 저장 → 스와이프 뒤로가기 → 프로필 확인 ✅
+- 히스토리 스택에 중복 엔트리가 없음을 로그로 확인
+
+**관련 이슈**: PaymentNew.tsx에서도 유사한 `popstate` 제거 패턴 적용 (DECISIONS.md 151-203번 줄 참고)
+
+---
+
+### iOS 스와이프 뒤로가기: PaymentNew popstate 핸들러 제거
+**결정**: PaymentNew.tsx에서 `pushState` + `popstate` 패턴 제거, bfcache 핸들러만 유지
+**배경**:
+- 유료 콘텐츠 상세 → 결제 → 스와이프 뒤로가기 → 유료 콘텐츠 상세 (OK)
+- → 다시 스와이프 뒤로가기 → 홈이 아닌 유료 콘텐츠 상세로 이동 (버그)
+
+**문제 원인**:
+```typescript
+// ❌ 이전 코드 - 히스토리 스택 중복 발생
+useEffect(() => {
+  window.history.pushState({ paymentPage: true }, '');
+
+  const handlePopState = () => {
+    navigate(`/master/content/detail/${contentId}`, { replace: true });
+  };
+
+  window.addEventListener('popstate', handlePopState);
+  return () => window.removeEventListener('popstate', handlePopState);
+}, [contentId, navigate]);
+```
+
+**히스토리 스택 분석**:
+```
+1. 초기: [Home, Detail, Payment]
+2. pushState: [Home, Detail, Payment, {dummy}]
+3. 스와이프 뒤로가기 → popstate 발생
+4. navigate(replace): [Home, Detail, Detail] ← Payment가 Detail로 대체됨!
+5. 다시 스와이프 뒤로가기 → Detail (Home이 아닌)
+```
+
+**해결 방법**:
+```typescript
+// ✅ 수정된 코드 - pushState/popstate 제거, bfcache만 유지
+useEffect(() => {
+  const handlePageShow = (event: PageTransitionEvent) => {
+    if (event.persisted) {
+      setIsProcessingPayment(false); // bfcache 복원 시 상태 리셋만
+    }
+  };
+
+  window.addEventListener('pageshow', handlePageShow);
+  return () => window.removeEventListener('pageshow', handlePageShow);
+}, []);
+```
+
+**핵심 원리**:
+- `pushState` + `navigate(replace)` 조합은 히스토리 스택을 예측 불가능하게 만듦
+- iOS 스와이프 뒤로가기는 브라우저가 자연스럽게 처리하도록 두는 것이 최선
+- bfcache 복원 시 상태 리셋만 처리 (버튼 비활성화 상태 해제 등)
+
+**영향**: `/components/PaymentNew.tsx`
+**테스트**: iOS Safari에서 결제 페이지 진입 후 여러 번 스와이프 뒤로가기 테스트 완료
+
+---
+
 ### iOS 스와이프 뒤로가기: 프로필/사주관리 페이지 캐시 기반 렌더링
 **결정**: ProfilePage, SajuManagementPage에 캐시 기반 초기 렌더링 적용
 **배경**:
@@ -954,10 +1191,10 @@ export const isFigmaSite(): boolean    // Figma Make 환경 체크
 
 ## 📊 주요 결정 통계 (2026-01-11 기준)
 
-- **총 결정 기록**: 32개
+- **총 결정 기록**: 34개
 - **아키텍처 변경**: 10개
 - **성능 최적화**: 5개
-- **사용자 경험 개선**: 8개 (iOS 스와이프 뒤로가기 대응 +3)
+- **사용자 경험 개선**: 10개 (iOS 스와이프 뒤로가기 대응 +4, 로그인 플로우 개선 +1)
 - **보안 강화**: 6개
 - **개발 안정성**: 3개
 
