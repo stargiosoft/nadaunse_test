@@ -92,59 +92,110 @@ if (forceReload) {
 
 ---
 
-### iOS 스와이프 뒤로가기: 사주 추가 후 히스토리 2단계 뒤로가기
-**결정**: 사주 추가 완료 후 `navigate(-2)`로 2단계 뒤로 이동
+### iOS 스와이프 뒤로가기: 사주 관리 네비게이션에 replace: true 적용
+**결정**: 사주 관리 페이지에서 사주 추가/수정 페이지로 이동할 때 `replace: true` 옵션 사용
 **배경**:
-- 프로필 → 사주관리 → 사주추가 → 저장 후
-- iOS 스와이프 뒤로가기 시 사주관리가 아닌 프로필로 돌아가야 함
-- 기존 `replace: true` 방식은 현재 엔트리만 교체하여 불완전
+- 프로필 → 사주관리 → 사주추가/수정 → 저장 → 사주관리 이동 후
+- iOS 스와이프 뒤로가기 시 프로필이 아닌 사주관리로 다시 돌아가는 버그
+- 히스토리 스택에 사주관리 페이지가 중복으로 쌓이는 문제
 
 **문제 시나리오**:
 ```
 히스토리 스택:
 98: /profile
 99: /saju/management  ← 첫 방문
-100: /saju/add
+100: /saju/add        ← 새 엔트리 추가
 
 저장 후 navigate('/saju/management', { replace: true }):
 98: /profile
-99: /saju/management  ← 여전히 존재
-100: /saju/management  ← 교체됨
+99: /saju/management  ← 원래 엔트리 (여전히 존재!)
+100: /saju/management ← 100번이 교체됨
 
 → 스와이프 뒤로가기 시 #99 /saju/management로 이동 (버그!)
+→ 다시 스와이프 뒤로가기해야 프로필로 이동
 ```
+
+**근본 원인**:
+- 사주관리 → 사주추가/수정 이동 시 `push` 방식으로 새 엔트리 생성
+- 저장 후 `replace: true`로 현재 엔트리만 교체
+- 하지만 이전에 push된 사주관리 엔트리(#99)는 그대로 남음
 
 **해결 방법**:
 ```typescript
-// App.tsx - SajuAddPageWrapper
-function SajuAddPageWrapper() {
+// App.tsx - SajuManagementPageWrapper
+// ⭐ 사주관리 → 사주추가/수정 이동 시 replace: true 적용
+function SajuManagementPageWrapper() {
   const navigate = useNavigate();
 
   return (
-    <SajuAddPage
-      onBack={() => navigate('/saju/management')}
-      onSaved={() => navigate(-2)}  // ⭐ 2단계 뒤로 이동
+    <SajuManagementPage
+      onBack={goBack}
+      // ⭐ replace: true로 현재 히스토리 엔트리를 교체
+      onNavigateToInput={() => navigate('/saju/input', { replace: true })}
+      onNavigateToAdd={() => navigate('/saju/add', { replace: true })}
+      onEditMySaju={(sajuInfo) => {
+        navigate('/saju/input', {
+          replace: true,  // ⭐ 히스토리 교체
+          state: { editMode: true, sajuData: sajuInfo, returnTo: '/saju/management' }
+        });
+      }}
+      onEditOtherSaju={(sajuInfo) => {
+        navigate('/saju/add', {
+          replace: true,  // ⭐ 히스토리 교체
+          state: { editMode: true, sajuData: sajuInfo, returnTo: '/saju/management' }
+        });
+      }}
     />
   );
 }
+
+// SajuAddPageWrapper, SajuInputPageWrapper도 동일하게 replace: true 사용
+onSaved={() => {
+  if (returnTo) {
+    navigate(returnTo, { replace: true });
+  } else {
+    navigate('/saju/management', { replace: true });
+  }
+}}
 ```
 
 **수정 후 히스토리**:
 ```
 히스토리 스택:
 98: /profile
-99: /saju/management
-100: /saju/add
+99: /saju/management  ← 첫 방문
 
-저장 후 navigate(-2):
-98: /profile  ← 바로 프로필로 이동
-(99, 100은 스택에서 제거)
+navigate('/saju/add', { replace: true }):
+98: /profile
+99: /saju/add  ← #99가 교체됨 (새 엔트리 추가 안 됨!)
 
-→ 스와이프 뒤로가기 시 프로필 이전 페이지로 정상 이동
+저장 후 navigate('/saju/management', { replace: true }):
+98: /profile
+99: /saju/management  ← 다시 교체
+
+→ 스와이프 뒤로가기 시 #98 /profile로 정상 이동 ✅
 ```
 
-**영향**: `/App.tsx` (SajuAddPageWrapper)
-**테스트**: iOS Safari에서 사주 추가 후 스와이프 뒤로가기 → 프로필 → 홈 순서 확인
+**핵심 원리**:
+- 히스토리 스택에서 중복 엔트리를 만들지 않는 것이 핵심
+- 사주관리 ↔ 사주추가/수정 간 이동은 모두 `replace: true` 사용
+- 이렇게 하면 히스토리가 `[프로필, 사주관리]` 또는 `[프로필, 사주추가]`로만 유지됨
+- iOS 스와이프 뒤로가기가 브라우저의 자연스러운 히스토리 탐색으로 동작
+
+**popstate 이벤트는 제거**:
+- SajuManagementPage에서 `popstate` 이벤트 리스너 제거
+- iOS 스와이프 뒤로가기와 충돌 방지
+- bfcache 핸들러(`pageshow`, `visibilitychange`, `focus`)만 유지
+
+**영향**:
+- `/src/App.tsx` (SajuManagementPageWrapper, SajuAddPageWrapper, SajuInputPageWrapper)
+- `/src/components/SajuManagementPage.tsx` (popstate 제거)
+
+**테스트**:
+- iOS Safari에서 프로필 → 사주관리 → 사주추가 → 저장 → 스와이프 뒤로가기 → 프로필 확인 ✅
+- 히스토리 스택에 중복 엔트리가 없음을 로그로 확인
+
+**관련 이슈**: PaymentNew.tsx에서도 유사한 `popstate` 제거 패턴 적용 (DECISIONS.md 151-203번 줄 참고)
 
 ---
 
