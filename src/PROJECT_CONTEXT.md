@@ -3,7 +3,7 @@
 > **AI 디버깅 전용 컨텍스트 파일**
 > 버그 발생 시 AI에게 가장 먼저 제공해야 하는 프로젝트 뇌(Brain)
 > **GitHub**: https://github.com/stargiosoft/nadaunse
-> **최종 업데이트**: 2026-01-07
+> **최종 업데이트**: 2026-01-11
 
 ---
 
@@ -257,6 +257,7 @@ export const publicAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "<product
 /components/ProfilePage.tsx             → 프로필 메인
 /components/PurchaseHistoryPage.tsx     → 구매 내역
 /components/WelcomeCouponPage.tsx       → 웰컴 쿠폰
+/components/ResultCompletePage.tsx      → 풀이 완료 ("풀이는 여기까지예요")
 ```
 </details>
 
@@ -622,6 +623,11 @@ AI 생성 요청 (Edge Function)
     결과 페이지 (SajuResultPage)
           ↓
     목차 바텀시트 (TableOfContentsBottomSheet)
+          ↓
+    풀이 완료 페이지 (ResultCompletePage)
+    - "풀이는 여기까지예요" 타이틀
+    - 재방문 쿠폰 발급 (3,000원)
+    - 추천 콘텐츠 ("이런 운세는 어때요?")
 ```
 
 **주요 파일**:
@@ -633,6 +639,7 @@ AI 생성 요청 (Edge Function)
 - `/components/LoadingPage.tsx` - 로딩 (프로그레스 바)
 - `/components/SajuResultPage.tsx` - 사주 결과
 - `/components/TableOfContentsBottomSheet.tsx` - 목차 (질문 리스트)
+- `/components/ResultCompletePage.tsx` - 풀이 완료 ("풀이는 여기까지예요")
 
 **Edge Functions**: 
 - `/generate-master-content` - 유료 콘텐츠 생성
@@ -926,6 +933,7 @@ useEffect(() => {
 | 1.4.0 | 2026-01-07 | 개발 안정성 강화 - Sentry, 로거, 재시도 로직, 결제 웹훅/환불, Edge Functions 20개 | AI Assistant |
 | 1.4.1 | 2026-01-09 | 마스터 콘텐츠 관리 섹션 추가 (6개 컴포넌트 상세화) | AI Assistant |
 | 1.5.0 | 2026-01-09 | FreeProductDetail 백업, FreeContentDetail로 대체 (하드코딩 더미 데이터 버그 수정) | AI Assistant |
+| 1.5.1 | 2026-01-11 | ResultCompletePage 문서화 추가 (풀이 완료 페이지, 재방문 쿠폰) | AI Assistant |
 
 ---
 
@@ -1009,6 +1017,6 @@ useEffect(() => {
 
 ---
 
-**문서 버전**: 1.5.0
-**최종 업데이트**: 2026-01-09
+**문서 버전**: 1.5.1
+**최종 업데이트**: 2026-01-11
 **문서 끝**
