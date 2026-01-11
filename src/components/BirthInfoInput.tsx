@@ -345,12 +345,15 @@ export default function BirthInfoInput({ productId, onBack, onComplete }: BirthI
     }
   };
 
-  // 필수값 검사: 이름, 성별, 생년월일
+  // 필수값 검사: 이름, 성별, 생년월일, 휴대폰 번호
   const isFormValid = () => {
     const nameValid = name.trim().length >= 1;
     const birthDateValid = birthDate.replace(/[^\d]/g, '').length === 8 && isValidDate(birthDate);
-    
-    return nameValid && birthDateValid;
+    // ⭐ 휴대폰 번호 필수 (11자리, 01로 시작)
+    const phoneNumbers = phoneNumber.replace(/[^\d]/g, '');
+    const phoneNumberValid = phoneNumbers.length === 11 && phoneNumbers.startsWith('01');
+
+    return nameValid && birthDateValid && phoneNumberValid;
   };
 
   // 저장 버튼 클릭 시 유효성 검사
@@ -377,12 +380,12 @@ export default function BirthInfoInput({ productId, onBack, onComplete }: BirthI
       newErrors.birthTime = '태어난 시를 정확하게 입력해주세요.';
     }
     
-    // 휴대폰 번호 검증 (선택 필드)
-    if (phoneNumber.trim() !== '') {
-      const phoneNumbers = phoneNumber.replace(/[^\d]/g, '');
-      if (phoneNumbers.length !== 11 || !phoneNumbers.startsWith('01')) {
-        newErrors.phoneNumber = '휴대폰 번호를 다시 확인해 주세요.';
-      }
+    // 휴대폰 번호 검증 (필수 필드 - 알림톡 발송용)
+    const phoneNumbers = phoneNumber.replace(/[^\d]/g, '');
+    if (phoneNumbers.length === 0) {
+      newErrors.phoneNumber = '휴대폰 번호를 입력해 주세요.';
+    } else if (phoneNumbers.length !== 11 || !phoneNumbers.startsWith('01')) {
+      newErrors.phoneNumber = '휴대폰 번호를 다시 확인해 주세요.';
     }
     
     setErrors(newErrors);
