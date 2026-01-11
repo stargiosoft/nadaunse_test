@@ -211,11 +211,27 @@ interface TabContainerProps {
 
 function TabContainer({ selectedCategory, onCategoryChange, availableCategories }: TabContainerProps) {
   const sliderRef = useRef<HTMLDivElement>(null);
+  const tabRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const [isDown, setIsDown] = useState(false);
   const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
   const isDraggingRef = useRef(false);
   const moveDistanceRef = useRef(0);
+
+  // ⭐ 선택된 카테고리가 보이도록 자동 스크롤 (마운트 시 + 카테고리 변경 시)
+  useEffect(() => {
+    const selectedTab = tabRefs.current.get(selectedCategory);
+    if (selectedTab && sliderRef.current) {
+      // 약간의 딜레이 후 스크롤 (렌더링 완료 대기)
+      requestAnimationFrame(() => {
+        selectedTab.scrollIntoView({
+          behavior: 'instant', // 마운트 시에는 즉시 이동 (깜빡임 방지)
+          block: 'nearest',
+          inline: 'center' // 중앙에 위치하도록
+        });
+      });
+    }
+  }, [selectedCategory, availableCategories]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (!sliderRef.current) return;
@@ -280,6 +296,9 @@ function TabContainer({ selectedCategory, onCategoryChange, availableCategories 
       {availableCategories.map((category) => (
         <div
           key={category}
+          ref={(el) => {
+            if (el) tabRefs.current.set(category, el);
+          }}
           onClick={() => handleCategoryClick(category)}
           className="box-border content-stretch flex gap-[10px] items-center justify-center px-[16px] py-[8px] relative rounded-[12px] shrink-0 cursor-pointer"
           data-name="Navigation / Tab Item"
