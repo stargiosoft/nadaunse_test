@@ -3,7 +3,7 @@
 > **아키텍처 결정 기록 (Architecture Decision Records)**
 > "왜 이렇게 만들었어?"에 대한 대답
 > **GitHub**: https://github.com/stargiosoft/nadaunse
-> **최종 업데이트**: 2026-01-07
+> **최종 업데이트**: 2026-01-11
 
 ---
 
@@ -12,6 +12,179 @@
 ```
 [날짜] [결정 내용] | [이유/배경] | [영향 범위]
 ```
+
+---
+
+## 2026-01-11
+
+### iOS 스와이프 뒤로가기: 프로필/사주관리 페이지 캐시 기반 렌더링
+**결정**: ProfilePage, SajuManagementPage에 캐시 기반 초기 렌더링 적용
+**배경**:
+- iOS Safari 스와이프 뒤로가기 시 페이지가 불필요하게 리로드되는 것처럼 보임
+- API 호출은 스킵해도 framer-motion 애니메이션이 매번 재실행됨
+- SajuManagementPage에서 목록 순서가 순간적으로 바뀌는 현상
+
+**문제 시나리오**:
+```
+1. 프로필 → 사주관리 → 사주수정 → 저장 → 사주관리로 이동
+2. iOS 스와이프 뒤로가기
+3. → 프로필 페이지가 리로드되는 것처럼 보임 (애니메이션 재실행)
+4. → 사주관리 목록 순서가 순간적으로 바뀜 (정렬 불일치)
+```
+
+**해결 방법**:
+```typescript
+// 1. 동기적 캐시 초기화 (useState 초기값으로 캐시 사용)
+const getInitialState = () => {
+  try {
+    const cached = localStorage.getItem('primary_saju');
+    if (cached) {
+      return { data: JSON.parse(cached), hasCache: true };
+    }
+  } catch (e) {}
+  return { data: null, hasCache: false };
+};
+
+const initialState = getInitialState();
+const [data, setData] = useState(initialState.data);
+
+// 2. 캐시가 있으면 애니메이션 스킵
+const skipAnimation = initialState.hasCache;
+const itemVariants = skipAnimation
+  ? { hidden: { opacity: 1, y: 0 }, visible: { opacity: 1, y: 0 } }  // 애니메이션 없음
+  : { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }; // 기본 애니메이션
+
+// 3. 캐시가 있고 refresh 플래그 없으면 API 호출 스킵
+useEffect(() => {
+  const needsRefresh = localStorage.getItem('profile_needs_refresh') === 'true';
+  if (initialState.hasCache && !needsRefresh) {
+    console.log('🚀 캐시 유효 → API 호출 스킵');
+    return;
+  }
+  // API 호출...
+}, []);
+
+// 4. SajuManagementPage - getInitialState에서도 동일한 정렬 적용
+const sortedOthers = [...others].sort((a, b) => {
+  const dateA = new Date(a.created_at || 0).getTime();
+  const dateB = new Date(b.created_at || 0).getTime();
+  return dateB - dateA; // 최신순
+});
+```
+
+**핵심 원리**:
+- `useState` 초기값으로 localStorage 캐시 동기적 로드 (skeleton 없이 즉시 렌더링)
+- 캐시가 있으면 framer-motion 애니메이션을 identity transform으로 대체
+- `getInitialState()`와 `setSajuList()`에서 동일한 정렬 로직 적용 (순서 불일치 방지)
+- `*_needs_refresh` 플래그로 실제 데이터 변경 시에만 API 재호출
+
+**영향**:
+- `/components/ProfilePage.tsx`
+- `/components/SajuManagementPage.tsx`
+**테스트**: iOS Safari에서 스와이프 뒤로가기 시 즉시 렌더링 확인
+
+---
+
+### iOS 스와이프 뒤로가기: 사주 수정 후 히스토리 스택 문제
+**결정**: 사주 수정 완료 후 `navigate(..., { replace: true })`로 히스토리 교체
+**배경**:
+- 프로필 → 사주관리 → 사주수정 → 저장 → 사주관리 이동 후
+- iOS 스와이프 뒤로가기 시 프로필이 아닌 사주관리로 다시 이동됨
+
+**문제 시나리오**:
+```
+히스토리 스택: [프로필, 사주관리, 사주수정]
+→ 저장 후 navigate('/saju/management') 호출
+히스토리 스택: [프로필, 사주관리, 사주수정, 사주관리]  ← 중복!
+→ 뒤로가기 시 사주수정으로 이동
+```
+
+**해결 방법**:
+```typescript
+// App.tsx - SajuInputPageWrapper, SajuAddPageWrapper
+onSaved={() => {
+  // ⭐ replace: true로 히스토리 교체
+  if (returnTo) {
+    navigate(returnTo, { replace: true });
+  } else {
+    navigate('/saju/management', { replace: true });
+  }
+}}
+```
+
+**수정 후 히스토리**:
+```
+히스토리 스택: [프로필, 사주관리, 사주수정]
+→ 저장 후 navigate('/saju/management', { replace: true })
+히스토리 스택: [프로필, 사주관리]  ← 사주수정이 사주관리로 대체됨
+→ 뒤로가기 시 프로필로 정상 이동
+```
+
+**영향**: `/App.tsx` (SajuInputPageWrapper, SajuAddPageWrapper)
+**테스트**: iOS Safari에서 사주 수정 후 스와이프 뒤로가기 테스트 완료
+
+---
+
+### iOS 스와이프 뒤로가기: 결제/결과 페이지 bfcache 대응
+**결정**: PaymentNew, SajuResultPage에 popstate 이벤트 리스너 + bfcache 복원 처리 추가
+**배경**:
+- iOS Safari는 bfcache(back-forward cache)로 페이지 상태를 메모리에 보존
+- 결제 페이지에서 뒤로가기 시 `isProcessingPayment` 상태가 true로 남아있어 버튼 비활성화
+- 결과 페이지에서 뒤로가기 시 의도치 않은 페이지로 이동
+
+**해결 방법**:
+```typescript
+// PaymentNew.tsx - 뒤로가기 감지
+useEffect(() => {
+  if (!contentId) return;
+
+  // 히스토리에 현재 페이지 상태 추가 (뒤로가기 감지용)
+  window.history.pushState({ paymentPage: true }, '');
+
+  const handlePopState = (event: PopStateEvent) => {
+    console.log('🔙 [PaymentNew] 뒤로가기 감지 → 콘텐츠 상세 페이지로 이동');
+    navigate(`/master/content/detail/${contentId}`, { replace: true });
+  };
+
+  window.addEventListener('popstate', handlePopState);
+  return () => window.removeEventListener('popstate', handlePopState);
+}, [contentId, navigate]);
+
+// PaymentNew.tsx - bfcache 복원 시 상태 리셋
+useEffect(() => {
+  const handlePageShow = (event: PageTransitionEvent) => {
+    if (event.persisted) {
+      console.log('🔄 [PaymentNew] bfcache 복원 감지 → isProcessingPayment 리셋');
+      setIsProcessingPayment(false);
+    }
+  };
+
+  const handleVisibilityChange = () => {
+    if (document.visibilityState === 'visible') {
+      setIsProcessingPayment(false);
+    }
+  };
+
+  window.addEventListener('pageshow', handlePageShow);
+  document.addEventListener('visibilitychange', handleVisibilityChange);
+
+  return () => {
+    window.removeEventListener('pageshow', handlePageShow);
+    document.removeEventListener('visibilitychange', handleVisibilityChange);
+  };
+}, []);
+```
+
+**핵심 원리**:
+- `window.history.pushState()`: 뒤로가기 감지를 위한 히스토리 항목 추가
+- `popstate` 이벤트: 브라우저 뒤로가기 감지 후 적절한 페이지로 리다이렉트
+- `pageshow` 이벤트 + `event.persisted`: bfcache에서 복원된 경우 감지
+- `visibilitychange` 이벤트: 탭 전환 등으로 페이지가 다시 보일 때 상태 리셋
+
+**영향**:
+- `/components/PaymentNew.tsx`
+- `/components/SajuResultPage.tsx`
+**테스트**: iOS Safari에서 결제 중 뒤로가기, bfcache 복원 테스트 완료
 
 ---
 
@@ -779,17 +952,17 @@ export const isFigmaSite(): boolean    // Figma Make 환경 체크
 
 ---
 
-## 📊 주요 결정 통계 (2026-01-07 기준)
+## 📊 주요 결정 통계 (2026-01-11 기준)
 
-- **총 결정 기록**: 29개
+- **총 결정 기록**: 32개
 - **아키텍처 변경**: 10개
 - **성능 최적화**: 5개
-- **사용자 경험 개선**: 5개
+- **사용자 경험 개선**: 8개 (iOS 스와이프 뒤로가기 대응 +3)
 - **보안 강화**: 6개
 - **개발 안정성**: 3개
 
 ---
 
-**문서 버전**: 2.1.0
-**최종 업데이트**: 2026-01-07
+**문서 버전**: 2.2.0
+**최종 업데이트**: 2026-01-11
 **문서 끝**
