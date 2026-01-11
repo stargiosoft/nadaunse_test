@@ -131,18 +131,26 @@ export default function ProfilePage({
       const cachedUserJson = localStorage.getItem('user');
       const cachedSajuJson = localStorage.getItem('primary_saju');
 
-      // ⭐ user 정보만 있어도 캐시로 간주 (사주 없는 상태도 캐시됨)
       if (cachedUserJson) {
         const cachedUser = JSON.parse(cachedUserJson);
         const cachedSaju = cachedSajuJson ? JSON.parse(cachedSajuJson) : null;
-        console.log('🚀 [ProfilePage] 초기화 시 캐시 발견 → 즉시 렌더링');
-        console.log('📌 [ProfilePage] 사주 정보:', cachedSaju ? '있음' : '없음');
+
+        // ⭐ 유효성 검사: user 정보와 primary_saju 정보가 모두 있어야 완전한 캐시로 간주
+        const hasValidCache = !!(cachedUser && cachedSaju);
+
+        console.log('🚀 [ProfilePage] 초기화 시 캐시 확인');
+        console.log('  - User 정보:', cachedUser ? '있음' : '없음');
+        console.log('  - Primary Saju:', cachedSaju ? '있음' : '없음');
+        console.log('  - 유효한 캐시:', hasValidCache ? 'YES' : 'NO');
+
+        // ⭐ 완전한 캐시가 있으면 → 즉시 렌더링 (로딩 스킵)
+        // ⭐ user만 있고 사주가 없으면 → API 호출 필요 (isLoadingSaju: true)
         return {
           user: cachedUser,
           isMaster: cachedUser.role === 'master',
           primarySaju: cachedSaju,
-          isLoadingSaju: false, // 캐시가 있으면 로딩 없이 시작
-          hasCache: true
+          isLoadingSaju: !hasValidCache, // 유효한 캐시가 없으면 로딩 표시
+          hasCache: hasValidCache // user + primary_saju가 모두 있어야 true
         };
       }
     } catch (e) {
@@ -233,13 +241,28 @@ export default function ProfilePage({
       // ⭐ 최초 로그인 플래그: 로그인 직후 한 번만 강제 API 호출
       const forceReload = sessionStorage.getItem('force_profile_reload') === 'true';
 
-      console.log('🔍 [ProfilePage] 캐시 체크 - hasCache:', initialState.hasCache, ', needsRefresh:', needsRefresh, ', forceReload:', forceReload);
+      console.log('🔍 [ProfilePage] 캐시 & 플래그 체크');
+      console.log('  - hasCache:', initialState.hasCache);
+      console.log('  - needsRefresh:', needsRefresh);
+      console.log('  - forceReload:', forceReload);
 
-      // 🚀 초기화 시점에 이미 캐시가 로드되었고, refresh가 필요 없고, 강제 리로드도 아니면 API 호출 스킵
+      // 🚀 초기화 시점에 이미 유효한 캐시가 로드되었고, refresh가 필요 없고, 강제 리로드도 아니면 API 호출 스킵
       // → iOS 스와이프 뒤로가기 시 불필요한 리로드 완전 방지
       if (initialState.hasCache && !needsRefresh && !forceReload) {
-        console.log('🚀 [ProfilePage] 초기 캐시 유효 + refresh 불필요 + 강제 리로드 아님 → API 호출 완전 스킵');
+        console.log('✅ [ProfilePage] 유효한 캐시 존재 + refresh 불필요 + 강제 리로드 아님');
+        console.log('   → API 호출 완전 스킵 (캐시만 사용)');
         return;
+      }
+
+      // ⭐ API 호출이 필요한 경우 로깅
+      if (!initialState.hasCache) {
+        console.log('⚠️ [ProfilePage] 유효한 캐시 없음 → API 호출 필요');
+      }
+      if (needsRefresh) {
+        console.log('⚠️ [ProfilePage] 캐시 refresh 필요 → API 호출 필요');
+      }
+      if (forceReload) {
+        console.log('⚠️ [ProfilePage] 강제 리로드 플래그 → API 호출 필요');
       }
 
       // ⭐ 최초 로그인 시 무조건 API 호출

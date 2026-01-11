@@ -312,10 +312,20 @@ export default function FreeSajuSelectPage({ productId, onBack, prefetchedSajuRe
             .eq('id', selectedSajuId)
             .eq('user_id', user.id);
 
-          // ⭐ 캐시 무효화 (ProfilePage, SajuManagementPage에서 새 대표 사주 로드하도록)
-          localStorage.removeItem('primary_saju');
-          localStorage.removeItem('saju_records_cache');
-          console.log('✅ [FreeSajuSelectPage] 백그라운드: 대표 사주 업데이트 완료 + 캐시 무효화');
+          // ⭐ 캐시 업데이트 (ProfilePage에서 즉시 사용 가능하도록)
+          // 선택된 사주를 대표 사주로 캐시에 저장
+          const updatedPrimarySaju = { ...selectedSaju, is_primary: true };
+          localStorage.setItem('primary_saju', JSON.stringify(updatedPrimarySaju));
+
+          // saju_records_cache도 업데이트 (is_primary 플래그 반영)
+          const updatedRecords = sajuRecords.map(r => ({
+            ...r,
+            is_primary: r.id === selectedSajuId
+          }));
+          localStorage.setItem('saju_records_cache', JSON.stringify(updatedRecords));
+
+          console.log('✅ [FreeSajuSelectPage] 백그라운드: 대표 사주 업데이트 완료 + 캐시 갱신');
+          console.log('💾 [FreeSajuSelectPage] 캐시 저장:', updatedPrimarySaju.full_name, '(', updatedPrimarySaju.notes, ')');
         }
       } catch (error) {
         console.error('❌ [FreeSajuSelectPage] 백그라운드: 대표 사주 업데이트 실패:', error);
