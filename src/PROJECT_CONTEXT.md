@@ -885,6 +885,89 @@ useEffect(() => {
 
 ---
 
+### 10. iOS 스와이프 뒤로가기: 프로필/사주관리 페이지 리로드 (NEW!)
+**증상**: 스와이프 뒤로가기 시 프로필/사주관리 페이지가 리로드되는 것처럼 보임
+**체크**:
+- [ ] `getInitialState()`에서 localStorage 캐시를 동기적으로 로드하는지 확인
+- [ ] `useState` 초기값으로 캐시 데이터를 설정하는지 확인
+- [ ] framer-motion 애니메이션이 캐시 존재 시 스킵되는지 확인
+- [ ] `*_needs_refresh` 플래그로 API 호출을 제어하는지 확인
+
+**원인**:
+- API 호출은 스킵해도 framer-motion 애니메이션이 매번 재실행됨
+- `getInitialState()`와 `setSajuList()`의 정렬 로직 불일치
+
+**해결 방법**:
+```tsx
+// 캐시가 있으면 애니메이션 스킵
+const skipAnimation = initialState.hasCache;
+const itemVariants = skipAnimation
+  ? { hidden: { opacity: 1, y: 0 }, visible: { opacity: 1, y: 0 } }
+  : { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } };
+```
+
+**적용 파일들**:
+- `/components/ProfilePage.tsx`
+- `/components/SajuManagementPage.tsx`
+- **상세 문서**: `DECISIONS.md` → "2026-01-11 - 프로필/사주관리 페이지 캐시 기반 렌더링" 섹션
+
+---
+
+### 11. iOS 스와이프 뒤로가기: 사주 수정 후 히스토리 꼬임 (NEW!)
+**증상**: 사주 수정 후 사주관리로 이동 → 스와이프 뒤로가기 시 프로필이 아닌 사주관리로 또 이동
+**체크**:
+- [ ] `onSaved` 콜백에서 `navigate(..., { replace: true })` 사용하는지 확인
+- [ ] 브라우저 히스토리 스택 확인 (개발자 도구 → Application → History)
+
+**원인**:
+- `navigate('/saju/management')` 호출 시 새 히스토리 항목이 추가됨
+- 히스토리: [프로필, 사주관리, 사주수정, 사주관리] ← 중복
+
+**해결 방법**:
+```tsx
+// App.tsx - SajuInputPageWrapper, SajuAddPageWrapper
+onSaved={() => navigate('/saju/management', { replace: true })}
+```
+
+**적용 파일들**:
+- `/App.tsx` - SajuInputPageWrapper, SajuAddPageWrapper
+- **상세 문서**: `DECISIONS.md` → "2026-01-11 - 사주 수정 후 히스토리 스택 문제" 섹션
+
+---
+
+### 12. iOS 스와이프 뒤로가기: 결제 페이지 bfcache 문제 (NEW!)
+**증상**: 결제 페이지에서 뒤로가기 후 다시 진입 시 결제 버튼이 비활성화 상태로 남아있음
+**체크**:
+- [ ] `pageshow` 이벤트로 bfcache 복원을 감지하는지 확인
+- [ ] `event.persisted`로 bfcache 복원 여부 판단하는지 확인
+- [ ] `visibilitychange` 이벤트로 탭 전환 시 상태 리셋하는지 확인
+- [ ] `popstate` 이벤트로 뒤로가기 감지하는지 확인
+
+**원인**:
+- iOS Safari bfcache가 페이지 상태(React state)를 메모리에 보존
+- `isProcessingPayment = true` 상태가 그대로 남아있음
+
+**해결 방법**:
+```tsx
+// bfcache 복원 시 상태 리셋
+useEffect(() => {
+  const handlePageShow = (event: PageTransitionEvent) => {
+    if (event.persisted) {
+      setIsProcessingPayment(false);
+    }
+  };
+  window.addEventListener('pageshow', handlePageShow);
+  return () => window.removeEventListener('pageshow', handlePageShow);
+}, []);
+```
+
+**적용 파일들**:
+- `/components/PaymentNew.tsx`
+- `/components/SajuResultPage.tsx`
+- **상세 문서**: `DECISIONS.md` → "2026-01-11 - 결제/결과 페이지 bfcache 대응" 섹션
+
+---
+
 ## 📝 디버깅 시 AI에게 제공할 정보
 
 버그 발생 시 아래 형식으로 AI에게 요청하세요:
@@ -938,6 +1021,7 @@ useEffect(() => {
 | 1.4.1 | 2026-01-09 | 마스터 콘텐츠 관리 섹션 추가 (6개 컴포넌트 상세화) | AI Assistant |
 | 1.5.0 | 2026-01-09 | FreeProductDetail 백업, FreeContentDetail로 대체 (하드코딩 더미 데이터 버그 수정) | AI Assistant |
 | 1.5.1 | 2026-01-11 | ResultCompletePage 문서화 추가 (풀이 완료 페이지, 재방문 쿠폰) | AI Assistant |
+| 1.6.0 | 2026-01-11 | iOS 스와이프 뒤로가기 버그 체크리스트 추가 (#10~#12) | AI Assistant |
 
 ---
 
@@ -1021,6 +1105,6 @@ useEffect(() => {
 
 ---
 
-**문서 버전**: 1.5.1
+**문서 버전**: 1.6.0
 **최종 업데이트**: 2026-01-11
 **문서 끝**

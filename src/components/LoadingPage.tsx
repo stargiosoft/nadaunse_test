@@ -106,6 +106,9 @@ export default function LoadingPage() {
   const [mainImageLoaded, setMainImageLoaded] = useState(false);
   const [loadedThumbnails, setLoadedThumbnails] = useState<Set<string>>(new Set());
 
+  // ⭐ 현재 콘텐츠의 카테고리 (다른 운세 보기 클릭 시 홈 필터에 사용)
+  const [contentCategory, setContentCategory] = useState<string | null>(null);
+
   // ⭐ 세션 체크 - 로그아웃 상태면 로그인 페이지로 즉시 리다이렉트
   // (로딩 페이지가 작동 중이므로 다이얼로그 대신 바로 이동)
   useEffect(() => {
@@ -187,6 +190,37 @@ export default function LoadingPage() {
     };
 
     fetchContentTitle();
+  }, [contentId]);
+
+  // ⭐ 현재 콘텐츠의 카테고리 조회 (다른 운세 보기 클릭 시 홈 필터에 사용)
+  useEffect(() => {
+    if (!contentId) return;
+
+    const fetchContentCategory = async () => {
+      try {
+        console.log('🔍 [LoadingPage] 콘텐츠 카테고리 조회 시작:', { contentId });
+
+        const { data, error } = await supabase
+          .from('master_contents')
+          .select('category_main')
+          .eq('id', contentId)
+          .single();
+
+        if (error) {
+          console.error('❌ [LoadingPage] 콘텐츠 카테고리 조회 실패:', error);
+          return;
+        }
+
+        if (data?.category_main) {
+          console.log('✅ [LoadingPage] 콘텐츠 카테고리 조회 성공:', data.category_main);
+          setContentCategory(data.category_main);
+        }
+      } catch (error) {
+        console.error('❌ [LoadingPage] 콘텐츠 카테고리 조회 중 오류:', error);
+      }
+    };
+
+    fetchContentCategory();
   }, [contentId]);
 
   // ⭐ 무료 콘텐츠 로드 (인기도 순 - weekly_clicks 기준)
@@ -486,9 +520,14 @@ export default function LoadingPage() {
 
   // 다른 운세 보기
   const handleViewOther = () => {
-    // Tab Bar '전체', Segmented Control '심화 해석판' 설정
-    localStorage.setItem('home_tab', '전체');
-    localStorage.setItem('home_segment', '심화 해석판');
+    // ⭐ 홈으로 이동하면서 localStorage에 필터 정보 저장
+    // - 현재 본 콘텐츠의 카테고리로 필터 자동 선택
+    // - 카테고리 정보가 없으면 '전체'로 설정
+    localStorage.setItem('homeFilter', JSON.stringify({
+      category: contentCategory || '전체',
+      contentType: 'all'  // ⭐ '종합' 필터로 설정
+    }));
+    console.log('🏠 [LoadingPage] 다른 운세 보기 클릭 - 홈 필터 설정:', { category: contentCategory || '전체' });
     navigate('/');
   };
 
