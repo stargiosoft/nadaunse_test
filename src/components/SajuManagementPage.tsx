@@ -149,19 +149,6 @@ export default function SajuManagementPage({ onBack, onNavigateToInput, onNaviga
       setSelectedSajuForKebab(null);
     };
 
-    // ⭐ popstate: 브라우저 뒤로가기/앞으로가기 시 바텀시트 닫기
-    // 🛡️ bfcache 대응: 현재 페이지가 /saju/management일 때만 처리 (iOS Chrome 버그 방지)
-    const handlePopState = () => {
-      // 🛡️ bfcache에서 복원된 후 다른 페이지에 있을 때는 무시
-      if (window.location.pathname !== '/saju/management') {
-        console.log('🔄 [SajuManagementPage] popstate → 다른 페이지에서 발생, 무시');
-        return;
-      }
-      console.log('🔄 [SajuManagementPage] popstate → 케밥 메뉴 닫기');
-      setKebabMenuOpen(false);
-      setSelectedSajuForKebab(null);
-    };
-
     // ⭐ focus: 윈도우가 포커스를 받을 때 바텀시트 닫기 (iOS Safari 추가 보호)
     // 🛡️ bfcache 대응: 현재 페이지가 /saju/management일 때만 처리
     const handleFocus = () => {
@@ -173,15 +160,17 @@ export default function SajuManagementPage({ onBack, onNavigateToInput, onNaviga
       setSelectedSajuForKebab(null);
     };
 
+    // ⚠️ popstate 이벤트 제거: iOS 스와이프 뒤로가기와 충돌
+    // PaymentNew.tsx와 동일한 이슈 (DECISIONS.md 참고)
+    // iOS 스와이프 뒤로가기는 브라우저가 자연스럽게 처리하도록 둠
+
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('pageshow', handlePageShow);
-    window.addEventListener('popstate', handlePopState);
     window.addEventListener('focus', handleFocus);
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('pageshow', handlePageShow);
-      window.removeEventListener('popstate', handlePopState);
       window.removeEventListener('focus', handleFocus);
     };
   }, []);
