@@ -15,10 +15,11 @@ serve(async (req) => {
   }
 
   try {
-    const { 
+    const {
       contentId,      // 콘텐츠 ID
       orderId,        // 주문 ID
-      sajuRecordId    // 사주 정보 ID
+      sajuRecordId,   // 사주 정보 ID
+      sajuApiData: prefetchedSajuApiData  // ⭐ 프론트엔드에서 미리 가져온 사주 데이터
     } = await req.json()
 
     if (!contentId || !orderId || !sajuRecordId) {
@@ -63,20 +64,112 @@ serve(async (req) => {
 
     console.log(`✅ 질문지 조회 완료: ${questions.length}개`)
 
-    // 3. 사주 정보 조회
-    const { data: sajuRecord, error: sajuError } = await supabase
-      .from('saju_records')
-      .select('*')
-      .eq('id', sajuRecordId)
+    // 3. 주문에서 사주 정보 조회 (스냅샷 - 불변값)
+    // ⭐ orders 테이블에 저장된 birth_date, birth_time, gender 사용
+    // saju_records는 사용자가 수정할 수 있으므로 구매 시점의 스냅샷 사용
+    const { data: orderData, error: orderError } = await supabase
+      .from('orders')
+      .select('full_name, birth_date, birth_time, gender')
+      .eq('id', orderId)
       .single()
 
-    if (sajuError || !sajuRecord) {
-      throw new Error('사주 정보를 찾을 수 없습니다.')
+    if (orderError || !orderData) {
+      throw new Error('주문 정보를 찾을 수 없습니다.')
     }
 
-    console.log('✅ 사주 정보 조회 완료:', sajuRecord.name)
+    if (!orderData.birth_date || !orderData.birth_time || !orderData.gender) {
+      throw new Error('주문에 사주 정보가 누락되었습니다.')
+    }
 
-    // 4. 모든 질문에 대해 병렬로 답변 생성
+    // sajuRecord 호환성을 위한 객체 생성
+    const sajuRecord = {
+      full_name: orderData.full_name,
+      birth_date: orderData.birth_date,
+      birth_time: orderData.birth_time,
+      gender: orderData.gender
+    }
+
+    console.log('✅ 주문에서 사주 정보 조회 완료:', sajuRecord.full_name)
+    console.log('📅 birth_date:', sajuRecord.birth_date)
+    console.log('🕐 birth_time:', sajuRecord.birth_time)
+    console.log('👤 gender:', sajuRecord.gender)
+
+    // 4. 사주 타입 질문이 있으면 Saju API 한 번만 호출하여 캐싱
+    // ⭐ 병렬 호출 시 Saju API가 일부 요청에 빈 데이터를 반환하는 문제 해결
+    let cachedSajuData: Record<string, unknown> | null = null
+    const hasSajuQuestions = questions.some(q => q.question_type === 'saju')
+
+    // ⭐ 프론트엔드에서 전달한 사주 데이터가 있으면 바로 사용
+    if (prefetchedSajuApiData && typeof prefetchedSajuApiData === 'object' && Object.keys(prefetchedSajuApiData).length > 0) {
+      console.log('✅ 프론트엔드에서 전달받은 사주 데이터 사용 (키 개수:', Object.keys(prefetchedSajuApiData).length, ')')
+      cachedSajuData = prefetchedSajuApiData
+    } else if (hasSajuQuestions) {
+      console.log('⚠️ 프론트엔드에서 사주 데이터 미전달 - Edge Function에서 직접 호출...')
+
+      // 날짜 포맷 변환
+      const birthDateStr = sajuRecord.birth_date as string
+      const datePart = birthDateStr.includes('T') ? birthDateStr.split('T')[0] : birthDateStr.split(' ')[0]
+      const dateOnly = datePart.replace(/-/g, '')
+      const timeOnly = (sajuRecord.birth_time as string).replace(/:/g, '')
+      const birthday = dateOnly + timeOnly
+
+      const sajuApiUrl = `https://service.stargio.co.kr:8400/StargioSaju?birthday=${birthday}&lunar=True&gender=${sajuRecord.gender}`
+      console.log('📞 사주 API URL:', sajuApiUrl)
+
+      // 최대 3번 재시도
+      for (let sajuAttempt = 1; sajuAttempt <= 3; sajuAttempt++) {
+        try {
+          // ⭐ 브라우저와 동일한 헤더 추가 (빈 응답 문제 해결)
+          const sajuResponse = await fetch(sajuApiUrl, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json, text/plain, */*',
+              'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+              'Cache-Control': 'no-cache',
+              'Origin': 'https://nadaunse.com',
+              'Referer': 'https://nadaunse.com/',
+            }
+          })
+
+          // 🔍 디버깅: 응답 상태 및 헤더 로깅
+          console.log('📡 사주 API 응답 상태:', sajuResponse.status)
+          console.log('📡 Content-Type:', sajuResponse.headers.get('content-type'))
+          console.log('📡 Content-Encoding:', sajuResponse.headers.get('content-encoding'))
+
+          if (!sajuResponse.ok) {
+            throw new Error(`사주 API HTTP 오류: ${sajuResponse.status}`)
+          }
+
+          // 🔍 디버깅: 원본 텍스트 먼저 확인
+          const rawText = await sajuResponse.text()
+          console.log('📡 응답 길이:', rawText.length)
+          console.log('📡 응답 시작:', rawText.substring(0, 300))
+
+          // JSON 파싱
+          cachedSajuData = JSON.parse(rawText)
+
+          // 유효성 검증
+          if (cachedSajuData && Object.keys(cachedSajuData).length > 0) {
+            console.log('✅ 사주 API 캐싱 완료 (키 개수:', Object.keys(cachedSajuData).length, ')')
+            break
+          } else {
+            throw new Error('사주 API가 빈 데이터를 반환했습니다.')
+          }
+        } catch (sajuError) {
+          console.error(`❌ 사주 API 캐싱 시도 ${sajuAttempt}/3 실패:`, sajuError)
+          if (sajuAttempt < 3) {
+            await new Promise(resolve => setTimeout(resolve, 1000 * sajuAttempt))
+          }
+        }
+      }
+
+      if (!cachedSajuData || Object.keys(cachedSajuData).length === 0) {
+        console.warn('⚠️ 사주 API 캐싱 실패 - 각 질문에서 개별 호출 시도')
+      }
+    }
+
+    // 5. 모든 질문에 대해 병렬로 답변 생성
     console.log('🔄 병렬 답변 생성 시작...')
 
     const answerPromises = questions.map(async (question) => {
@@ -116,7 +209,7 @@ serve(async (req) => {
           let data
 
           if (question.question_type === 'saju') {
-            // 사주 풀이
+            // 사주 풀이 (⭐ 캐싱된 사주 데이터 전달)
             response = await fetchWithTimeout(`${supabaseUrl}/functions/v1/generate-saju-answer`, {
               method: 'POST',
               headers: {
@@ -131,7 +224,8 @@ serve(async (req) => {
                 questionId: question.id,
                 birthDate: sajuRecord.birth_date,
                 birthTime: sajuRecord.birth_time,
-                gender: sajuRecord.gender
+                gender: sajuRecord.gender,
+                sajuData: cachedSajuData  // ⭐ 미리 가져온 사주 데이터 전달
               })
             })
 

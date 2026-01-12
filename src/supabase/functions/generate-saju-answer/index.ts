@@ -15,15 +15,16 @@ serve(async (req) => {
   }
 
   try {
-    const { 
+    const {
       title,
       description,
-      questionerInfo, 
-      questionText, 
+      questionerInfo,
+      questionText,
       questionId,
       birthDate,      // 예: "1992-07-15"
       birthTime,      // 예: "21:30" (24시간 형식)
-      gender          // "male" 또는 "female"
+      gender,         // "male" 또는 "female"
+      sajuData: prefetchedSajuData  // ⭐ 미리 가져온 사주 데이터 (선택적)
     } = await req.json()
 
     if (!title || !birthDate || !birthTime || !gender) {
@@ -33,31 +34,76 @@ serve(async (req) => {
       )
     }
 
-    // 1. 사주 정보 API 호출
-    console.log('🔮 사주 정보 API 호출 시작...')
-    
-    // 날짜 포맷 변환: "1992-07-15" → "19920715"
-    const dateOnly = birthDate.replace(/-/g, '')
-    
-    // 시간 포맷 변환: "21:30" → "2130"
-    const timeOnly = birthTime.replace(/:/g, '')
-    
-    // 최종 birthday 파라미터: "199207152130"
-    const birthday = dateOnly + timeOnly
-    
-    const sajuApiUrl = `https://service.stargio.co.kr:8400/StargioSaju?birthday=${birthday}&lunar=True&gender=${gender}`
-    
-    console.log('📞 사주 API URL:', sajuApiUrl)
-    
-    const sajuResponse = await fetch(sajuApiUrl)
-    
-    if (!sajuResponse.ok) {
-      throw new Error(`사주 정보 API 오류: ${sajuResponse.status}`)
+    let sajuData
+
+    // ⭐ 미리 가져온 사주 데이터가 있으면 API 호출 스킵
+    if (prefetchedSajuData && Object.keys(prefetchedSajuData).length > 0) {
+      console.log('✅ 캐싱된 사주 데이터 사용 (API 호출 스킵)')
+      sajuData = prefetchedSajuData
+      console.log('📦 캐싱된 사주 데이터 샘플:', JSON.stringify(sajuData).substring(0, 200) + '...')
+    } else {
+      // 1. 사주 정보 API 호출
+      console.log('🔮 사주 정보 API 호출 시작...')
+
+      // 날짜 포맷 변환: "1992-07-15T00:00:00.000Z" → "19920715"
+      // ⭐ ISO 타임스탬프에서 날짜 부분만 추출 (T 이전)
+      const datePart = birthDate.includes('T') ? birthDate.split('T')[0] : birthDate.split(' ')[0]
+      const dateOnly = datePart.replace(/-/g, '')
+
+      // 시간 포맷 변환: "21:30" → "2130"
+      const timeOnly = birthTime.replace(/:/g, '')
+
+      // 최종 birthday 파라미터: "199207152130"
+      const birthday = dateOnly + timeOnly
+
+      const sajuApiUrl = `https://service.stargio.co.kr:8400/StargioSaju?birthday=${birthday}&lunar=True&gender=${gender}`
+
+      console.log('📞 사주 API URL:', sajuApiUrl)
+
+      // ⭐ 브라우저와 동일한 헤더 추가 (빈 응답 문제 해결)
+      const sajuResponse = await fetch(sajuApiUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json, text/plain, */*',
+          'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Cache-Control': 'no-cache',
+          'Origin': 'https://nadaunse.com',
+          'Referer': 'https://nadaunse.com/',
+          'Accept-Encoding': 'gzip, deflate, br',
+        }
+      })
+
+      if (!sajuResponse.ok) {
+        throw new Error(`사주 정보 API 오류: ${sajuResponse.status}`)
+      }
+
+      sajuData = await sajuResponse.json()
+      console.log('✅ 사주 정보 수신 완료')
+      console.log('📦 사주 데이터 샘플:', JSON.stringify(sajuData).substring(0, 200) + '...')
     }
-    
-    const sajuData = await sajuResponse.json()
-    console.log('✅ 사주 정보 수신 완료')
-    console.log('📦 사주 데이터 샘플:', JSON.stringify(sajuData).substring(0, 200) + '...')
+
+    // ⭐ 사주 데이터 유효성 검증 (빈 데이터로 AI 호출 방지)
+    const sajuDataStr = JSON.stringify(sajuData)
+    const hasValidSajuData = sajuData &&
+      typeof sajuData === 'object' &&
+      Object.keys(sajuData).length > 0 &&
+      sajuDataStr.length > 100  // 최소 100자 이상의 데이터가 있어야 유효
+
+    if (!hasValidSajuData) {
+      console.error('❌ 사주 API가 유효하지 않은 데이터 반환:', sajuDataStr)
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: '사주 API가 유효한 데이터를 반환하지 않았습니다. 재시도가 필요합니다.',
+          sajuDataLength: sajuDataStr.length,
+          sajuDataKeys: Object.keys(sajuData || {})
+        }),
+        { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    console.log('✅ 사주 데이터 유효성 검증 통과 (길이:', sajuDataStr.length, ')')
 
     // 2. OpenAI API 호출 (실제 사주 데이터 활용)
     const apiKey = Deno.env.get('OPENAI_API_KEY')

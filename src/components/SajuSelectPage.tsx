@@ -7,6 +7,7 @@ import { supabase } from '../lib/supabase';
 import { toast } from '../lib/toast';
 import Loading from './Loading';
 import { getTarotCardsForQuestions } from '../lib/tarotCards';
+import { fetchSajuData } from '../lib/sajuApi';
 import { SajuKebabMenu } from './SajuKebabMenu';
 import { ConfirmDialog } from './ConfirmDialog';
 import SajuCard, { SajuCardData } from './SajuCard';
@@ -519,10 +520,28 @@ export default function SajuSelectPage() {
       const isTarotContent = contentData?.category_main?.includes('타로') || contentData?.category_main?.toLowerCase() === 'tarot';
       const tarotQuestionCount = questionsData?.length || 0;
       
+      // ⭐ 프론트엔드에서 사주 API 미리 호출 (Edge Function 빈 데이터 문제 해결)
+      let sajuApiData = null;
+      if (sajuData?.birth_date && sajuData?.birth_time && sajuData?.gender) {
+        console.log('🔮 [프론트엔드] 사주 API 호출 시작...');
+        sajuApiData = await fetchSajuData(
+          sajuData.birth_date,
+          sajuData.birth_time,
+          sajuData.gender as 'male' | 'female'
+        );
+
+        if (sajuApiData) {
+          console.log('✅ [프론트엔드] 사주 API 호출 성공');
+        } else {
+          console.warn('⚠️ [프론트엔드] 사주 API 호출 실패 - Edge Function에서 재시도 예정');
+        }
+      }
+
       let requestBody: any = {
         contentId: existingOrder.content_id,
         orderId: orderId,
-        sajuRecordId: selectedSajuId
+        sajuRecordId: selectedSajuId,
+        sajuApiData: sajuApiData  // ⭐ 프론트엔드에서 가져온 사주 데이터 전달
       };
       
       // 타로 콘텐츠이고 타로 질문이 있으면 랜덤 카드 선택
