@@ -860,12 +860,14 @@ export default function MasterContentDetail({ contentId, onBack, onHome }: Maste
     }
   };
 
-  // 이미지 재생성 트리거
-  useEffect(() => {
-    if (isRegeneratingImage) {
-      handleRegenerateImage();
-    }
-  }, [isRegeneratingImage]);
+  // ❌ 이전 코드: useEffect로 간접 호출 (안티패턴)
+  // useEffect(() => {
+  //   if (isRegeneratingImage) {
+  //     handleRegenerateImage();
+  //   }
+  // }, [isRegeneratingImage]);
+
+  // ✅ 해결: 버튼 클릭 시 함수 직접 호출 (아래 1093줄 참조)
 
   // 예시 다시 만들기
   const handleRegeneratePreview = async (index: number) => {
@@ -1090,7 +1092,7 @@ export default function MasterContentDetail({ contentId, onBack, onHome }: Maste
                   </p>
                 </button>
                 <button
-                  onClick={() => setIsRegeneratingImage(true)}
+                  onClick={handleRegenerateImage}
                   disabled={isRegeneratingImage}
                   className="px-[16px] py-[8px] bg-white border border-[#48b2af] rounded-[8px] disabled:opacity-50 flex items-center gap-[8px]"
                 >
