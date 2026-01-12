@@ -391,20 +391,17 @@ export default function MasterContentDetail({ contentId, onBack, onHome }: Maste
           // 🗑️ 캐시 무효화
           localStorage.removeItem(CACHE_KEY);
           console.log('🗑️ 캐시 무효화됨 (콘텐츠 수정)');
-          
+
           // 상태 업데이트
-          setContentData(prev => {
-            const updated = prev ? { ...prev, ...newData } : null;
-            // 💾 새 데이터 캐싱 (questions는 클로저로 캡처됨)
-            if (updated) {
-              // questions를 직접 참조하지 않고 현재 상태에서 가져오기
-              setQuestions(currentQuestions => {
-                saveToCache(updated, currentQuestions);
-                return currentQuestions; // 변경하지 않음
-              });
-            }
-            return updated;
-          });
+          setContentData(prev => prev ? { ...prev, ...newData } : null);
+
+          // 💾 캐싱 (다음 렌더링 사이클에서 실행)
+          setTimeout(() => {
+            setQuestions(currentQuestions => {
+              saveToCache(newData, currentQuestions);
+              return currentQuestions;
+            });
+          }, 0);
           
           // 이미지 재생성 완료 감지
           if (newData.thumbnail_url && newData.status === 'ready') {
