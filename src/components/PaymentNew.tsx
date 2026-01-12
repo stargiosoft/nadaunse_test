@@ -85,8 +85,9 @@ export default function PaymentNew({
   // ⭐ contentId가 있으면 초기 로딩 상태를 true로 설정 (스켈레톤 즉시 표시)
   const [isLoadingContent, setIsLoadingContent] =
     useState(!!contentId);
+  // ⭐ 초기값 true (쿠폰 로딩 완료 전 스켈레톤 표시)
   const [isLoadingCoupons, setIsLoadingCoupons] =
-    useState(false);
+    useState(true);
   const [isPortOneReady, setIsPortOneReady] = useState(false);
   const [isProcessingPayment, setIsProcessingPayment] =
     useState(false);
@@ -568,7 +569,8 @@ export default function PaymentNew({
     );
   };
 
-  if (isLoadingContent) {
+  // ⭐ 콘텐츠 + 쿠폰 모두 로딩 완료 후 표시 (가격+혜택가 동시 표시)
+  if (isLoadingContent || isLoadingCoupons) {
     return <PaymentSkeleton />;
   }
 
