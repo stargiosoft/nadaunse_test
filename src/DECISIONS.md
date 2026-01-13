@@ -17,6 +17,97 @@
 
 ## 2026-01-12
 
+### 사주 API 빈 응답 문제: 프론트엔드 호출로 해결
+**결정**: Edge Function에서 직접 호출하던 사주 API를 프론트엔드(브라우저)에서 호출하고, 결과를 Edge Function에 전달하는 방식으로 변경
+**배경**:
+- Stargio 사주 API (`https://service.stargio.co.kr:8400/StargioSaju`)가 Edge Function에서 호출 시 HTTP 200 응답과 함께 빈 데이터 `{}` 반환
+- 동일한 요청을 브라우저에서 실행하면 정상적인 사주 데이터 반환
+- AI가 빈 사주 데이터를 받아 "당신의 사주 원국이 없어서..." 같은 더미 응답 생성
+
+**시도한 방법 (실패)**:
+```typescript
+// ❌ Edge Function에서 브라우저 헤더 추가 - 실패
+const sajuResponse = await fetch(sajuApiUrl, {
+  headers: {
+    'Accept': 'application/json',
+    'User-Agent': 'Mozilla/5.0 ...',
+    'Origin': 'https://nadaunse.com',
+    'Referer': 'https://nadaunse.com/',
+  }
+})
+// → HTTP 200이지만 여전히 빈 데이터 {} 반환
+```
+
+**근본 원인 분석**:
+- Stargio API 서버가 **실제 브라우저 요청**과 **서버 사이드 요청**을 구분하는 것으로 추정
+- Deno Edge Function 환경에서는 User-Agent/Origin 헤더를 추가해도 실제 브라우저로 인식되지 않음
+- API 서버의 봇/스크래핑 방지 로직으로 인해 서버 요청에 빈 응답 반환
+
+**해결 방법**:
+```typescript
+// 1. 프론트엔드 유틸리티 생성 (src/lib/sajuApi.ts)
+export async function fetchSajuData(
+  birthDate: string,
+  birthTime: string,
+  gender: 'male' | 'female'
+): Promise<SajuApiData | null> {
+  const url = `https://service.stargio.co.kr:8400/StargioSaju?birthday=${birthday}&lunar=True&gender=${gender}`
+  const response = await fetch(url)  // ✅ 브라우저에서 직접 호출
+  return response.json()
+}
+
+// 2. BirthInfoInput.tsx / SajuSelectPage.tsx - Edge Function 호출 전에 사주 데이터 가져오기
+const sajuApiData = await fetchSajuData(birthDate, birthTime, gender)
+const requestBody = {
+  contentId, orderId, sajuRecordId,
+  sajuApiData: sajuApiData  // ⭐ 프론트엔드에서 가져온 데이터 전달
+}
+
+// 3. generate-content-answers Edge Function - 전달받은 데이터 사용
+const { sajuApiData: prefetchedSajuApiData } = await req.json()
+if (prefetchedSajuApiData) {
+  console.log('✅ 프론트엔드에서 전달받은 사주 데이터 사용')
+  cachedSajuData = prefetchedSajuApiData
+} else {
+  // 폴백: Edge Function에서 직접 호출 (실패 가능성 있음)
+}
+```
+
+**아키텍처 변경**:
+```
+[이전 흐름 - 문제 발생]
+결제 완료 → Edge Function → 사주 API 호출 ❌ (빈 데이터)
+          → AI 더미 응답 생성
+
+[새로운 흐름 - 해결]
+결제 완료 → 브라우저에서 사주 API 호출 ✅ (정상 데이터)
+          → Edge Function에 sajuApiData 전달
+          → AI 실제 사주 데이터로 응답 생성
+```
+
+**보안 검토**:
+- 사주 API는 인증 없이 호출 가능한 공개 API (API 키 노출 위험 없음)
+- 사용자가 사주 데이터를 조작해도 **자신의 운세 결과**만 영향받음 (타인에게 피해 없음)
+- Edge Function에서 사주 데이터 유효성 검증 유지 (빈 데이터 필터링)
+
+**영향**:
+- `/src/lib/sajuApi.ts` - 신규 생성
+- `/src/components/BirthInfoInput.tsx` - fetchSajuData 호출 추가
+- `/src/components/SajuSelectPage.tsx` - fetchSajuData 호출 추가
+- `/src/supabase/functions/generate-content-answers/index.ts` - prefetchedSajuApiData 파라미터 처리
+- `/src/supabase/functions/generate-saju-answer/index.ts` - 이미 prefetchedSajuData 지원 (수정 불필요)
+
+**배포**:
+- Edge Functions: `supabase functions deploy` (Staging + Production)
+- 프론트엔드: GitHub push → Vercel 자동 배포
+
+**교훈**:
+- 외부 API가 서버 사이드 요청을 차단할 수 있음 (헤더 추가로 해결 불가)
+- 브라우저에서 정상 동작하면 클라이언트 호출 후 서버에 전달하는 방식 고려
+- Edge Function에서 외부 API 호출 실패 시 프론트엔드 폴백 패턴 유용
+
+---
+
 ### iOS 첫 번째 클릭 이벤트 누락: z-index/pointer-events 충돌 해결
 **결정**: 스크롤 컨테이너와 Fixed 하단 버튼 간의 z-index 및 pointer-events 충돌 문제 해결
 **배경**:
@@ -1263,10 +1354,10 @@ export const isFigmaSite(): boolean    // Figma Make 환경 체크
 
 ---
 
-## 📊 주요 결정 통계 (2026-01-12 기준)
+## 📊 주요 결정 통계 (2026-01-13 기준)
 
-- **총 결정 기록**: 35개
-- **아키텍처 변경**: 10개
+- **총 결정 기록**: 36개
+- **아키텍처 변경**: 11개 (사주 API 프론트엔드 호출 +1)
 - **성능 최적화**: 5개
 - **사용자 경험 개선**: 11개 (iOS 터치 이벤트 개선 +1, iOS 스와이프 뒤로가기 대응 +4, 로그인 플로우 개선 +1)
 - **보안 강화**: 6개
@@ -1274,6 +1365,6 @@ export const isFigmaSite(): boolean    // Figma Make 환경 체크
 
 ---
 
-**문서 버전**: 2.3.0
-**최종 업데이트**: 2026-01-12
+**문서 버전**: 2.4.0
+**최종 업데이트**: 2026-01-13
 **문서 끝**
