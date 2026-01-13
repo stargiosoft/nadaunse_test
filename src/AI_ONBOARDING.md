@@ -742,18 +742,18 @@ useEffect(() => {
 | 1.2.0 | 2026-01-06 | 개발/배포 환경 분리, iOS Safari 최적화, 타로 서비스 추가, 컴포넌트 51개/Edge Functions 17개 반영 | AI Assistant |
 | 1.3.0 | 2026-01-07 | iOS 스와이프 뒤로가기 히스토리 관리 해결법 추가 | AI Assistant |
 | 1.4.0 | 2026-01-07 | 개발 안정성 강화 (Sentry, Logger, 재시도 로직, 결제 웹훅, 환불 처리), Edge Functions 17개→20개 | AI Assistant |
-| 1.5.0 | 2026-01-13 | 사주 API 프론트엔드 직접 호출 아키텍처, 이미지 캐시 버스팅 추가 | AI Assistant |
+| 1.5.0 | 2026-01-13 | 사주 API 백엔드 서버 직접 호출 (SAJU_API_KEY 사용), 이미지 캐시 버스팅 추가 | AI Assistant |
 
 ---
 
 ## 🎯 최근 주요 개선사항 (2026-01-13)
 
-### ✅ 사주 API 프론트엔드 직접 호출 (NEW!)
+### ✅ 사주 API 백엔드 직접 호출 (최종 해결) (NEW!)
 - **문제**: Edge Function에서 Stargio 사주 API 호출 시 HTTP 200이지만 빈 데이터 `{}` 반환
 - **원인**: API 서버가 서버 사이드 요청을 실제 브라우저 요청과 구분하여 차단
-- **해결**: 프론트엔드(브라우저)에서 직접 API 호출 → Edge Function에 결과 전달
-- **핵심 파일**: `/lib/sajuApi.ts`, `BirthInfoInput.tsx`, `SajuSelectPage.tsx`
-- **상세 문서**: `DECISIONS.md` → "2026-01-12 사주 API 빈 응답 문제" 섹션
+- **최종 해결**: Edge Function에서 `SAJU_API_KEY` 환경변수를 사용하여 서버 직접 호출 (IP 화이트리스트 + 키 인증)
+- **핵심 파일**: `supabase/functions/generate-content-answers/index.ts` (96-174번 줄)
+- **상세 문서**: `DECISIONS.md` → "2026-01-13 사주 API 서버 직접 호출" 섹션
 
 ### ✅ 썸네일 이미지 캐시 버스팅 (NEW!)
 - **문제**: 썸네일 재생성 시 브라우저 캐시로 인해 이전 이미지 계속 표시

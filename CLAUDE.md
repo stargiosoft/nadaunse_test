@@ -98,9 +98,11 @@ npx supabase functions deploy generate-thumbnail --project-ref kcthtpmxffppfbkjj
 ```
 
 ### 8. 사주 API 호출 (중요!)
-- **Edge Function에서 서버 직접 호출**: `SAJU_API_KEY` 환경변수 사용
-- **API URL**: `https://service.stargio.co.kr:8400/StargioSaju?birthday=...&lunar=True&gender=...=${SAJU_API_KEY}`
-- **핵심 파일**: `generate-content-answers/index.ts`
+- **Edge Function에서 서버 직접 호출**: `SAJU_API_KEY` 환경변수 사용 (IP 화이트리스트 + 키 인증)
+- **브라우저 헤더 필수**: User-Agent, Origin, Referer 등 브라우저 헤더 포함하여 호출
+- **재시도 로직**: 최대 3번 재시도 (1초, 2초 간격)
+- **API URL**: `https://service.stargio.co.kr:8400/StargioSaju?birthday=...&lunar=True&gender=...&apiKey=${SAJU_API_KEY}`
+- **핵심 파일**: `supabase/functions/generate-content-answers/index.ts` (96-174번 줄)
 - **상세 내용**: `DECISIONS.md` → "2026-01-13 사주 API 서버 직접 호출" 섹션
 
 ---
@@ -181,6 +183,7 @@ chore:    기타 변경
 - 문서 업데이트 없이 대규모 변경
 - Production DB 직접 조작 (Staging에서 테스트 후 반영)
 - 사주 API를 프론트엔드에서 호출 (API 키 노출 위험)
+- Edge Function에서 사주 API 호출 시 브라우저 헤더 누락 (차단될 수 있음)
 
 ---
 

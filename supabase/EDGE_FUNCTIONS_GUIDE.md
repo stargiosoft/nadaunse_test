@@ -261,20 +261,42 @@ BirthInfoInput → generate-master-content (Edge Function)
 }
 ```
 
-**⚠️ 사주 API 프론트엔드 직접 호출 (2026-01-13)**:
+**⭐ 사주 API 백엔드 서버 직접 호출 (최종 해결) (2026-01-13)**:
 - **문제**: Edge Function에서 Stargio 사주 API 호출 시 HTTP 200이지만 빈 데이터 `{}` 반환
 - **원인**: API 서버가 서버 사이드 요청을 실제 브라우저 요청과 구분하여 차단
-- **해결**: 프론트엔드(브라우저)에서 `fetchSajuData()` 호출 후 `sajuApiData`로 전달
-- **핵심 파일**: `/lib/sajuApi.ts`
+- **최종 해결**: Edge Function에서 `SAJU_API_KEY` 환경변수 사용하여 서버 직접 호출 (IP 화이트리스트 + 키 인증)
+- **핵심 파일**: `supabase/functions/generate-content-answers/index.ts` (96-174번 줄)
 
-**로직**:
+**로직** (96-174번 줄):
 ```typescript
-// sajuApiData가 있으면 프론트엔드에서 전달받은 데이터 사용
-if (sajuApiData) {
-  console.log('✅ 프론트엔드에서 전달받은 사주 데이터 사용');
-  cachedSajuData = sajuApiData;
-} else {
-  // 폴백: Edge Function에서 직접 호출 (실패 가능성 있음)
+// SAJU_API_KEY 가져오기 (줄바꿈 제거)
+const sajuApiKey = Deno.env.get('SAJU_API_KEY')?.trim()
+if (!sajuApiKey) {
+  throw new Error('사주 API 키가 설정되지 않았습니다.')
+}
+
+// 날짜 포맷 변환
+const birthday = dateOnly + timeOnly  // YYYYMMDDHHmm
+
+const sajuApiUrl = `https://service.stargio.co.kr:8400/StargioSaju?birthday=${birthday}&lunar=True&gender=${gender}&apiKey=${sajuApiKey}`
+
+// 최대 3번 재시도
+for (let sajuAttempt = 1; sajuAttempt <= 3; sajuAttempt++) {
+  const sajuResponse = await fetch(sajuApiUrl, {
+    method: 'GET',
+    headers: {
+      'Accept': 'application/json, text/plain, */*',
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36...',
+      'Origin': 'https://nadaunse.com',
+      'Referer': 'https://nadaunse.com/',
+      // ... 브라우저 헤더
+    }
+  })
+
+  if (sajuResponse.ok && cachedSajuData && Object.keys(cachedSajuData).length > 0) {
+    console.log('✅ 사주 API 호출 성공')
+    break
+  }
 }
 ```
 
@@ -1138,7 +1160,7 @@ supabase functions deploy generate-master-content
 ### 변경 이력
 | 버전 | 날짜 | 변경 내용 |
 |-----|------|----------|
-| 1.3.0 | 2026-01-13 | 사주 API 프론트엔드 직접 호출 방식 반영, `generate-content-answers`에 `sajuApiData` 파라미터 추가 |
+| 1.3.0 | 2026-01-13 | 사주 API 백엔드 서버 직접 호출 (SAJU_API_KEY 사용), IP 화이트리스트 + 키 인증 방식 |
 | 1.2.0 | 2026-01-08 | 알림톡 템플릿 10002 검수 완료, 버튼 URL `/result/saju`로 변경, `server` 함수 제거 |
 | 1.1.0 | 2026-01-07 | 결제/환불 Functions 추가 |
 | 1.0.0 | 2026-01-06 | 초기 문서 작성 |

@@ -26,11 +26,23 @@
 
 **구현**:
 ```typescript
-// Edge Function (generate-content-answers/index.ts)
-const sajuApiKey = Deno.env.get('SAJU_API_KEY')
-// ⚠️ API 키는 gender 값 뒤에 =로 바로 연결 (특수한 형식)
-const sajuApiUrl = `https://service.stargio.co.kr:8400/StargioSaju?birthday=${birthday}&lunar=True&gender=${gender}=${sajuApiKey}`
+// Edge Function (generate-content-answers/index.ts, 96-174번 줄)
+const sajuApiKey = Deno.env.get('SAJU_API_KEY')?.trim()
+const sajuApiUrl = `https://service.stargio.co.kr:8400/StargioSaju?birthday=${birthday}&lunar=True&gender=${gender}&apiKey=${sajuApiKey}`
 console.log('📞 사주 API URL:', sajuApiUrl.replace(sajuApiKey, '***'))  // 키는 마스킹
+
+// 브라우저 헤더 흉내 (중요!)
+const sajuResponse = await fetch(sajuApiUrl, {
+  method: 'GET',
+  headers: {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36...',
+    'Origin': 'https://nadaunse.com',
+    'Referer': 'https://nadaunse.com/',
+    // ... 기타 브라우저 헤더
+  }
+})
+
+// 최대 3번 재시도 (1초, 2초 간격)
 ```
 
 **변경 내용**:

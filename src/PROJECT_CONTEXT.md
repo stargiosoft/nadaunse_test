@@ -174,21 +174,31 @@ export const publicAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "<product
 ---
 
 ### 8. 사주 API 호출 (중요!) (NEW!)
-- ✅ **프론트엔드에서 직접 호출**: Stargio 사주 API는 브라우저에서 직접 호출
-- ❌ **Edge Function 경유 금지**: 서버 사이드에서 호출 시 HTTP 200이지만 빈 데이터 `{}` 반환
-- ✅ **결과 전달 패턴**: 브라우저 → 사주 API 호출 → 결과를 Edge Function에 전달
+- ✅ **Edge Function에서 서버 직접 호출**: `SAJU_API_KEY` 환경변수 사용 (IP 화이트리스트 + 키 인증)
+- ✅ **브라우저 헤더 흉내**: User-Agent, Referer 등 브라우저 헤더 포함하여 호출
+- ✅ **재시도 로직**: 최대 3번 재시도 (1초, 2초 간격)
+- ❌ **프론트엔드 직접 호출 금지**: API 키 노출 위험
 
-**핵심 파일**: `/lib/sajuApi.ts`
+**핵심 파일**: `supabase/functions/generate-content-answers/index.ts` (96-174번 줄)
 ```typescript
-// ✅ 올바른 패턴 - 프론트엔드에서 직접 호출
-const sajuData = await fetchSajuFromBrowser(birthInfo);
-await callEdgeFunction({ sajuData, ...otherParams });
+// ✅ 올바른 패턴 - Edge Function에서 SAJU_API_KEY 사용
+const sajuApiKey = Deno.env.get('SAJU_API_KEY')?.trim()
+const sajuApiUrl = `https://service.stargio.co.kr:8400/StargioSaju?birthday=${birthday}&lunar=True&gender=${gender}&apiKey=${sajuApiKey}`
+const sajuResponse = await fetch(sajuApiUrl, {
+  method: 'GET',
+  headers: {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36...',
+    'Origin': 'https://nadaunse.com',
+    'Referer': 'https://nadaunse.com/',
+    // ... 브라우저 헤더
+  }
+})
 
-// ❌ 잘못된 패턴 - Edge Function에서 호출 (빈 응답 반환됨)
-// Edge Function 내부에서 fetch('https://api.stargio.com/...')
+// ❌ 잘못된 패턴 - 프론트엔드에서 호출 (API 키 노출)
+// const sajuData = await fetchSajuFromBrowser(birthInfo);
 ```
 
-**상세 문서**: `DECISIONS.md` → "2026-01-12 사주 API 빈 응답 문제" 섹션
+**상세 문서**: `DECISIONS.md` → "2026-01-13 사주 API 서버 직접 호출" 섹션
 
 ---
 
@@ -953,32 +963,39 @@ onSaved={() => navigate('/saju/management', { replace: true })}
 
 ---
 
-### 12. 사주 API 빈 응답 (Edge Function에서 호출 시) (NEW!)
+### 12. 사주 API 호출 방식 (최종 해결) (NEW!)
 **증상**: AI가 더미 데이터로 응답, 실제 사주 정보 없이 운세 생성
 **체크**:
-- [ ] 사주 API를 Edge Function에서 호출하고 있는지 확인
-- [ ] HTTP 응답 코드가 200이지만 body가 빈 `{}` 인지 확인
-- [ ] 프론트엔드에서 직접 API 호출하도록 변경했는지 확인
-- [ ] `/lib/sajuApi.ts` 사용 여부 확인
+- [ ] Edge Function에서 `SAJU_API_KEY` 환경변수를 사용하고 있는지 확인
+- [ ] 브라우저 헤더(User-Agent, Referer 등)를 포함하고 있는지 확인
+- [ ] 재시도 로직이 작동하는지 확인 (최대 3번)
+- [ ] Supabase Secrets에 `SAJU_API_KEY`가 설정되어 있는지 확인
 
 **원인**:
-- Stargio API 서버가 서버 사이드 요청과 브라우저 요청을 구분
-- Edge Function의 요청 헤더가 브라우저와 다르게 인식됨
+- Stargio API 서버가 IP 화이트리스트 + API 키 방식으로 인증
+- 브라우저 헤더 없이 호출 시 차단될 수 있음
 
-**해결 방법**:
-```tsx
-// 프론트엔드에서 직접 호출
-import { fetchSajuData } from '../lib/sajuApi';
-const sajuResult = await fetchSajuData(birthInfo);
-// 결과를 Edge Function에 전달
-await generateContent({ sajuData: sajuResult, ... });
+**최종 해결 방법**:
+```typescript
+// Edge Function에서 SAJU_API_KEY 사용하여 서버 직접 호출
+const sajuApiKey = Deno.env.get('SAJU_API_KEY')?.trim()
+const sajuApiUrl = `https://service.stargio.co.kr:8400/StargioSaju?birthday=${birthday}&lunar=True&gender=${gender}&apiKey=${sajuApiKey}`
+
+// 브라우저 헤더 흉내
+const sajuResponse = await fetch(sajuApiUrl, {
+  method: 'GET',
+  headers: {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36...',
+    'Origin': 'https://nadaunse.com',
+    'Referer': 'https://nadaunse.com/',
+    // ... 기타 브라우저 헤더
+  }
+})
 ```
 
 **적용 파일들**:
-- `/lib/sajuApi.ts` - 사주 API 직접 호출
-- `/components/BirthInfoInput.tsx` - 유료 사주 입력 시 호출
-- `/components/SajuSelectPage.tsx` - 사주 선택 시 호출
-- **상세 문서**: `DECISIONS.md` → "2026-01-12 사주 API 빈 응답 문제" 섹션
+- `supabase/functions/generate-content-answers/index.ts` (96-174번 줄)
+- **상세 문서**: `DECISIONS.md` → "2026-01-13 사주 API 서버 직접 호출" 섹션
 
 ---
 
@@ -1099,18 +1116,18 @@ useEffect(() => {
 | 1.5.0 | 2026-01-09 | FreeProductDetail 백업, FreeContentDetail로 대체 (하드코딩 더미 데이터 버그 수정) | AI Assistant |
 | 1.5.1 | 2026-01-11 | ResultCompletePage 문서화 추가 (풀이 완료 페이지, 재방문 쿠폰) | AI Assistant |
 | 1.6.0 | 2026-01-11 | iOS 스와이프 뒤로가기 버그 체크리스트 추가 (#10~#12) | AI Assistant |
-| 1.7.0 | 2026-01-13 | 사주 API 프론트엔드 직접 호출, 이미지 캐시 버스팅, iOS 클릭 이벤트 버그 추가 | AI Assistant |
+| 1.7.0 | 2026-01-13 | 사주 API 백엔드 서버 직접 호출 (SAJU_API_KEY 사용), 이미지 캐시 버스팅, iOS 클릭 이벤트 버그 추가 | AI Assistant |
 
 ---
 
 ## 🎯 최근 주요 개선사항 (2026-01-13)
 
-### ✅ 사주 API 프론트엔드 직접 호출 (NEW!)
+### ✅ 사주 API 백엔드 직접 호출 (최종 해결) (NEW!)
 - **문제**: Edge Function에서 Stargio 사주 API 호출 시 HTTP 200이지만 빈 데이터 `{}` 반환
 - **원인**: API 서버가 서버 사이드 요청을 실제 브라우저 요청과 구분하여 차단
-- **해결**: 프론트엔드(브라우저)에서 직접 API 호출 → Edge Function에 결과 전달
-- **핵심 파일**: `/lib/sajuApi.ts`, `BirthInfoInput.tsx`, `SajuSelectPage.tsx`
-- **상세 문서**: `DECISIONS.md` → "2026-01-12 사주 API 빈 응답 문제" 섹션
+- **최종 해결**: Edge Function에서 `SAJU_API_KEY` 환경변수를 사용하여 서버 직접 호출 (IP 화이트리스트 + 키 인증)
+- **핵심 파일**: `supabase/functions/generate-content-answers/index.ts` (96-174번 줄)
+- **상세 문서**: `DECISIONS.md` → "2026-01-13 사주 API 서버 직접 호출" 섹션
 
 ### ✅ 썸네일 이미지 캐시 버스팅 (NEW!)
 - **문제**: 썸네일 재생성 시 브라우저 캐시로 인해 이전 이미지 계속 표시
