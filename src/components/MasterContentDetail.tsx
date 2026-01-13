@@ -282,6 +282,7 @@ export default function MasterContentDetail({ contentId, onBack, onHome }: Maste
   const [isRegeneratingImage, setIsRegeneratingImage] = useState(false);
   const [regeneratingPreviewIndexes, setRegeneratingPreviewIndexes] = useState<Set<number>>(new Set());
   const [showImageModal, setShowImageModal] = useState(false);
+  const [imageCacheBuster, setImageCacheBuster] = useState<number>(Date.now()); // 🔥 이미지 캐시 버스터
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const CACHE_KEY = `master_content_edit_${contentId}_cache`;
@@ -406,6 +407,7 @@ export default function MasterContentDetail({ contentId, onBack, onHome }: Maste
           // 이미지 재생성 완료 감지
           if (newData.thumbnail_url && newData.status === 'ready') {
             setIsRegeneratingImage(false);
+            setImageCacheBuster(Date.now()); // 🔥 캐시 버스터 갱신
             toast.success('이미지가 생성되었습니다.');
           }
           
@@ -1067,7 +1069,7 @@ export default function MasterContentDetail({ contentId, onBack, onHome }: Maste
                   </div>
                 ) : contentData.thumbnail_url ? (
                   <img
-                    src={contentData.thumbnail_url}
+                    src={`${contentData.thumbnail_url}${contentData.thumbnail_url.includes('?') ? '&' : '?'}v=${imageCacheBuster}`}
                     alt="썸네일"
                     className="w-full h-full object-contain"
                   />
@@ -1375,7 +1377,7 @@ export default function MasterContentDetail({ contentId, onBack, onHome }: Maste
         {/* 이미지 모달 */}
         {showImageModal && contentData.thumbnail_url && (
           <ImageModal
-            imageUrl={contentData.thumbnail_url}
+            imageUrl={`${contentData.thumbnail_url}${contentData.thumbnail_url.includes('?') ? '&' : '?'}v=${imageCacheBuster}`}
             onClose={() => setShowImageModal(false)}
           />
         )}

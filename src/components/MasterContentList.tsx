@@ -466,6 +466,7 @@ export default function MasterContentList({ onBack, onNavigateHome }: MasterCont
             if (payload.eventType === 'INSERT') {
               // 새 콘텐츠 추가
               const newContent = payload.new as any;
+              const cacheBuster = Date.now(); // 🔥 캐시 버스터
               const formattedContent: MasterContent = {
                 id: newContent.id,
                 content_type: newContent.content_type as 'free' | 'paid',
@@ -479,9 +480,9 @@ export default function MasterContentList({ onBack, onNavigateHome }: MasterCont
                   minute: '2-digit',
                   hour12: false,
                 }).replace(/\. /g, '.').replace(/\.$/, '').replace(', ', ' '),
-                // 🎨 썸네일 최적화
-                thumbnail_url: newContent.thumbnail_url 
-                  ? `${newContent.thumbnail_url}?width=230&height=154&quality=80`
+                // 🎨 썸네일 최적화 + 캐시 버스터
+                thumbnail_url: newContent.thumbnail_url
+                  ? `${newContent.thumbnail_url}?width=230&height=154&quality=80&v=${cacheBuster}`
                   : null,
               };
               setContents(prev => {
@@ -502,16 +503,17 @@ export default function MasterContentList({ onBack, onNavigateHome }: MasterCont
             } else if (payload.eventType === 'UPDATE') {
               // 콘텐츠 업데이트
               const updatedContent = payload.new as any;
+              const cacheBuster = Date.now(); // 🔥 캐시 버스터
               setContents(prev => {
-                const updated = prev.map(content => 
-                  content.id === updatedContent.id 
+                const updated = prev.map(content =>
+                  content.id === updatedContent.id
                     ? {
                         ...content,
                         title: updatedContent.title,
                         status: updatedContent.status, // ✅ DB 값을 그대로 사용 (폴백 없음)
-                        // 🎨 썸네일 최적화
-                        thumbnail_url: updatedContent.thumbnail_url 
-                          ? `${updatedContent.thumbnail_url}?width=230&height=154&quality=80`
+                        // 🎨 썸네일 최적화 + 캐시 버스터
+                        thumbnail_url: updatedContent.thumbnail_url
+                          ? `${updatedContent.thumbnail_url}?width=230&height=154&quality=80&v=${cacheBuster}`
                           : null,
                       }
                     : content
@@ -592,7 +594,8 @@ export default function MasterContentList({ onBack, onNavigateHome }: MasterCont
 
         if (updatedContents && updatedContents.length > 0) {
           let hasChanges = false;
-          
+          const cacheBuster = Date.now(); // 🔥 캐시 버스터
+
           setContents(prev => {
             const updated = prev.map(content => {
               const updatedContent = updatedContents.find(u => u.id === content.id);
@@ -602,7 +605,10 @@ export default function MasterContentList({ onBack, onNavigateHome }: MasterCont
                 return {
                   ...content,
                   status: updatedContent.status,
-                  thumbnail_url: updatedContent.thumbnail_url,
+                  // 🔥 캐시 버스터 추가
+                  thumbnail_url: updatedContent.thumbnail_url
+                    ? `${updatedContent.thumbnail_url}?width=230&height=154&quality=80&v=${cacheBuster}`
+                    : null,
                 };
               }
               return content;
