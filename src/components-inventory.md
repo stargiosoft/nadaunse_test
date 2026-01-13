@@ -1,6 +1,6 @@
 # Components Inventory
 
-> **최종 업데이트**: 2026-01-11
+> **최종 업데이트**: 2026-01-13
 > **총 컴포넌트 수**: 51개 (활성화)
 > **UI 컴포넌트 (shadcn/ui)**: 48개
 > **프로젝트**: 타로/사주 운세 모바일 웹 서비스
@@ -267,10 +267,12 @@
 - **역할**: 마스터 콘텐츠 상세/수정 페이지 (관리자용)
 - **사용처**: 마스터 콘텐츠 관리
 - **타입**: Page Component
-- **주요 기능**: 
+- **주요 기능**:
   - 생성된 콘텐츠 조회
   - 콘텐츠 수정
+  - **이미지 캐시 버스팅**: `imageCacheBuster` state로 썸네일 URL에 `?v=${timestamp}` 추가
 - **파일 경로**: `/components/MasterContentDetail.tsx`
+- **최근 업데이트**: 2026-01-13 - 썸네일 재생성 시 즉시 반영을 위한 캐시 버스팅 추가
 
 ### MasterContentDetailPage.tsx
 - **역할**: 마스터 콘텐츠 사용자용 상세 페이지
@@ -287,11 +289,13 @@
 - **역할**: 마스터 콘텐츠 목록 관리 페이지
 - **사용처**: `/master/content/list` 라우트
 - **타입**: Page Component
-- **주요 기능**: 
+- **주요 기능**:
   - 생성한 콘텐츠 목록 조회
   - 콘텐츠 관리 (수정, 삭제, 배포 상태 변경)
   - 엑셀 업로드 지원
+  - **실시간 이미지 캐시 버스팅**: INSERT/UPDATE/폴링 시 타임스탬프 파라미터 추가
 - **파일 경로**: `/components/MasterContentList.tsx`
+- **최근 업데이트**: 2026-01-13 - 실시간 썸네일 업데이트 캐시 버스팅 추가
 
 ### MasterContentLoadingPage.tsx
 - **역할**: 마스터 콘텐츠 AI 생성 로딩 페이지
@@ -310,11 +314,13 @@
 - **역할**: 결제용 사주 정보 입력 페이지
 - **사용처**: `/product/:id/birthinfo` 라우트 (유료 콘텐츠)
 - **타입**: Page Component
-- **주요 기능**: 
+- **주요 기능**:
   - 유료 콘텐츠 결제 후 사주 정보 입력
   - DB 저장 (orders.saju_record_id 연결)
   - 음력/양력, 띠 자동 계산
+  - **사주 API 직접 호출**: `fetchSajuData()` 후 Edge Function에 전달
 - **파일 경로**: `/components/BirthInfoInput.tsx`
+- **최근 업데이트**: 2026-01-13 - 사주 API 프론트엔드 직접 호출 방식으로 변경
 
 ### SajuInputPage.tsx
 - **역할**: 프로필용 내 사주 정보 입력 페이지
@@ -339,12 +345,14 @@
 - **역할**: 결제용 사주 선택 페이지
 - **사용처**: `/product/:id/saju-select` 라우트
 - **타입**: Page Component
-- **주요 기능**: 
+- **주요 기능**:
   - 유료 콘텐츠 결제 후 사주 선택
   - DB 조회 (saju_records)
   - 대표 사주 우선 표시
+  - **사주 API 직접 호출**: 선택 후 `fetchSajuData()` 실행 후 Edge Function에 전달
   - **개발 모드**: localStorage에서 데이터 로드
 - **파일 경로**: `/components/SajuSelectPage.tsx`
+- **최근 업데이트**: 2026-01-13 - 사주 API 프론트엔드 직접 호출 방식으로 변경
 
 ### SajuManagementPage.tsx
 - **역할**: 사주 정보 관리 메인 페이지
@@ -697,6 +705,18 @@
 
 ## 🔄 업데이트 이력
 
+### 2026-01-13
+- **이미지 캐시 버스팅 구현**
+  - MasterContentDetail.tsx: `imageCacheBuster` state 추가로 썸네일 재생성 시 즉시 반영
+  - MasterContentList.tsx: 실시간 썸네일 업데이트에 타임스탬프 파라미터 추가
+  - INSERT/UPDATE/폴링 모든 시나리오에서 캐시 무효화 적용
+- **사주 API 프론트엔드 직접 호출 방식 변경**
+  - BirthInfoInput.tsx: `fetchSajuData()` 후 Edge Function에 데이터 전달
+  - SajuSelectPage.tsx: 사주 선택 후 프론트엔드에서 API 직접 호출
+  - Edge Function 빈 응답 문제 해결 (서버 사이드 요청 차단 우회)
+- **핵심 라이브러리 추가**
+  - `/lib/sajuApi.ts`: 사주 API 직접 호출 유틸리티
+
 ### 2026-01-09
 - **FreeProductDetail.tsx 백업 처리**
   - 하드코딩된 더미 데이터 버그로 인해 백업 폴더로 이동
@@ -779,7 +799,7 @@
 
 ---
 
-**문서 버전**: 2.2.0
-**최종 업데이트**: 2026-01-11
+**문서 버전**: 2.3.0
+**최종 업데이트**: 2026-01-13
 **다음 업데이트**: 새 컴포넌트 추가 또는 주요 변경 시
 **문서 끝**

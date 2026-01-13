@@ -3,7 +3,7 @@
 > **AI 디버깅 전용 컨텍스트 파일**
 > 버그 발생 시 AI에게 가장 먼저 제공해야 하는 프로젝트 뇌(Brain)
 > **GitHub**: https://github.com/stargiosoft/nadaunse
-> **최종 업데이트**: 2026-01-11
+> **최종 업데이트**: 2026-01-13
 
 ---
 
@@ -173,7 +173,26 @@ export const publicAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "<product
 
 ---
 
-### 8. 모바일 최적화 (iOS Safari) (NEW!)
+### 8. 사주 API 호출 (중요!) (NEW!)
+- ✅ **프론트엔드에서 직접 호출**: Stargio 사주 API는 브라우저에서 직접 호출
+- ❌ **Edge Function 경유 금지**: 서버 사이드에서 호출 시 HTTP 200이지만 빈 데이터 `{}` 반환
+- ✅ **결과 전달 패턴**: 브라우저 → 사주 API 호출 → 결과를 Edge Function에 전달
+
+**핵심 파일**: `/lib/sajuApi.ts`
+```typescript
+// ✅ 올바른 패턴 - 프론트엔드에서 직접 호출
+const sajuData = await fetchSajuFromBrowser(birthInfo);
+await callEdgeFunction({ sajuData, ...otherParams });
+
+// ❌ 잘못된 패턴 - Edge Function에서 호출 (빈 응답 반환됨)
+// Edge Function 내부에서 fetch('https://api.stargio.com/...')
+```
+
+**상세 문서**: `DECISIONS.md` → "2026-01-12 사주 API 빈 응답 문제" 섹션
+
+---
+
+### 9. 모바일 최적화 (iOS Safari)
 - ✅ **border-radius 렌더링 이슈 해결**: `transform-gpu` 클래스 추가
 - ✅ **적용 조건**: `overflow: hidden` + `border-radius` 조합 사용 시
 - ✅ **하단 고정 CTA**: 리팩토링된 컴포넌트 사용
@@ -363,7 +382,6 @@ export const publicAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "<product
 /components/MasterContentCreate.tsx     → 콘텐츠 생성 (기본정보)
 /components/MasterContentQuestions.tsx  → 질문지 작성 (AI 프롬프트용)
 /components/MasterContentDetail.tsx     → 콘텐츠 상세/수정 (관리자용)
-/components/MasterContentDetailPage.tsx → 사용자용 상세
 /components/MasterContentList.tsx       → 콘텐츠 목록 관리
 /components/MasterContentLoadingPage.tsx → AI 썸네일 생성 로딩
 ```
@@ -935,7 +953,66 @@ onSaved={() => navigate('/saju/management', { replace: true })}
 
 ---
 
-### 12. iOS 스와이프 뒤로가기: 결제 페이지 bfcache 문제 (NEW!)
+### 12. 사주 API 빈 응답 (Edge Function에서 호출 시) (NEW!)
+**증상**: AI가 더미 데이터로 응답, 실제 사주 정보 없이 운세 생성
+**체크**:
+- [ ] 사주 API를 Edge Function에서 호출하고 있는지 확인
+- [ ] HTTP 응답 코드가 200이지만 body가 빈 `{}` 인지 확인
+- [ ] 프론트엔드에서 직접 API 호출하도록 변경했는지 확인
+- [ ] `/lib/sajuApi.ts` 사용 여부 확인
+
+**원인**:
+- Stargio API 서버가 서버 사이드 요청과 브라우저 요청을 구분
+- Edge Function의 요청 헤더가 브라우저와 다르게 인식됨
+
+**해결 방법**:
+```tsx
+// 프론트엔드에서 직접 호출
+import { fetchSajuData } from '../lib/sajuApi';
+const sajuResult = await fetchSajuData(birthInfo);
+// 결과를 Edge Function에 전달
+await generateContent({ sajuData: sajuResult, ... });
+```
+
+**적용 파일들**:
+- `/lib/sajuApi.ts` - 사주 API 직접 호출
+- `/components/BirthInfoInput.tsx` - 유료 사주 입력 시 호출
+- `/components/SajuSelectPage.tsx` - 사주 선택 시 호출
+- **상세 문서**: `DECISIONS.md` → "2026-01-12 사주 API 빈 응답 문제" 섹션
+
+---
+
+### 13. iOS 하단 고정 CTA 첫 번째 클릭 무반응 (NEW!)
+**증상**: iOS Safari에서 하단 고정 버튼의 첫 번째 클릭/터치가 무반응 (로그도 없음)
+**체크**:
+- [ ] 스크롤 컨테이너와 Fixed 버튼 간 z-index 충돌 확인
+- [ ] `pointer-events-auto` 명시적 설정 여부 확인
+- [ ] 스크롤 컨테이너 영역이 Fixed 버튼 영역을 침범하는지 확인
+
+**원인**:
+- iOS Safari에서 z-index만으로는 터치 이벤트 우선순위가 보장되지 않음
+- 스크롤 컨테이너의 터치 이벤트가 Fixed 버튼을 가로챔
+
+**해결 방법**:
+```tsx
+// Fixed 버튼에 명시적 pointer-events 설정
+<div className="fixed bottom-0 z-50 pointer-events-auto">
+  <button>구매하기</button>
+</div>
+
+// 스크롤 컨테이너 영역 제한
+<div className="overflow-auto pb-[100px]">  {/* 버튼 영역만큼 padding */}
+  {/* 콘텐츠 */}
+</div>
+```
+
+**적용 파일들**:
+- 하단 고정 CTA 사용하는 모든 페이지
+- **상세 문서**: `DECISIONS.md` → "2026-01-12 iOS 첫 번째 클릭 이벤트 누락" 섹션
+
+---
+
+### 14. iOS 스와이프 뒤로가기: 결제 페이지 bfcache 문제
 **증상**: 결제 페이지에서 뒤로가기 후 다시 진입 시 결제 버튼이 비활성화 상태로 남아있음
 **체크**:
 - [ ] `pageshow` 이벤트로 bfcache 복원을 감지하는지 확인
@@ -1022,12 +1099,31 @@ useEffect(() => {
 | 1.5.0 | 2026-01-09 | FreeProductDetail 백업, FreeContentDetail로 대체 (하드코딩 더미 데이터 버그 수정) | AI Assistant |
 | 1.5.1 | 2026-01-11 | ResultCompletePage 문서화 추가 (풀이 완료 페이지, 재방문 쿠폰) | AI Assistant |
 | 1.6.0 | 2026-01-11 | iOS 스와이프 뒤로가기 버그 체크리스트 추가 (#10~#12) | AI Assistant |
+| 1.7.0 | 2026-01-13 | 사주 API 프론트엔드 직접 호출, 이미지 캐시 버스팅, iOS 클릭 이벤트 버그 추가 | AI Assistant |
 
 ---
 
-## 🎯 최근 주요 개선사항 (2026-01-09)
+## 🎯 최근 주요 개선사항 (2026-01-13)
 
-### ✅ 무료 콘텐츠 상세 페이지 버그 수정 (NEW!)
+### ✅ 사주 API 프론트엔드 직접 호출 (NEW!)
+- **문제**: Edge Function에서 Stargio 사주 API 호출 시 HTTP 200이지만 빈 데이터 `{}` 반환
+- **원인**: API 서버가 서버 사이드 요청을 실제 브라우저 요청과 구분하여 차단
+- **해결**: 프론트엔드(브라우저)에서 직접 API 호출 → Edge Function에 결과 전달
+- **핵심 파일**: `/lib/sajuApi.ts`, `BirthInfoInput.tsx`, `SajuSelectPage.tsx`
+- **상세 문서**: `DECISIONS.md` → "2026-01-12 사주 API 빈 응답 문제" 섹션
+
+### ✅ 썸네일 이미지 캐시 버스팅 (NEW!)
+- **문제**: 썸네일 재생성 시 브라우저 캐시로 인해 이전 이미지 계속 표시
+- **해결**: `imageCacheBuster` 상태로 URL에 버전 쿼리 파라미터 추가
+- **핵심 파일**: `/components/MasterContentDetail.tsx`, `/components/MasterContentList.tsx`
+
+### ✅ iOS 첫 번째 클릭 이벤트 누락 해결 (NEW!)
+- **문제**: iOS Safari에서 하단 고정 CTA 버튼의 첫 번째 클릭이 로그조차 잡히지 않음
+- **원인**: 스크롤 컨테이너와 Fixed 하단 버튼 간의 z-index/pointer-events 충돌
+- **해결**: `pointer-events-auto` 명시적 설정 + 스크롤 컨테이너 영역 제한
+- **상세 문서**: `DECISIONS.md` → "2026-01-12 iOS 첫 번째 클릭 이벤트 누락" 섹션
+
+### ✅ 무료 콘텐츠 상세 페이지 버그 수정
 - **문제**: 뒤로가기 시 `FreeProductDetail` 컴포넌트의 하드코딩된 더미 데이터 노출
 - **원인**: `ProductDetailPage`에서 구버전 `FreeProductDetail` 사용 (운세 구성이 하드코딩됨)
 - **해결**: `FreeProductDetail.tsx` → `_backup` 폴더로 이동, `FreeContentDetail` 사용하도록 변경
@@ -1105,6 +1201,6 @@ useEffect(() => {
 
 ---
 
-**문서 버전**: 1.6.0
-**최종 업데이트**: 2026-01-11
+**문서 버전**: 1.7.0
+**최종 업데이트**: 2026-01-13
 **문서 끝**

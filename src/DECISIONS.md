@@ -15,6 +15,44 @@
 
 ---
 
+## 2026-01-13
+
+### 썸네일 이미지 캐시 버스팅: imageCacheBuster 상태 도입
+**결정**: 썸네일 재생성 시 브라우저 캐시 문제를 해결하기 위해 `imageCacheBuster` 상태를 도입하여 URL에 버전 쿼리 파라미터 추가
+**배경**:
+- 마스터 콘텐츠 관리에서 썸네일 재생성 시 브라우저 캐시로 인해 이전 이미지가 계속 표시됨
+- Supabase Storage 파일명이 동일하면 브라우저가 캐시된 이미지 반환
+- 강력 새로고침 없이는 새 이미지 확인 불가
+
+**해결 방법**:
+```typescript
+// MasterContentDetail.tsx
+const [imageCacheBuster, setImageCacheBuster] = useState(Date.now());
+
+// 썸네일 재생성 완료 시 캐시 버스터 업데이트
+const handleRegenerateThumbnail = async () => {
+  await regenerateThumbnail(contentId);
+  setImageCacheBuster(Date.now()); // ⭐ 캐시 무효화
+};
+
+// 이미지 URL에 버전 쿼리 파라미터 추가
+<img src={`${thumbnailUrl}?v=${imageCacheBuster}`} />
+```
+
+**적용 파일**:
+- `/components/MasterContentDetail.tsx` - 상세 페이지 썸네일 캐시 버스팅
+- `/components/MasterContentList.tsx` - 목록 실시간 업데이트 캐시 버스팅
+
+**핵심 원리**:
+- URL 쿼리 파라미터가 변경되면 브라우저는 새 리소스로 인식
+- 타임스탬프를 사용하면 매번 고유한 URL 생성
+- 불필요한 API 호출 없이 클라이언트 측에서 캐시 제어
+
+**영향**: 마스터 콘텐츠 관리 페이지 (목록, 상세)
+**결과**: 썸네일 재생성 후 즉시 새 이미지 표시, 사용자 경험 개선
+
+---
+
 ## 2026-01-12
 
 ### 사주 API 빈 응답 문제: 프론트엔드 호출로 해결
@@ -1356,15 +1394,15 @@ export const isFigmaSite(): boolean    // Figma Make 환경 체크
 
 ## 📊 주요 결정 통계 (2026-01-13 기준)
 
-- **총 결정 기록**: 36개
-- **아키텍처 변경**: 11개 (사주 API 프론트엔드 호출 +1)
-- **성능 최적화**: 5개
-- **사용자 경험 개선**: 11개 (iOS 터치 이벤트 개선 +1, iOS 스와이프 뒤로가기 대응 +4, 로그인 플로우 개선 +1)
+- **총 결정 기록**: 37개
+- **아키텍처 변경**: 11개 (사주 API 프론트엔드 호출)
+- **성능 최적화**: 6개 (이미지 캐시 버스팅 +1)
+- **사용자 경험 개선**: 11개 (iOS 터치 이벤트 개선, iOS 스와이프 뒤로가기 대응 +4, 로그인 플로우 개선)
 - **보안 강화**: 6개
 - **개발 안정성**: 3개
 
 ---
 
-**문서 버전**: 2.4.0
+**문서 버전**: 2.5.0
 **최종 업데이트**: 2026-01-13
 **문서 끝**

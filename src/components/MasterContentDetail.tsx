@@ -709,6 +709,27 @@ export default function MasterContentDetail({ contentId, onBack, onHome }: Maste
   // 삭제하기
   const handleDelete = async () => {
     try {
+      // 0. Storage 썸네일 삭제 (base64가 아닌 경우)
+      if (contentData?.thumbnail_url && !contentData.thumbnail_url.startsWith('data:')) {
+        try {
+          // thumbnails/{contentId}.png 형식으로 저장되어 있음
+          const thumbnailPath = `thumbnails/${contentId}.png`;
+          const { error: storageError } = await supabase.storage
+            .from('assets')
+            .remove([thumbnailPath]);
+
+          if (storageError) {
+            console.error('Storage 썸네일 삭제 실패:', storageError);
+            // Storage 삭제 실패해도 DB 삭제는 계속 진행
+          } else {
+            console.log('✅ Storage 썸네일 삭제 완료:', thumbnailPath);
+          }
+        } catch (storageError) {
+          console.error('Storage 삭제 오류:', storageError);
+          // Storage 삭제 실패해도 DB 삭제는 계속 진행
+        }
+      }
+
       // 1. 질문들 삭제
       const { error: deleteQuestionsError } = await supabase
         .from('master_content_questions')
@@ -734,6 +755,7 @@ export default function MasterContentDetail({ contentId, onBack, onHome }: Maste
       }
 
       console.log('Delete successful');
+      toast.success('콘텐츠가 삭제되었습니다.');
       onBack();
     } catch (error) {
       console.error('Delete error:', error);
