@@ -1,7 +1,7 @@
 # 데이터베이스 스키마 문서
 
 > **작성일**: 2024-12-17
-> **버전**: 1.3.1
+> **버전**: 1.3.2
 > **최종 업데이트**: 2026-01-13
 > **필수 문서**: [CLAUDE.md](../CLAUDE.md) - 개발 규칙
 > **경고**: 이 문서는 참고용이며, 스키마 변경 시 수동으로 업데이트해야 합니다.
@@ -345,6 +345,7 @@ coupons (쿠폰 마스터)
 | 1.2.0 | 2024-12-18 | saju_records 테이블에 is_primary 컬럼 추가 (대표 사주 관리) | AI Assistant |
 | 1.3.0 | 2026-01-07 | orders 테이블에 webhook_verified_at, refund 관련 컬럼 추가 (결제 안정성 강화) | AI Assistant |
 | 1.3.1 | 2026-01-13 | 스키마 검토 완료 (변경 없음) - 사주 API/캐시 버스팅은 클라이언트 측 변경 | AI Assistant |
+| 1.3.2 | 2026-01-13 | 스테이징 스키마를 프로덕션 기준으로 되돌림 (orders.content_id nullable, refund_amount DEFAULT 제거) | AI Assistant |
 
 ---
 
