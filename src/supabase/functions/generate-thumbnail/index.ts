@@ -1,6 +1,10 @@
-// Supabase Edge Function: 썸네일 이미지 생성 (Gemini 2.5 Flash Image)
+// Supabase Edge Function: 썸네일 이미지 생성 (Gemini 2.5 Flash Image + WebP 변환)
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7'
+import { ImageMagick, initializeImageMagick, MagickFormat } from 'npm:@imagemagick/magick-wasm@0.0.30'
+
+// ImageMagick WASM 초기화 플래그
+let magickInitialized = false
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -139,35 +143,79 @@ text, numbers, letters, logos, watermark, captions.`
         if (part.inlineData && part.inlineData.mimeType && part.inlineData.mimeType.startsWith('image')) {
           console.log('✅ 썸네일 생성 완료 (Gemini 2.5)')
           
-          // 🚀 Base64를 Supabase Storage에 업로드
+          // 🚀 Base64를 WebP로 변환 후 Supabase Storage에 업로드
           const generatedImageData = part.inlineData.data
-          
+
           try {
             const supabaseUrl = Deno.env.get('SUPABASE_URL')
             const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-            
+
             if (!supabaseUrl || !supabaseServiceKey) {
               throw new Error('SUPABASE_URL 또는 SUPABASE_SERVICE_ROLE_KEY가 설정되지 않았습니다.')
             }
-            
+
             const supabase = createClient(supabaseUrl, supabaseServiceKey)
-            
+
             // Base64를 Uint8Array로 변환
-            const imageBytes = Uint8Array.from(
-              atob(generatedImageData), 
+            const pngBytes = Uint8Array.from(
+              atob(generatedImageData),
               c => c.charCodeAt(0)
             )
-            
+
+            // 🔄 PNG → WebP 변환
+            let imageBytes: Uint8Array
+            let contentType = 'image/webp'
+            let fileExtension = 'webp'
+
+            try {
+              // ImageMagick WASM 초기화 (최초 1회)
+              if (!magickInitialized) {
+                console.log('🔧 ImageMagick WASM 초기화 중...')
+                await initializeImageMagick()
+                magickInitialized = true
+                console.log('✅ ImageMagick WASM 초기화 완료')
+              }
+
+              console.log('🔄 PNG → WebP 변환 시작...')
+
+              // ImageMagick으로 PNG → WebP 변환
+              imageBytes = await new Promise<Uint8Array>((resolve, reject) => {
+                try {
+                  ImageMagick.read(pngBytes, (image) => {
+                    // 품질 설정 (85%)
+                    image.quality = 85
+
+                    // WebP로 변환
+                    image.write(MagickFormat.WebP, (webpBytes) => {
+                      resolve(new Uint8Array(webpBytes))
+                    })
+                  })
+                } catch (err) {
+                  reject(err)
+                }
+              })
+
+              const compressionRatio = ((1 - imageBytes.length / pngBytes.length) * 100).toFixed(1)
+              console.log(`✅ WebP 변환 완료: ${pngBytes.length} → ${imageBytes.length} bytes (${compressionRatio}% 감소)`)
+
+            } catch (conversionError) {
+              // WebP 변환 실패 시 PNG 폴백
+              console.warn('⚠️ WebP 변환 실패, PNG로 폴백:', conversionError)
+              imageBytes = pngBytes
+              contentType = 'image/png'
+              fileExtension = 'png'
+            }
+
             // 파일명 생성 (contentId 기반으로 고정 → 재생성 시 같은 파일에 덮어쓰기)
-            const fileName = `thumbnails/${contentId || crypto.randomUUID()}.png`
-            
+            const fileName = `thumbnails/${contentId || crypto.randomUUID()}.${fileExtension}`
+
             console.log('📤 Storage 업로드 시작:', fileName)
-            
+
             // Storage에 업로드
             const { data: uploadData, error: uploadError } = await supabase.storage
               .from('assets')
               .upload(fileName, imageBytes, {
-                contentType: 'image/png',
+                contentType,
                 upsert: true // 같은 파일명이면 덮어쓰기
               })
             
