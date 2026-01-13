@@ -1565,6 +1565,24 @@ export default function App() {
     document.documentElement.lang = 'ko';
   }, []);
 
+  // 🔐 세션 만료 감지 및 localStorage 정리
+  useEffect(() => {
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT' || !session) {
+        // 세션 만료/로그아웃 → localStorage 정리
+        const hadUser = localStorage.getItem('user');
+        if (hadUser) {
+          localStorage.removeItem('user');
+          console.log('🧹 세션 만료 → localStorage.user 삭제');
+        }
+      }
+    });
+
+    return () => {
+      authListener?.subscription.unsubscribe();
+    };
+  }, []);
+
   return (
     <Router>
       <ErrorBoundary>
