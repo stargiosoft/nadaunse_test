@@ -82,7 +82,7 @@ serve(async (req) => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${supabaseServiceKey}`,
+            'Authorization': `Bearer ${token}`,
           },
           body: JSON.stringify({ imagePrompt, contentId }),
         })
@@ -136,7 +136,7 @@ serve(async (req) => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${supabaseServiceKey}`,
+            'Authorization': `Bearer ${token}`,
           },
           body: JSON.stringify({
             questionId: questionId,
@@ -237,17 +237,21 @@ serve(async (req) => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
+          'Authorization': `Bearer ${token}`,  // 원래 사용자 JWT 토큰 사용
         },
-        body: JSON.stringify({ 
-          title: finalTitle, 
-          description: finalDescription, 
-          questionerInfo: finalQuestionerInfo 
+        body: JSON.stringify({
+          title: finalTitle,
+          description: finalDescription,
+          questionerInfo: finalQuestionerInfo
         }),
       })
 
+      console.log(`📡 generate-image-prompt 응답 상태: ${promptResponse.status}`)
+
       if (!promptResponse.ok) {
-        throw new Error('이미지 프롬프트 생성 실패')
+        const errorText = await promptResponse.text()
+        console.error(`❌ generate-image-prompt 실패:`, errorText)
+        throw new Error(`이미지 프롬프트 생성 실패: ${promptResponse.status} - ${errorText}`)
       }
 
       const promptData = await promptResponse.json()
@@ -260,7 +264,7 @@ serve(async (req) => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
+          'Authorization': `Bearer ${token}`,  // 원래 사용자 JWT 토큰 사용
         },
         body: JSON.stringify({ imagePrompt, contentId }),
       })
@@ -317,7 +321,7 @@ serve(async (req) => {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${supabaseServiceKey}`,
+                  'Authorization': `Bearer ${token}`,
                 },
                 body: JSON.stringify({
                   title: finalTitle,
@@ -339,7 +343,7 @@ serve(async (req) => {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${supabaseServiceKey}`,
+                  'Authorization': `Bearer ${token}`,
                 },
                 body: JSON.stringify({
                   questionerInfo: finalQuestionerInfo,
