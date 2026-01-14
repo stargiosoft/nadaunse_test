@@ -92,7 +92,7 @@ export default function CouponBottomSheetNew({
           
           {/* Bottom sheet */}
           <motion.div
-            className="relative w-full max-w-[440px] mx-auto bg-white rounded-t-[16px] flex flex-col h-[85vh] pointer-events-auto z-[10000]"
+            className="relative w-full max-w-[440px] mx-auto bg-white rounded-t-[16px] flex flex-col max-h-[85vh] overflow-hidden pointer-events-auto z-[10000]"
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
@@ -107,12 +107,12 @@ export default function CouponBottomSheetNew({
             }}
           >
             {/* Handle */}
-            <div className="flex items-center justify-center py-[12px] cursor-grab active:cursor-grabbing">
+            <div className="shrink-0 flex items-center justify-center py-[12px] cursor-grab active:cursor-grabbing">
               <div className="w-[48px] h-[4px] bg-[#d4d4d4] rounded-full" />
             </div>
 
             {/* Header */}
-            <div className="px-[24px] py-[16px]">
+            <div className="shrink-0 px-[24px] py-[16px]">
               <p className="font-['Pretendard_Variable:SemiBold',sans-serif] font-semibold text-[20px] leading-[28px] tracking-[-0.2px] text-black">
                 쿠폰
               </p>
@@ -257,7 +257,7 @@ export default function CouponBottomSheetNew({
             </div>
 
             {/* Bottom buttons */}
-            <div className="sticky bottom-0 w-full z-20 bg-white shadow-[0px_-8px_16px_0px_rgba(255,255,255,0.76)] px-[20px] pt-[12px] pb-[calc(12px+env(safe-area-inset-bottom))] rounded-b-[16px]">
+            <div className="shrink-0 w-full z-20 bg-white shadow-[0px_-8px_16px_0px_rgba(255,255,255,0.76)] px-[20px] pt-[12px] pb-[calc(12px+env(safe-area-inset-bottom))]">
               <div className="flex gap-[12px]">
                 <motion.button
                   onClick={handleCancel}
