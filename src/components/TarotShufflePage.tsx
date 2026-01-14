@@ -147,27 +147,49 @@ export default function TarotShufflePage() {
         if (contentId) {
           setContentIdState(contentId);
 
-          // 2. contents_flow 테이블에서 전체 질문 목록과 현재 질문 텍스트 가져오기
-          const { data: flowData, error: flowError } = await supabase
-            .from('master_content_questions')
-            .select('*')
-            .eq('content_id', contentId)
+          // 2. ⭐ order_results에서 먼저 질문 텍스트 가져오기 (이미 결과가 생성된 경우)
+          const { data: orderResults, error: orderResultsError } = await supabase
+            .from('order_results')
+            .select('question_order, question_text, question_type')
+            .eq('order_id', orderId)
             .order('question_order', { ascending: true });
 
-          if (flowError) throw flowError;
-
-          if (flowData) {
-             setAllResults(flowData.map(item => ({
+          if (!orderResultsError && orderResults && orderResults.length > 0) {
+            // ⭐ order_results에 데이터가 있으면 여기서 가져온 question_text 사용
+            setAllResults(orderResults.map(item => ({
               question_order: item.question_order,
-              question_text: item.question_text,
+              question_text: item.question_text || '',
               question_type: item.question_type
             })));
 
-            const currentFlow = flowData.find(f => f.question_order === questionOrder);
-            if (currentFlow) {
-              setQuestionText(currentFlow.question_text);
+            const currentResult = orderResults.find(r => r.question_order === questionOrder);
+            if (currentResult && currentResult.question_text) {
+              setQuestionText(currentResult.question_text);
             }
-            setTotalQuestions(flowData.length);
+            setTotalQuestions(orderResults.length);
+          } else {
+            // ⭐ order_results에 데이터가 없으면 master_content_questions에서 가져오기 (최초 카드 뽑기)
+            const { data: flowData, error: flowError } = await supabase
+              .from('master_content_questions')
+              .select('*')
+              .eq('content_id', contentId)
+              .order('question_order', { ascending: true });
+
+            if (flowError) throw flowError;
+
+            if (flowData) {
+              setAllResults(flowData.map(item => ({
+                question_order: item.question_order,
+                question_text: item.question_text,
+                question_type: item.question_type
+              })));
+
+              const currentFlow = flowData.find(f => f.question_order === questionOrder);
+              if (currentFlow) {
+                setQuestionText(currentFlow.question_text);
+              }
+              setTotalQuestions(flowData.length);
+            }
           }
         }
       } catch (error) {
