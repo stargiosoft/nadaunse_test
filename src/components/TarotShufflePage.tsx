@@ -164,6 +164,8 @@ export default function TarotShufflePage() {
 
             const currentResult = orderResults.find(r => r.question_order === questionOrder);
             if (currentResult && currentResult.question_text) {
+              console.log('🔍 [TarotShufflePage] questionOrder:', questionOrder);
+              console.log('🔍 [TarotShufflePage] currentResult.question_text:', currentResult.question_text);
               setQuestionText(currentResult.question_text);
             }
             setTotalQuestions(orderResults.length);
