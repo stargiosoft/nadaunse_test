@@ -344,96 +344,98 @@ export default function FreeSajuDetail({
                 <AdBanner onBannerClick={onBannerClick} />
               </motion.div>
 
-              {/* Recommended Products */}
-              <motion.div 
-                className="content-stretch flex flex-col gap-[12px] items-center relative shrink-0 w-full px-[20px]"
-                variants={containerVariants}
-              >
-                <motion.div 
-                  className="content-stretch flex items-center justify-between relative shrink-0 w-full"
-                  variants={itemVariants}
-                >
-                  <div className="basis-0 content-stretch flex grow items-center justify-center min-h-px min-w-px relative shrink-0">
-                    <p className="basis-0 font-semibold grow leading-[24px] min-h-px min-w-px relative shrink-0 text-[17px] text-black tracking-[-0.34px]">이런 운세는 어때요?</p>
-                  </div>
-                </motion.div>
-                
-                {/* ⭐ 수직 스크롤 영역 */}
-                <motion.div 
-                  className="relative w-full flex flex-col"
+              {/* Recommended Products - 추천 콘텐츠가 있을 때만 표시 */}
+              {recommendedProducts.length > 0 && (
+                <motion.div
+                  className="content-stretch flex flex-col gap-[12px] items-center relative shrink-0 w-full px-[20px]"
                   variants={containerVariants}
                 >
-                  {recommendedProducts.slice(0, visibleCount).map((product, index) => (
-                    <motion.div 
-                      key={product.id}
-                      variants={itemVariants}
-                    >
-                      {/* 구분선 (첫 번째 아이템 제외) */}
-                      {index > 0 && (
-                        <div className="relative shrink-0 w-full py-[4px]">
-                          <svg className="block w-full h-[1px]" fill="none" preserveAspectRatio="none" viewBox="0 0 350 1">
-                            <path d="M0 0.5H350" stroke="#F9F9F9" />
-                          </svg>
-                        </div>
-                      )}
-                      
-                      <div className="w-full relative shrink-0">
-                        <div 
-                          onClick={() => onProductClick?.(product.id)}
-                          className="box-border content-stretch flex gap-[10px] items-start justify-start px-0 py-[10px] relative rounded-[16px] shrink-0 w-full cursor-pointer transition-all duration-150 ease-out origin-center active:scale-[0.96] active:bg-gray-50"
-                        >
-                          {/* ⭐ 썸네일 이미지 - 직사각형 80x54 */}
-                          <div className="h-[54px] pointer-events-none relative rounded-[12px] shrink-0 w-[80px]">
-                            {product.image ? (
-                              <img 
-                                alt={product.title} 
-                                loading="lazy"
-                                className="absolute inset-0 max-w-none object-center object-cover rounded-[12px] size-full" 
-                                src={product.image} 
-                              />
-                            ) : (
-                              <div className="absolute inset-0 bg-gray-200 rounded-[12px] flex items-center justify-center">
-                                <p className="text-gray-400 text-[12px]">이미지 없음</p>
-                              </div>
-                            )}
-                            <div aria-hidden="true" className="absolute border border-[#f9f9f9] border-solid inset-[-1px] rounded-[13px]" />
-                          </div>
+                  <motion.div
+                    className="content-stretch flex items-center justify-between relative shrink-0 w-full"
+                    variants={itemVariants}
+                  >
+                    <div className="basis-0 content-stretch flex grow items-center justify-center min-h-px min-w-px relative shrink-0">
+                      <p className="basis-0 font-semibold grow leading-[24px] min-h-px min-w-px relative shrink-0 text-[17px] text-black tracking-[-0.34px]">이런 운세는 어때요?</p>
+                    </div>
+                  </motion.div>
 
-                          {/* ⭐ 콘텐츠 정보 */}
-                          <div className="basis-0 content-stretch flex flex-col gap-[6px] grow items-start min-h-px min-w-px relative shrink-0">
-                            {/* 제목 */}
-                            <div className="relative shrink-0 w-full">
-                              <div className="flex flex-row items-center justify-center size-full">
-                                <div className="content-stretch flex items-center justify-center px-[2px] py-0 relative w-full">
-                                  <p className="basis-0 font-['Pretendard_Variable:Medium',sans-serif] font-medium grow leading-[23.5px] min-h-px min-w-px relative shrink-0 text-[15px] text-black tracking-[-0.3px] overflow-ellipsis overflow-hidden line-clamp-2">
-                                    {product.title}
-                                  </p>
+                  {/* ⭐ 수직 스크롤 영역 */}
+                  <motion.div
+                    className="relative w-full flex flex-col"
+                    variants={containerVariants}
+                  >
+                    {recommendedProducts.slice(0, visibleCount).map((product, index) => (
+                      <motion.div
+                        key={product.id}
+                        variants={itemVariants}
+                      >
+                        {/* 구분선 (첫 번째 아이템 제외) */}
+                        {index > 0 && (
+                          <div className="relative shrink-0 w-full py-[4px]">
+                            <svg className="block w-full h-[1px]" fill="none" preserveAspectRatio="none" viewBox="0 0 350 1">
+                              <path d="M0 0.5H350" stroke="#F9F9F9" />
+                            </svg>
+                          </div>
+                        )}
+
+                        <div className="w-full relative shrink-0">
+                          <div
+                            onClick={() => onProductClick?.(product.id)}
+                            className="box-border content-stretch flex gap-[10px] items-start justify-start px-0 py-[10px] relative rounded-[16px] shrink-0 w-full cursor-pointer transition-all duration-150 ease-out origin-center active:scale-[0.96] active:bg-gray-50"
+                          >
+                            {/* ⭐ 썸네일 이미지 - 직사각형 80x54 */}
+                            <div className="h-[54px] pointer-events-none relative rounded-[12px] shrink-0 w-[80px]">
+                              {product.image ? (
+                                <img
+                                  alt={product.title}
+                                  loading="lazy"
+                                  className="absolute inset-0 max-w-none object-center object-cover rounded-[12px] size-full"
+                                  src={product.image}
+                                />
+                              ) : (
+                                <div className="absolute inset-0 bg-gray-200 rounded-[12px] flex items-center justify-center">
+                                  <p className="text-gray-400 text-[12px]">이미지 없음</p>
+                                </div>
+                              )}
+                              <div aria-hidden="true" className="absolute border border-[#f9f9f9] border-solid inset-[-1px] rounded-[13px]" />
+                            </div>
+
+                            {/* ⭐ 콘텐츠 정보 */}
+                            <div className="basis-0 content-stretch flex flex-col gap-[6px] grow items-start min-h-px min-w-px relative shrink-0">
+                              {/* 제목 */}
+                              <div className="relative shrink-0 w-full">
+                                <div className="flex flex-row items-center justify-center size-full">
+                                  <div className="content-stretch flex items-center justify-center px-[2px] py-0 relative w-full">
+                                    <p className="basis-0 font-['Pretendard_Variable:Medium',sans-serif] font-medium grow leading-[23.5px] min-h-px min-w-px relative shrink-0 text-[15px] text-black tracking-[-0.3px] overflow-ellipsis overflow-hidden line-clamp-2">
+                                      {product.title}
+                                    </p>
+                                  </div>
                                 </div>
                               </div>
-                            </div>
 
-                            {/* 뱃지 - 심화 해석판(청록) vs 무료 체험판(회색) */}
-                            <div className={`${product.type === 'paid' ? 'bg-[#f0f8f8]' : 'bg-[#f9f9f9]'} content-stretch flex items-center justify-center px-[6px] pt-[3px] pb-[1px] relative rounded-[4px] shrink-0`}>
-                              <p className={`font-medium leading-[16px] relative shrink-0 ${product.type === 'paid' ? 'text-[#41a09e]' : 'text-[#848484]'} text-[12px] text-nowrap tracking-[-0.24px]`}>
-                                {product.type === 'paid' ? '심화 해석판' : '무료 체험판'}
-                              </p>
+                              {/* 뱃지 - 심화 해석판(청록) vs 무료 체험판(회색) */}
+                              <div className={`${product.type === 'paid' ? 'bg-[#f0f8f8]' : 'bg-[#f9f9f9]'} content-stretch flex items-center justify-center px-[6px] pt-[3px] pb-[1px] relative rounded-[4px] shrink-0`}>
+                                <p className={`font-medium leading-[16px] relative shrink-0 ${product.type === 'paid' ? 'text-[#41a09e]' : 'text-[#848484]'} text-[12px] text-nowrap tracking-[-0.24px]`}>
+                                  {product.type === 'paid' ? '심화 해석판' : '무료 체험판'}
+                                </p>
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    </motion.div>
-                  ))}
-                  
-                  {/* ⭐ 무한 스크롤 트리거 */}
-                  {visibleCount < recommendedProducts.length && (
-                    <div 
-                      ref={observerTarget}
-                      className="h-[1px] w-full"
-                      aria-hidden="true"
-                    />
-                  )}
+                      </motion.div>
+                    ))}
+
+                    {/* ⭐ 무한 스크롤 트리거 */}
+                    {visibleCount < recommendedProducts.length && (
+                      <div
+                        ref={observerTarget}
+                        className="h-[1px] w-full"
+                        aria-hidden="true"
+                      />
+                    )}
+                  </motion.div>
                 </motion.div>
-              </motion.div>
+              )}
             </motion.div>
           </motion.div>
         </div>
