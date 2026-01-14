@@ -298,7 +298,7 @@ export function AdBanner({ onBannerClick }: AdBannerProps) {
   // 배너 로딩 중 스켈레톤 UI
   if (!banner) {
     return (
-      <div className="px-[20px] w-full">
+      <div className="bg-[#F8F8F8] py-[20px] px-[20px] w-full">
         <div className="bg-gray-200 rounded-[16px] w-full h-[80px] animate-pulse" />
       </div>
     );
@@ -307,7 +307,7 @@ export function AdBanner({ onBannerClick }: AdBannerProps) {
   const imageUrl = getBannerImageUrl(banner.imageFileName);
 
   return (
-    <div className="px-[20px] w-full">
+    <div className="bg-[#F8F8F8] py-[20px] px-[20px] w-full">
       {/* 이미지 로딩 중 스켈레톤 */}
       {!imageLoaded && !imageError && (
         <div className="bg-gray-200 rounded-[16px] w-full h-[80px] animate-pulse" />
