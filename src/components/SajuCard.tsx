@@ -152,7 +152,7 @@ export default function SajuCard({
             </p>
             <Separator />
             <p className="font-normal leading-[16px] overflow-ellipsis overflow-hidden relative shrink-0 text-[#848484] text-[12px] text-nowrap tracking-[-0.24px]">
-              {saju.gender === 'female' ? '여성' : '남성'}
+              {saju.gender === 'male' || saju.gender === '남' || saju.gender === '남성' ? '남성' : '여성'}
             </p>
           </div>
         </div>
