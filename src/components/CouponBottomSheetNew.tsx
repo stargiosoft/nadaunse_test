@@ -118,10 +118,10 @@ export default function CouponBottomSheetNew({
               </p>
             </div>
 
-            {/* Content - 스크롤 제어 변경 */}
-            <div className="overflow-y-auto flex flex-col pb-[20px]">
+            {/* Content */}
+            <div className="flex flex-col">
               {/* 상단 상품 정보 (고정) */}
-              <div className="px-[20px] flex flex-col gap-[14px] shrink-0">
+              <div className="px-[20px] flex flex-col gap-[14px] shrink-0 pb-[16px]">
                 {/* Product card */}
                 <div className="flex gap-[12px] items-start w-full">
                   <div className="w-[80px] h-[54px] rounded-[12px] overflow-hidden border border-[#f9f9f9] shrink-0">
@@ -205,7 +205,7 @@ export default function CouponBottomSheetNew({
               </div>
 
               {/* Coupon list - gray background area (Scrollable) */}
-              <div className="mt-[16px] bg-[#f9f9f9] border-t border-b border-[#f3f3f3] px-[24px] py-[24px]">
+              <div className="bg-[#f9f9f9] border-t border-b border-[#f3f3f3] px-[24px] py-[16px] max-h-[200px] overflow-y-auto">
                 <div className="flex flex-col">
                   {coupons.map((coupon, index) => (
                     <div key={coupon.id}>
