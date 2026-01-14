@@ -448,8 +448,9 @@ export default function ExistingAccountPageNew({ provider, onBack, onLoginWithCo
     );
   }
 
-  // accountInfo가 없으면 기본값 표시
-  const email = accountInfo?.email || 'user****@example.com';
+  // accountInfo가 없으면 쿠키에서 이메일 가져오기 (DB 조회 실패 대비)
+  const cookieEmail = React.useMemo(() => getLastLoginEmail(), []);
+  const email = accountInfo?.email || cookieEmail || 'user****@example.com';
   const createdAt = accountInfo?.created_at || new Date().toISOString();
 
   return (
