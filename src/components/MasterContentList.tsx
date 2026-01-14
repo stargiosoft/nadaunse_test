@@ -204,7 +204,8 @@ export default function MasterContentList({ onBack, onNavigateHome }: MasterCont
   const [isLoading, setIsLoading] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [totalCount, setTotalCount] = useState<number>(0);
-  
+  const [statusFilter, setStatusFilter] = useState<'all' | 'loading' | 'failed' | 'ready' | 'deployed'>('all');
+
   // 무한 스크롤 감지용 ref
   const observerTarget = useRef<HTMLDivElement>(null);
 
@@ -289,7 +290,12 @@ export default function MasterContentList({ onBack, onNavigateHome }: MasterCont
         } else if (filter === 'free') {
           query = query.eq('content_type', 'free');
         }
-        
+
+        // 🔍 상태 필터 적용
+        if (statusFilter !== 'all') {
+          query = query.eq('status', statusFilter);
+        }
+
         // 정렬 및 범위 설정
         const { data, error, count } = await query
           .order('created_at', { ascending: false })
@@ -381,7 +387,7 @@ export default function MasterContentList({ onBack, onNavigateHome }: MasterCont
     };
 
     fetchContents();
-  }, [loadFromCache, filter]); // ✅ saveToCache 의존성 제거
+  }, [loadFromCache, filter, statusFilter]); // ✅ saveToCache 의존성 제거
 
   // 콘텐츠 수동 새로고침 함수
   const fetchContents = useCallback(async () => {
@@ -673,7 +679,7 @@ export default function MasterContentList({ onBack, onNavigateHome }: MasterCont
     setHasMore(true);
     setIsInitialLoading(true); // 🔥 필터 변경 시 초기 로드 상태로 리셋
     // ❌ contents 초기화 제거 - useEffect에서 자동으로 다시 로드됨
-  }, [filter]);
+  }, [filter, statusFilter]);
 
   // 배포선택 모드 진입
   const handleEnterDeployMode = () => {
@@ -817,6 +823,11 @@ export default function MasterContentList({ onBack, onNavigateHome }: MasterCont
         query = query.eq('content_type', 'free');
       }
 
+      // 🔍 상태 필터 적용
+      if (statusFilter !== 'all') {
+        query = query.eq('status', statusFilter);
+      }
+
       // 정렬 및 범위 설정
       const { data, error, count } = await query
         .order('created_at', { ascending: false })
@@ -878,7 +889,7 @@ export default function MasterContentList({ onBack, onNavigateHome }: MasterCont
     } finally {
       setIsLoading(false);
     }
-  }, [currentPage, hasMore, isLoading, filter]);
+  }, [currentPage, hasMore, isLoading, filter, statusFilter]);
 
   // 무한 스크롤 감지
   useEffect(() => {
@@ -1061,19 +1072,30 @@ export default function MasterContentList({ onBack, onNavigateHome }: MasterCont
           </div>
         )}
 
-        {/* 총 콘텐츠 개수 표시 */}
+        {/* 총 콘텐츠 개수 + 상태 필터 */}
         {!isDeployMode && (
-          <div className="px-[20px] py-[8px]">
+          <div className="px-[20px] py-[8px] flex items-center justify-between">
             <p className="font-['Pretendard_Variable:Regular',sans-serif] text-[13px] text-[#808080]">
               총 {totalCount}개
             </p>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
+              className="font-['Pretendard_Variable:Regular',sans-serif] text-[13px] text-[#808080] bg-transparent border border-[#e0e0e0] rounded-[6px] px-[10px] py-[4px] cursor-pointer"
+            >
+              <option value="all">전체 상태</option>
+              <option value="loading">로딩중</option>
+              <option value="failed">실패</option>
+              <option value="ready">배포전</option>
+              <option value="deployed">배포완료</option>
+            </select>
           </div>
         )}
 
-        {/* 전체선택 (배포모드일 때만) */}
+        {/* 전체선택 (배포모드일 때만) - Sticky */}
         {isDeployMode && (
-          <div className="bg-white px-[20px] py-[10px]">
-            <div 
+          <div className="bg-white px-[20px] py-[10px] sticky top-[132px] z-10 border-b border-[#f3f3f3]">
+            <div
               onClick={handleToggleSelectAll}
               className="flex items-center gap-[10px] cursor-pointer"
             >
