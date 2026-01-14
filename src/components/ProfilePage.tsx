@@ -616,10 +616,11 @@ export default function ProfilePage({
                   }}
                   className="w-full flex flex-col flex-1"
                 >
+                  {/* 1. 콘텐츠 만들기 (마스터 전용) */}
                   {isMaster && (
-                    <motion.div 
+                    <motion.div
                       variants={itemVariants}
-                      className="content-stretch flex items-center justify-between px-[16px] py-[12px] rounded-[16px] w-full cursor-pointer hover:bg-[#f9f9f9] active:bg-[#f9f9f9] transition-colors" 
+                      className="content-stretch flex items-center justify-between px-[16px] py-[12px] rounded-[16px] w-full cursor-pointer hover:bg-[#f9f9f9] active:bg-[#f9f9f9] transition-colors"
                       onClick={onNavigateToMasterContent}
                     >
                       <p className="font-['Pretendard_Variable:Medium',sans-serif] leading-[28.5px] text-[16px] text-black tracking-[-0.32px]">콘텐츠 만들기</p>
@@ -628,51 +629,10 @@ export default function ProfilePage({
                       </div>
                     </motion.div>
                   )}
-                  <motion.div 
+                  {/* 2. 구매 내역 */}
+                  <motion.div
                     variants={itemVariants}
-                    className="content-stretch flex items-center justify-between px-[16px] py-[12px] rounded-[16px] w-full cursor-pointer hover:bg-[#f9f9f9] active:bg-[#f9f9f9] transition-colors" 
-                    onClick={handleSajuMenuClick}
-                  >
-                    <div className="flex items-center gap-[8px]">
-                      <p className="font-['Pretendard_Variable:Medium',sans-serif] leading-[28.5px] text-[16px] text-black tracking-[-0.32px]">사주 정보 관리</p>
-                      {/* DEV: UI 테스팅용 직접 이동 버튼 */}
-                      {DEV && (
-                        <button
-                          onClick={(e) => {
-                            // ⭐️ 이벤트 전파를 완벽하게 차단하여 부모의 로그인 체크 로직(handleSajuMenuClick)이 실행되지 않도록 함
-                            e.preventDefault();
-                            e.stopPropagation();
-                            
-                            // ⭐️ 개발용: 로그인된 유저 상태 강제 주입 (localStorage)
-                            const devUser = {
-                              id: 'dev_user_1',
-                              email: 'dev@test.com',
-                              nickname: '개발자',
-                              role: 'user',
-                              provider: 'dev'
-                            };
-                            localStorage.setItem('user', JSON.stringify(devUser));
-
-                            console.log('⚡ [DEV] 개발 유저 모드 활성화 -> 사주 관리 페이지 즉시 진입');
-                            
-                            // localStorage 저장이 확실히 반영된 후 이동
-                            setTimeout(() => {
-                              onNavigateToSajuManagement?.();
-                            }, 10);
-                          }}
-                          className="px-[6px] py-[2px] rounded-[4px] bg-red-100 border border-red-200 text-red-600 text-[10px] font-bold hover:bg-red-200 transition-colors cursor-pointer relative z-10"
-                        >
-                          UI TEST
-                        </button>
-                      )}
-                    </div>
-                    <div className="relative shrink-0 size-[16px]">
-                      <ArrowRightIcon />
-                    </div>
-                  </motion.div>
-                  <motion.div 
-                    variants={itemVariants}
-                    className="content-stretch flex items-center justify-between px-[16px] py-[12px] rounded-[16px] w-full cursor-pointer hover:bg-[#f9f9f9] active:bg-[#f9f9f9] transition-colors" 
+                    className="content-stretch flex items-center justify-between px-[16px] py-[12px] rounded-[16px] w-full cursor-pointer hover:bg-[#f9f9f9] active:bg-[#f9f9f9] transition-colors"
                     onClick={onNavigateToPurchaseHistory}
                   >
                     <div className="flex items-center gap-[8px]">
@@ -841,15 +801,15 @@ export default function ProfilePage({
                                 }
                               }
                             ];
-                            
+
                             // ⭐️ UI TEST 모드 플래그 설정 (구매내역 페이지에서만 사용)
                             localStorage.setItem('ui_test_mode', 'true');
-                            
+
                             // localStorage에 더미 데이터 저장
                             localStorage.setItem('dev_purchase_records', JSON.stringify(devPurchases));
-                            
+
                             console.log('⚡ [DEV] UI TEST 모드 활성화 → 더미 구매내역 페이지로 이동');
-                            
+
                             // localStorage 저장이 확실히 반영된 후 이동
                             setTimeout(() => {
                               onNavigateToPurchaseHistory?.();
@@ -865,22 +825,67 @@ export default function ProfilePage({
                       <ArrowRightIcon />
                     </div>
                   </motion.div>
-                  <motion.div 
+                  {/* 3. 사주 정보 관리 */}
+                  <motion.div
                     variants={itemVariants}
-                    onClick={handleLogout} 
                     className="content-stretch flex items-center justify-between px-[16px] py-[12px] rounded-[16px] w-full cursor-pointer hover:bg-[#f9f9f9] active:bg-[#f9f9f9] transition-colors"
+                    onClick={handleSajuMenuClick}
                   >
-                    <p className="font-['Pretendard_Variable:Medium',sans-serif] leading-[28.5px] text-[16px] text-black tracking-[-0.32px]">로그아웃</p>
+                    <div className="flex items-center gap-[8px]">
+                      <p className="font-['Pretendard_Variable:Medium',sans-serif] leading-[28.5px] text-[16px] text-black tracking-[-0.32px]">사주 정보 관리</p>
+                      {/* DEV: UI 테스팅용 직접 이동 버튼 */}
+                      {DEV && (
+                        <button
+                          onClick={(e) => {
+                            // ⭐️ 이벤트 전파를 완벽하게 차단하여 부모의 로그인 체크 로직(handleSajuMenuClick)이 실행되지 않도록 함
+                            e.preventDefault();
+                            e.stopPropagation();
+
+                            // ⭐️ 개발용: 로그인된 유저 상태 강제 주입 (localStorage)
+                            const devUser = {
+                              id: 'dev_user_1',
+                              email: 'dev@test.com',
+                              nickname: '개발자',
+                              role: 'user',
+                              provider: 'dev'
+                            };
+                            localStorage.setItem('user', JSON.stringify(devUser));
+
+                            console.log('⚡ [DEV] 개발 유저 모드 활성화 -> 사주 관리 페이지 즉시 진입');
+
+                            // localStorage 저장이 확실히 반영된 후 이동
+                            setTimeout(() => {
+                              onNavigateToSajuManagement?.();
+                            }, 10);
+                          }}
+                          className="px-[6px] py-[2px] rounded-[4px] bg-red-100 border border-red-200 text-red-600 text-[10px] font-bold hover:bg-red-200 transition-colors cursor-pointer relative z-10"
+                        >
+                          UI TEST
+                        </button>
+                      )}
+                    </div>
                     <div className="relative shrink-0 size-[16px]">
                       <ArrowRightIcon />
                     </div>
                   </motion.div>
-                  <motion.div 
+                  {/* 4. 의견 전달하기 */}
+                  <motion.div
                     variants={itemVariants}
                     onClick={() => window.open('https://docs.google.com/forms/d/1yHM5cioHLaZWCaevJ0ib7Y8i6zmCQTnTfG-KK4nMceU/edit', '_blank')}
                     className="content-stretch flex items-center justify-between px-[16px] py-[12px] rounded-[16px] w-full cursor-pointer hover:bg-[#f9f9f9] active:bg-[#f9f9f9] transition-colors"
                   >
                     <p className="font-['Pretendard_Variable:Medium',sans-serif] leading-[28.5px] text-[16px] text-black tracking-[-0.32px]">의견 전달하기</p>
+                    <div className="relative shrink-0 size-[16px]">
+                      <ArrowRightIcon />
+                    </div>
+                  </motion.div>
+                  {/* 5. 로그아웃 */}
+                  <motion.div
+                    variants={itemVariants}
+                    onClick={handleLogout}
+                    className="content-stretch flex items-center justify-between px-[16px] py-[12px] rounded-[16px] w-full cursor-pointer hover:bg-[#f9f9f9] active:bg-[#f9f9f9] transition-colors"
+                  >
+                    <p className="font-['Pretendard_Variable:Medium',sans-serif] leading-[28.5px] text-[16px] text-black tracking-[-0.32px]">로그아웃</p>
                     <div className="relative shrink-0 size-[16px]">
                       <ArrowRightIcon />
                     </div>
