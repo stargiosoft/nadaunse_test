@@ -56,36 +56,151 @@ serve(async (req) => {
 ${imagePrompt}
 
 ---
-
-CHARACTER IDENTITY (UNCHANGEABLE):
-마스코트 "새싹이" - a cute minimalist cartoon character with:
-- Chubby, rounded, bell-shaped white body
-- Two small black dot eyes  
-- Simple flat yellow-orange beak
-- Small yellow-orange feet
-- A tiny two-leaf green sprout on head
-- Bold dark brown outline, flat pastel colors
-This design must remain exactly unchanged. Only expression/pose/accessories may vary.
-
----
-
-ILLUSTRATION STYLE:
-- Warm children's book illustration aesthetic
-- Simple flat coloring, hand-drawn feeling
-- NO glow effects
-- Background: simple, slightly stylized, uncluttered
-
----
-
-OUTPUT:
-391x270 pixels (aspect ratio ~13:9)
-Character centered, 50-60% frame height
-No text, logos, watermarks
-
----
-
-NEGATIVE:
-swan anatomy, elongated neck, cosmic background, glowing effects, photorealistic, same pose as reference`
+==============================
+[SCENE SPACE DECLARATION — FIXED]
+==============================
+This scene MUST take place within a fully expanded environment.
+The space is wide and continuous, extending beyond Osun-i in all directions.
+The background must fill the entire image edge to edge,
+with the environment clearly visible across the whole frame.
+This is NOT a close-up or isolated corner.
+The setting must feel like a complete place, not a partial view.
+==============================
+GLOBAL SCENE RULES (ABSOLUTE)
+==============================
+- The image must be a single, fully self-contained scene.
+- The scene shows ONLY the present moment as a frozen snapshot.
+- No before/after, no timeline, no process depiction.
+- The meaning of the scene must be readable within 1 second as a thumbnail.
+- The background must explain the topic itself, not just create mood.
+- The image must be understandable without any text, symbols, or captions.
+==============================
+FULL-BLEED BACKGROUND LOCK (ABSOLUTE)
+==============================
+- The background MUST completely fill the entire image edge to edge.
+- NO white background, margin, empty canvas, or exposed frame is allowed.
+- NO visible border, outline, panel, card, or poster-style framing.
+- The background must physically touch all four edges of the image.
+- Any visible blank or white space is a FAILURE.
+This is a full-bleed illustration.
+The scene itself IS the canvas.
+==============================
+EXECUTION CONTEXT (IMPORTANT)
+==============================
+This image is generated via Gemini API.
+Model: 나노바나나1_api
+The image is rendered as a raw image asset
+inside a custom React application.
+It is NOT:
+- an AI Studio preview
+- a framed illustration
+- a branded or platform UI output
+DO NOT include:
+- any logo
+- any watermark
+- any UI overlay
+- any platform-identifying element
+- any aspect-ratio labels or corner markings
+==============================
+CHARACTER BASE LOCK (ABSOLUTE)
+==============================
+Osun-i is a fixed mascot character.
+Use the base appearance as an absolute reference.
+Osun-i must ALWAYS have:
+- A chubby, bell-shaped white body
+- Pure white body color
+- Thick, consistent dark outline
+- EXACTLY two small black dot eyes
+ (size, spacing, and position must NOT change)
+- One flat horizontal oval yellow beak
+ (shape must NOT change)
+- One thin stem with exactly two rounded light-green leaves on the head
+- Two simple oval yellow feet (no toes)
+NO reinterpretation.
+NO deformation.
+NO simplification.
+==============================
+FACE & EYEBROW HARD LOCK (CRITICAL)
+==============================
+Osun-i’s facial structure is COMPLETELY LOCKED.
+ABSOLUTE RULES:
+- Osun-i has EXACTLY:
+ • 2 eyes (black dots)
+ • 0 eyelids
+ • 0 eyelashes
+ • 0 extra facial marks
+ • 0 additional lines around the eyes
+- NO new facial elements may be added under any circumstance.
+Eyebrow rules (VERY IMPORTANT):
+- Osun-i has NO independent eyebrows.
+- Eyebrows must NOT be drawn as separate shapes, lines, or strokes.
+- Eyebrows must NOT be duplicated or layered.
+- Eyebrows must NOT float, detach, or overlap the eyes.
+If eyebrows appear as visible lines, shapes, or multiple elements,
+the result is INVALID.
+==============================
+EMOTION & EXPRESSION ALIGNMENT (CRITICAL)
+==============================
+Facial exaggeration is NOT allowed.
+Emotion must be expressed primarily through:
+1. Action (hesitating, pausing, observing, stopping mid-motion)
+2. Posture (leaning, distance, body direction, stillness)
+3. VERY subtle facial tension only (no new shapes)
+IMPORTANT:
+- The facial expression must ALWAYS match the [SAJU PRODUCT TOPIC].
+- Do NOT express anger, aggression, or extreme emotion
+ unless the topic explicitly implies it.
+- Curiosity, uncertainty, concern, expectation, contemplation
+ must be expressed as restrained, quiet states.
+Examples:
+- Curiosity → paused action, slight forward lean
+- Uncertainty → hesitation, uneven weight, stopped motion
+- Expectation → stillness, attention focused forward
+- Concern → reduced movement, cautious posture
+If the topic is about “wondering,” “checking,” or “considering,”
+angry or intense expressions are STRICTLY FORBIDDEN.
+A mismatch between topic and expression is a FAILURE.
+==============================
+AUTOMATIC SCENE GENERATION (CORE)
+==============================
+Based ONLY on the [SAJU PRODUCT TOPIC],
+the AI must automatically and creatively determine:
+- What Osun-i is doing right now (one clear action or paused action)
+- Osun-i’s posture and emotional state (subtle, topic-aligned)
+- A concrete, specific location that visually explains the topic
+- Meaningful objects that make the topic obvious at a glance
+Rules:
+- Avoid generic rooms unless the topic clearly requires it.
+- Avoid repeating similar locations or compositions.
+- The background and objects must actively carry the meaning.
+==============================
+OTHER CHARACTERS RULE (ABSOLUTE)
+==============================
+If the scene requires other characters:
+- They MUST be Osun-i–style characters ONLY
+- Same silhouette, proportions, and design rules
+- NO human silhouettes
+- NO human-shaped figures or shadows
+- NO abstract person-like forms
+Any human presence must be represented
+ONLY as another Osun-i-shaped character.
+==============================
+STYLE & QUALITY
+==============================
+- Flat 2D illustration
+- Solid colors only
+- No gradients
+- No glow or lighting effects
+- Minimal shading
+- Clear visual storytelling
+- Instantly readable at thumbnail size
+==============================
+OUTPUT CANVAS RULE (STRICT)
+==============================
+- The illustration must appear as a full-bleed scene.
+- No borders, frames, margins, or rounded corners.
+- No text inside the image.
+- No logo or watermark.`
 
     console.log('🔑 Gemini API 호출 시작 (gemini-2.5-flash-image)...')
 

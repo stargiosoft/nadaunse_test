@@ -348,66 +348,66 @@ useEffect(() => {
 
 ---
 
-### iOS 스와이프 뒤로가기: 홈페이지 pushState/popstate 완전 제거
-**결정**: 홈페이지에서 `pushState`/`popstate` 패턴을 **완전히 제거**하고 bfcache 핸들러만 유지
+### iOS 스와이프 뒤로가기: 홈페이지 히스토리 버퍼 최적화
+**결정**: 홈페이지는 앱 진입점이므로 **최초 진입 시에만** 버퍼 추가, popstate 핸들러는 제거
 **배경**:
 - 홈 → 콘텐츠 상세 → 스와이프 뒤로가기 → 홈 반복 시 히스토리 무한 증가
 - history.length: 49 → 53 → 58 → 63... 계속 증가
-- 2번째 뒤로가기에서 페이지가 닫히는 버그
-- 기존 해결 방식(버퍼 추가 횟수 제한)으로도 문제 해결 안 됨
+- popstate 핸들러의 버퍼 재추가 로직이 문제의 원인
 
-**문제 시나리오**:
+**HomePage vs 다른 페이지 차이점**:
+| 페이지 | 특성 | 버퍼 필요 |
+|--------|------|----------|
+| PaymentNew, SajuManagementPage | 앞에 다른 페이지가 있음 | ❌ 불필요 |
+| **HomePage** | **앱의 진입점** (첫 페이지) | ✅ **최초 진입 시 필요** |
+
+**문제 시나리오** (수정 전):
 ```
-1. 홈 진입 → iOS 버퍼 5개 추가 (history.length: 49 → 54)
-2. 콘텐츠 클릭 → 새 히스토리 엔트리
-3. 스와이프 뒤로가기 → 홈으로 돌아옴 (버퍼 소비)
-4. 다시 스와이프 → 버퍼 계속 소비 → 앱 종료!
+1. 홈 진입 → iOS 버퍼 5개 추가 (매번!)
+2. 콘텐츠 왕복할 때마다 버퍼 5개씩 추가
+3. history.length: 49 → 54 → 59 → 64... 무한 증가
 ```
 
-**근본 원인**:
-- `pushState`로 추가한 버퍼 엔트리들이 스와이프 뒤로가기로 소비됨
-- popstate 핸들러에서 버퍼 재추가 → 히스토리 스택 예측 불가능
-- iOS Safari의 bfcache와 충돌하며 비정상 동작
-
-**해결 방법** (DECISIONS.md 기존 패턴 적용):
+**해결 방법**:
 ```typescript
-// ❌ 제거: pushState/popstate 패턴 완전 제거
-// window.history.pushState({...}, '', url);
-// window.addEventListener('popstate', handler);
-
-// ✅ 유지: bfcache 핸들러만
+// 🛡️ iOS Safari 앱 종료 방지: 홈은 앱 진입점이므로 최초 진입 시에만 버퍼 추가
 useEffect(() => {
-  const handlePageShow = (e: PageTransitionEvent) => {
-    if (e.persisted) {
-      console.log('📄 [pageshow] bfcache에서 복원됨');
+  const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+
+  // 🔑 세션 내 한 번만 버퍼 추가 (콘텐츠 왕복 시 추가 안 함)
+  const isHistoryInitialized = sessionStorage.getItem('homepage_history_initialized');
+
+  // 콘텐츠에서 돌아온 경우 플래그만 제거
+  const hasNavigatedFromHome = sessionStorage.getItem('navigatedFromHome');
+  if (hasNavigatedFromHome) {
+    sessionStorage.removeItem('navigatedFromHome');
+    return; // 버퍼 추가 스킵
+  }
+
+  // 🛡️ iOS 최초 진입 시에만 버퍼 추가 (앱 종료 방지)
+  if (isIOS && !isHistoryInitialized) {
+    const bufferCount = 3;
+    for (let i = 0; i < bufferCount; i++) {
+      window.history.pushState({ type: 'home_buffer', index: i }, '', window.location.href);
     }
-  };
-
-  const handleVisibilityChange = () => {
-    if (document.visibilityState === 'visible') {
-      console.log('👁️ [visibilitychange] 페이지가 다시 보임');
-    }
-  };
-
-  window.addEventListener('pageshow', handlePageShow);
-  document.addEventListener('visibilitychange', handleVisibilityChange);
-
-  return () => {
-    window.removeEventListener('pageshow', handlePageShow);
-    document.removeEventListener('visibilitychange', handleVisibilityChange);
-  };
+    sessionStorage.setItem('homepage_history_initialized', 'true');
+  }
 }, []);
+
+// ❌ popstate 핸들러 완전 제거 (버퍼 재추가 로직 없음)
+// ✅ bfcache 핸들러만 유지 (pageshow, visibilitychange)
 ```
 
-**핵심 원리** (PaymentNew, SajuManagementPage 동일 패턴):
-- **iOS 스와이프 뒤로가기는 브라우저가 자연스럽게 처리하도록 두는 것이 최선**
-- `pushState`/`popstate` 패턴은 히스토리 스택을 예측 불가능하게 만듦
-- bfcache 핸들러(`pageshow`, `visibilitychange`)만으로 충분
+**핵심 원리**:
+- **홈페이지는 앱 진입점** → 뒤로갈 곳이 없으므로 최초 진입 시 버퍼 필요
+- **popstate 핸들러 제거** → 버퍼 재추가로 인한 히스토리 무한 증가 방지
+- **세션 플래그로 중복 방지** → 콘텐츠 왕복 시 버퍼 추가 안 함
 
 **변경 사항**:
-1. `pushState` 로직 완전 제거 (버퍼 추가 로직 삭제)
-2. `popstate` 이벤트 핸들러 완전 제거
-3. bfcache 핸들러만 유지 (`pageshow`, `visibilitychange`)
+1. 최초 진입 시에만 버퍼 3개 추가 (`homepage_history_initialized` 플래그)
+2. 콘텐츠에서 돌아올 때 버퍼 추가 스킵 (`navigatedFromHome` 플래그)
+3. popstate 이벤트 핸들러 완전 제거 (버퍼 재추가 로직 없음)
+4. bfcache 핸들러만 유지 (`pageshow`, `visibilitychange`)
 
 **영향**: `/src/pages/HomePage.tsx`
 **테스트**: iOS Safari에서 홈 ↔ 콘텐츠 상세 5회 이상 왕복 후 정상 동작 확인

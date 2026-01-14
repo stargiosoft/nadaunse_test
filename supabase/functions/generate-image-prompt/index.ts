@@ -65,7 +65,7 @@ Mood: [전체 분위기와 감정 톤]
 부연 설명 없이 영문 프롬프트만 출력
 항목(Scene, Setting, Key props, Mood) 구조 유지`
 
-    console.log('OpenAI Responses API 호출 시작 (gpt-5-nano)')
+    console.log('OpenAI Responses API 호출 시작 (gpt-5-mini)')
 
     const response = await fetch('https://api.openai.com/v1/responses', {
       method: 'POST',
@@ -74,7 +74,7 @@ Mood: [전체 분위기와 감정 톤]
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-5-nano',
+        model: 'gpt-5-mini',
         input: prompt
       })
     })

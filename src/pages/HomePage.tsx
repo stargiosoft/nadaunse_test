@@ -625,22 +625,44 @@ export default function HomePage() {
   const [showNavigation, setShowNavigation] = useState(true);
   const lastScrollY = useRef(0);
 
-  // 🛡️ iOS Safari bfcache 핸들러만 유지
-  // DECISIONS.md 핵심 원리: pushState/popstate 제거, 브라우저의 자연스러운 히스토리 탐색에 의존
+  // 🛡️ iOS Safari 앱 종료 방지: 홈은 앱 진입점이므로 최초 진입 시에만 버퍼 추가
+  // PaymentNew, SajuManagementPage와 다른 점: 홈은 첫 페이지라 뒤로갈 곳이 없음
   useEffect(() => {
-    // bfcache 복원 시 상태 리셋 (pageshow)
+    const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+
+    // 🔑 세션 내 한 번만 버퍼 추가 (콘텐츠 왕복 시 추가 안 함)
+    const isHistoryInitialized = sessionStorage.getItem('homepage_history_initialized');
+
+    // 콘텐츠에서 돌아온 경우 플래그만 제거
+    const hasNavigatedFromHome = sessionStorage.getItem('navigatedFromHome');
+    if (hasNavigatedFromHome) {
+      sessionStorage.removeItem('navigatedFromHome');
+      console.log('🧹 [히스토리] 콘텐츠에서 돌아옴 → 버퍼 추가 스킵');
+      return;
+    }
+
+    // 🛡️ iOS 최초 진입 시에만 버퍼 추가 (앱 종료 방지)
+    if (isIOS && !isHistoryInitialized) {
+      const bufferCount = 3;
+      for (let i = 0; i < bufferCount; i++) {
+        window.history.pushState({ type: 'home_buffer', index: i }, '', window.location.href);
+      }
+      sessionStorage.setItem('homepage_history_initialized', 'true');
+      console.log(`✅ [히스토리] iOS 최초 진입 → 버퍼 ${bufferCount}개 추가`);
+    }
+  }, []);
+
+  // 🛡️ bfcache 핸들러 (popstate는 제거 - 버퍼 재추가 로직 없음)
+  useEffect(() => {
     const handlePageShow = (e: PageTransitionEvent) => {
       if (e.persisted) {
         console.log('📄 [pageshow] bfcache에서 복원됨');
-        // 필요시 상태 리셋 로직 추가
       }
     };
 
-    // 탭 전환 시 상태 확인 (visibilitychange)
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         console.log('👁️ [visibilitychange] 페이지가 다시 보임');
-        // 필요시 데이터 새로고침 로직 추가
       }
     };
 
