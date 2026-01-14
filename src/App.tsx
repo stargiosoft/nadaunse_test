@@ -976,16 +976,6 @@ function FreeResultPage() {
     );
   }
 
-  const recommendedProducts = allProducts
-    .filter(p => p.id !== Number(id) && (p.category === product.category || p.type === 'paid'))
-    .slice(0, 6)
-    .map(p => ({
-      id: p.id,
-      title: p.title,
-      type: p.type,
-      image: p.image
-    }));
-
   console.log('✅ [FreeResultPage] FreeSajuDetail 렌더링');
   console.log('📌 [FreeResultPage] recordId 전달:', recordId);
   console.log('📌 [FreeResultPage] productImage:', product.image);
@@ -999,7 +989,7 @@ function FreeResultPage() {
       productImage={product.image}
       contentId={id}
       onClose={() => navigate('/')}
-      recommendedProducts={recommendedContents.length > 0 ? recommendedContents : recommendedProducts}
+      recommendedProducts={recommendedContents}
       onProductClick={(productId) => {
         navigate(`/product/${productId}`);
       }}
