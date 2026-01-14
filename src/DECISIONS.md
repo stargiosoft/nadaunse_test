@@ -348,69 +348,116 @@ useEffect(() => {
 
 ---
 
-### iOS 스와이프 뒤로가기: 홈페이지 히스토리 버퍼 최적화
-**결정**: 홈페이지는 앱 진입점이므로 **최초 진입 시에만** 버퍼 추가, popstate 핸들러는 제거
+### iOS 스와이프 뒤로가기: 홈페이지 무한 스와이프 지원 (동적 버퍼 재충전)
+**결정**: pushState의 특성(현재 위치 뒤 엔트리 삭제)을 활용하여 동적으로 버퍼를 재충전, 무한 스와이프 지원
 **배경**:
-- 홈 → 콘텐츠 상세 → 스와이프 뒤로가기 → 홈 반복 시 히스토리 무한 증가
-- history.length: 49 → 53 → 58 → 63... 계속 증가
-- popstate 핸들러의 버퍼 재추가 로직이 문제의 원인
+- 홈 → 콘텐츠 상세 → 스와이프 뒤로가기 → 홈 반복 시 히스토리 무한 증가 (기존 버그)
+- 버퍼 3개만 추가하면 6회 반복 후 페이지 닫힘 (부분 수정의 한계)
+- **요구사항**: 무한 번 반복해도 페이지가 닫히지 않아야 함
 
 **HomePage vs 다른 페이지 차이점**:
 | 페이지 | 특성 | 버퍼 필요 |
 |--------|------|----------|
-| PaymentNew, SajuManagementPage | 앞에 다른 페이지가 있음 | ❌ 불필요 |
-| **HomePage** | **앱의 진입점** (첫 페이지) | ✅ **최초 진입 시 필요** |
+| PaymentNew, SajuManagementPage | 앞에 다른 페이지가 있음 | ❌ 불필요 (popstate 제거) |
+| **HomePage** | **앱의 진입점** (첫 페이지) | ✅ **동적 버퍼 재충전 필요** |
 
-**문제 시나리오** (수정 전):
+**핵심 인사이트**: `pushState`는 현재 위치 뒤의 모든 엔트리를 삭제한 후 새 엔트리 추가
 ```
-1. 홈 진입 → iOS 버퍼 5개 추가 (매번!)
-2. 콘텐츠 왕복할 때마다 버퍼 5개씩 추가
-3. history.length: 49 → 54 → 59 → 64... 무한 증가
+[버퍼 중간(index 2) 도달 시]
+stack: [Home, buf0, buf1, buf2, buf3, buf4]
+                         ↑ current
+→ pushState 호출
+
+[결과: 뒤쪽 엔트리(buf3, buf4) 삭제 + 새 버퍼 추가]
+stack: [Home, buf0, buf1, buf2, newBuf]
+                               ↑ current
+→ history.length 유지됨!
 ```
 
 **해결 방법**:
 ```typescript
-// 🛡️ iOS Safari 앱 종료 방지: 홈은 앱 진입점이므로 최초 진입 시에만 버퍼 추가
+const BUFFER_COUNT = 5;
+
+// 🔧 1단계: 최초 진입 시 홈 상태 마킹 + 버퍼 초기화
 useEffect(() => {
   const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
-
-  // 🔑 세션 내 한 번만 버퍼 추가 (콘텐츠 왕복 시 추가 안 함)
   const isHistoryInitialized = sessionStorage.getItem('homepage_history_initialized');
 
-  // 콘텐츠에서 돌아온 경우 플래그만 제거
+  // 콘텐츠에서 돌아온 경우 플래그만 제거 (버퍼는 이미 존재)
   const hasNavigatedFromHome = sessionStorage.getItem('navigatedFromHome');
   if (hasNavigatedFromHome) {
     sessionStorage.removeItem('navigatedFromHome');
-    return; // 버퍼 추가 스킵
+    return;
   }
 
-  // 🛡️ iOS 최초 진입 시에만 버퍼 추가 (앱 종료 방지)
   if (isIOS && !isHistoryInitialized) {
-    const bufferCount = 3;
-    for (let i = 0; i < bufferCount; i++) {
+    // 홈 상태 마킹 (버퍼 모두 소진 시 식별용)
+    window.history.replaceState({ type: 'home', index: 0 }, '', window.location.href);
+
+    // 버퍼 5개 추가
+    for (let i = 0; i < BUFFER_COUNT; i++) {
       window.history.pushState({ type: 'home_buffer', index: i }, '', window.location.href);
     }
     sessionStorage.setItem('homepage_history_initialized', 'true');
   }
 }, []);
 
-// ❌ popstate 핸들러 완전 제거 (버퍼 재추가 로직 없음)
-// ✅ bfcache 핸들러만 유지 (pageshow, visibilitychange)
+// 🔧 2단계: popstate 핸들러 - 버퍼 동적 재충전 (핵심!)
+useEffect(() => {
+  const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+  if (!isIOS) return;
+
+  const handlePopstate = (event: PopStateEvent) => {
+    const state = event.state;
+    if (window.location.pathname !== '/') return; // 홈에서만 동작
+
+    // Case 1: 버퍼 영역 - 중간 이하 도달 시 새 버퍼 추가
+    if (state?.type === 'home_buffer') {
+      const bufferIndex = state.index ?? 0;
+      const threshold = Math.floor(BUFFER_COUNT / 2); // 2
+      if (bufferIndex <= threshold) {
+        window.history.pushState({ type: 'home_buffer', index: BUFFER_COUNT - 1 }, '', window.location.href);
+      }
+      return;
+    }
+
+    // Case 2: 홈 상태 도달 - 버퍼 전체 재생성
+    if (state?.type === 'home') {
+      for (let i = 0; i < BUFFER_COUNT; i++) {
+        window.history.pushState({ type: 'home_buffer', index: i }, '', window.location.href);
+      }
+      return;
+    }
+
+    // Case 3: 상태 없음 - 앱 최초 진입점 (비상 복구)
+    if (!state) {
+      window.history.replaceState({ type: 'home', index: 0 }, '', window.location.href);
+      for (let i = 0; i < BUFFER_COUNT; i++) {
+        window.history.pushState({ type: 'home_buffer', index: i }, '', window.location.href);
+      }
+    }
+  };
+
+  window.addEventListener('popstate', handlePopstate);
+  return () => window.removeEventListener('popstate', handlePopstate);
+}, []);
 ```
 
-**핵심 원리**:
-- **홈페이지는 앱 진입점** → 뒤로갈 곳이 없으므로 최초 진입 시 버퍼 필요
-- **popstate 핸들러 제거** → 버퍼 재추가로 인한 히스토리 무한 증가 방지
-- **세션 플래그로 중복 방지** → 콘텐츠 왕복 시 버퍼 추가 안 함
+**히스토리 길이 분석**:
+| 시나리오 | 이전 (버그) | 수정 후 |
+|---------|------------|---------|
+| 초기 | 4 | 6 (Home + 5버퍼) |
+| 왕복 10회 | 54+ (무한 증가) | 5~7 (일정 유지) |
+| 무한 스와이프 | 앱 종료 | ✅ 계속 홈 유지 |
 
 **변경 사항**:
-1. 최초 진입 시에만 버퍼 3개 추가 (`homepage_history_initialized` 플래그)
-2. 콘텐츠에서 돌아올 때 버퍼 추가 스킵 (`navigatedFromHome` 플래그)
-3. popstate 이벤트 핸들러 완전 제거 (버퍼 재추가 로직 없음)
-4. bfcache 핸들러만 유지 (`pageshow`, `visibilitychange`)
+1. 버퍼 3개 → 5개 증가 (연속 스와이프 대응)
+2. 홈 상태 마킹 추가 (`replaceState`로 `type: 'home'` 설정)
+3. popstate 핸들러 추가 (동적 버퍼 재충전)
+4. pushState의 특성 활용하여 히스토리 길이 5~7 범위 유지
 
 **영향**: `/src/pages/HomePage.tsx`
-**테스트**: iOS Safari에서 홈 ↔ 콘텐츠 상세 5회 이상 왕복 후 정상 동작 확인
+**테스트**: iOS Safari에서 홈 ↔ 콘텐츠 상세 **무한 반복** 및 홈에서 **무한 스와이프** 테스트
 
 ---
 
