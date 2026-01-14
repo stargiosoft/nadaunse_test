@@ -1,20 +1,20 @@
 /**
  * 무료 콘텐츠 상세 페이지 UI 컴포넌트 모음
  * 재사용 가능한 UI 컴포넌트들을 모아놓은 파일
- * 
+ *
  * @module FreeContentDetailComponents
  */
 
+import { useState, useEffect } from 'react';
 import { MasterContent, Question } from '../lib/freeContentService';
 import { getThumbnailUrl } from '../lib/image';
 import { motion } from "motion/react";
 import { ChevronRight } from 'lucide-react';
-import svgPathsBanner from "../imports/svg-1j0aq37vhy";
 import svgPathsSlider from "../imports/svg-4heccierrk";
 import svgPathsBack from "../imports/svg-geohasap3g";
 import svgPathsHome from "../imports/svg-pz84vpwvud";
 import svgPathsMore from "../imports/svg-yzh80oj47m";
-import bannerImg from "figma:asset/b236509a5f2172bc63b883ba8abf132659ed54d9.png";
+import { getRandomBanner, getBannerImageUrl, getProductIdForEnvironment, type AdBannerItem } from '../lib/adBannerConfig';
 
 /**
  * 홈 인디케이터 (iOS 스타일)
@@ -260,53 +260,78 @@ export function FortuneComposition({ questions }: FortuneCompositionProps) {
 
 /**
  * 광고 배너
- * 
+ * Supabase Storage PNG 이미지 기반 광고 배너
+ * 페이지 이동/새로고침마다 5개 배너 중 하나가 랜덤 노출됨
+ *
  * @param {Object} props
- * @param {() => void} props.onClick - 클릭 핸들러
+ * @param {(productId: string) => void} props.onBannerClick - 배너 클릭 핸들러 (상품 ID 전달)
  */
 interface AdBannerProps {
-  onClick?: () => void;
+  onBannerClick?: (productId: string) => void;
 }
 
-export function AdBanner({ onClick }: AdBannerProps) {
+export function AdBanner({ onBannerClick }: AdBannerProps) {
+  const [banner, setBanner] = useState<AdBannerItem | null>(null);
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
+
+  // 컴포넌트 마운트 시 랜덤 배너 선택
+  useEffect(() => {
+    const selectedBanner = getRandomBanner();
+    setBanner(selectedBanner);
+  }, []);
+
+  const handleClick = () => {
+    if (!banner) return;
+
+    const productId = getProductIdForEnvironment(banner);
+
+    // 상품 ID가 설정되지 않은 경우 경고 (개발 중)
+    if (!productId) {
+      console.warn('[AdBanner] 상품 ID가 설정되지 않았습니다:', banner.id, banner.productName);
+      return;
+    }
+
+    onBannerClick?.(productId);
+  };
+
+  // 배너 로딩 중 스켈레톤 UI
+  if (!banner) {
+    return (
+      <div className="bg-[#f8f8f8] box-border content-stretch flex flex-col gap-[10px] items-start p-[20px] relative shrink-0 w-full mb-[52px]">
+        <div className="bg-gray-200 relative rounded-[16px] shrink-0 w-full h-[100px] animate-pulse" />
+      </div>
+    );
+  }
+
+  const imageUrl = getBannerImageUrl(banner.imageFileName);
+
   return (
     <div className="bg-[#f8f8f8] box-border content-stretch flex flex-col gap-[10px] items-start p-[20px] relative shrink-0 w-full mb-[52px]">
-      <div 
-        onClick={onClick}
-        className="bg-white relative rounded-[16px] shadow-[6px_7px_12px_0px_rgba(0,0,0,0.04),-3px_-3px_12px_0px_rgba(0,0,0,0.04)] shrink-0 w-full cursor-pointer transition-transform duration-200 ease-in-out active:scale-[0.96]"
+      <div
+        onClick={handleClick}
+        className="bg-white relative rounded-[16px] shadow-[6px_7px_12px_0px_rgba(0,0,0,0.04),-3px_-3px_12px_0px_rgba(0,0,0,0.04)] shrink-0 w-full cursor-pointer transition-transform duration-200 ease-in-out active:scale-[0.96] overflow-hidden transform-gpu"
       >
-        <div className="flex flex-row items-center size-full">
-          <div className="content-stretch flex items-center px-[20px] py-[12px] relative w-full">
-            <div className="basis-0 content-stretch flex gap-[8px] grow items-center min-h-px min-w-px relative shrink-0">
-              <div className="basis-0 content-stretch flex flex-col grow items-start min-h-px min-w-px relative shrink-0">
-                <p className="font-semibold leading-[25.5px] relative shrink-0 text-[#151515] text-[15px] tracking-[-0.3px] w-full mt-[4px]">
-                  월급쟁이에서 벗어나, 대박의 길로
-                </p>
-                <p className="font-normal leading-[19px] relative shrink-0 text-[#848484] text-[13px] tracking-[-0.26px] w-full">
-                  퇴사 후 대박 터질 타이밍 알려드립니다.
-                </p>
-              </div>
-              <div className="content-stretch flex gap-[12px] items-center relative shrink-0">
-                <div className="h-[60px] relative shrink-0 w-[78px]">
-                  <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-[8px]">
-                    <img 
-                      alt="광고 이미지" 
-                      className="absolute inset-0 size-full object-cover object-center" 
-                      src={bannerImg} 
-                    />
-                  </div>
-                </div>
-                <div className="relative shrink-0 size-[16px]">
-                  <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 16 16">
-                    <g id="arrow-right">
-                      <path d={svgPathsBanner.p232a3c80} stroke="var(--stroke-0, #999999)" strokeLinecap="round" strokeLinejoin="round" strokeMiterlimit="10" strokeWidth="1.7" />
-                    </g>
-                  </svg>
-                </div>
-              </div>
-            </div>
+        {/* 이미지 로딩 중 스켈레톤 */}
+        {!imageLoaded && !imageError && (
+          <div className="w-full aspect-[351/100] bg-gray-100 animate-pulse" />
+        )}
+
+        {/* 이미지 로드 실패 시 폴백 UI */}
+        {imageError && (
+          <div className="w-full aspect-[351/100] bg-gray-100 flex items-center justify-center">
+            <p className="text-gray-400 text-sm">배너를 불러올 수 없습니다</p>
           </div>
-        </div>
+        )}
+
+        {/* 배너 이미지 */}
+        <img
+          src={imageUrl}
+          alt={banner.alt}
+          className={`w-full h-auto object-cover ${!imageLoaded ? 'hidden' : ''}`}
+          onLoad={() => setImageLoaded(true)}
+          onError={() => setImageError(true)}
+        />
       </div>
     </div>
   );

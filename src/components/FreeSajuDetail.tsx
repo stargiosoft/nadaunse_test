@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from "motion/react";
 import svgPaths from '../imports/svg-e15u41g853';
 import img from "figma:asset/5615ff21216f93eb47cac8ee15adee136174d7be.png";
-import img1 from "figma:asset/b236509a5f2172bc63b883ba8abf132659ed54d9.png";
 import img2 from "figma:asset/67f3616aab1dcdea805228bdd4e698e8f57dd487.png";
+import { AdBanner } from './FreeContentDetailComponents';
 
 interface FreeSajuDetailProps {
   recordId: string;
@@ -20,7 +20,7 @@ interface FreeSajuDetailProps {
     image: string;
   }>;
   onProductClick?: (productId: number) => void;
-  onBannerClick?: () => void;
+  onBannerClick?: (productId: string) => void;
   onUserIconClick?: () => void;
 }
 
@@ -76,7 +76,6 @@ export default function FreeSajuDetail({
 }: FreeSajuDetailProps) {
   const navigate = useNavigate();
   const [visibleCount, setVisibleCount] = useState(3); // ⭐️ 표시할 콘텐츠 개수
-  const [isBannerPressed, setIsBannerPressed] = useState(false); // ⭐️ 배너 프레스 상태
   const observerTarget = useRef<HTMLDivElement>(null);
   
   // ⭐️ localStorage에서 결과 데이터 즉시 로드 (동기 작업이므로 로딩 불필요)
@@ -338,55 +337,11 @@ export default function FreeSajuDetail({
               </div>
 
               {/* Promotion Banner */}
-              <motion.div 
-                className="bg-[#f8f8f9] relative shrink-0 w-full"
+              <motion.div
+                className="relative shrink-0 w-full"
                 variants={itemVariants}
               >
-                <div className="size-full">
-                  <div className="content-stretch flex flex-col items-start p-[20px] relative w-full">
-                    <button
-                      onClick={onBannerClick}
-                      onTouchStart={() => setIsBannerPressed(true)}
-                      onTouchEnd={() => setIsBannerPressed(false)}
-                      onTouchCancel={() => setIsBannerPressed(false)}
-                      className={`relative rounded-[16px] shadow-[6px_7px_12px_0px_rgba(0,0,0,0.04),-3px_-3px_12px_0px_rgba(0,0,0,0.04)] shrink-0 w-full border-none cursor-pointer p-0 transition-all duration-200 ease-in-out active:scale-[0.96] active:bg-gray-50 overflow-visible ${isBannerPressed ? 'scale-[0.96] bg-gray-50' : 'bg-white'}`}
-                    >
-                      <div className="flex flex-row items-center size-full">
-                        <div className="content-stretch flex items-center px-[20px] py-[12px] relative w-full gap-[12px] transition-all duration-150 ease-in-out active:scale-[0.96] active:bg-gray-50 cursor-pointer bg-white rounded-[16px]">
-                          <div className="basis-0 content-stretch flex gap-[8px] grow items-center min-h-px min-w-px relative shrink-0">
-                            <div className="basis-0 content-stretch flex flex-col grow items-start min-h-px min-w-px relative shrink-0">
-                              <p className="font-semibold leading-[25.5px] relative shrink-0 text-[#151515] text-[15px] tracking-[-0.3px] w-full text-left">
-                                월급쟁이에서 벗어, 대박의 길로
-                              </p>
-                              <p className="font-normal leading-[19px] relative shrink-0 text-[#848484] text-[13px] tracking-[-0.26px] w-full text-left">
-                                퇴사 후 대박 터질 이밍 알려드립니다.
-                              </p>
-                            </div>
-                            <div className="content-stretch flex gap-[12px] items-center relative shrink-0">
-                              <div className="h-[60px] relative shrink-0 w-[78px]">
-                                <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-[8px]">
-                                  <img 
-                                    alt="광고 이미지" 
-                                    className="absolute inset-0 size-full object-cover object-center" 
-                                    src={img1} 
-                                  />
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="relative shrink-0 size-[16px]">
-                            <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 16 16">
-                              <g id="arrow-right">
-                                <path d="M5.94 13.28L10.2867 8.93333C10.8 8.42 10.8 7.58 10.2867 7.06667L5.94 2.72" id="Vector" stroke="var(--stroke-0, #999999)" strokeLinecap="round" strokeLinejoin="round" strokeMiterlimit="10" strokeWidth="1.7" />
-                                <path d="M0.5 15.5L0.5 0.5L15.5 0.5L15.5 15.5L0.5 15.5Z" id="Vector_2" opacity="0" stroke="var(--stroke-0, #999999)" />
-                              </g>
-                            </svg>
-                          </div>
-                        </div>
-                      </div>
-                    </button>
-                  </div>
-                </div>
+                <AdBanner onBannerClick={onBannerClick} />
               </motion.div>
 
               {/* Recommended Products */}

@@ -52,7 +52,7 @@ interface FreeContentDetailProps {
   onBack: () => void;
   onHome: () => void;
   onContentClick?: (contentId: string) => void;
-  onBannerClick?: () => void;
+  onBannerClick?: (productId: string) => void;
   onPurchase?: () => void;
 }
 
@@ -551,7 +551,7 @@ export default function FreeContentDetail({
           {/* Advertisement Banner */}
           <motion.div variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } } }}>
             <div className="mb-[130px]">
-              <AdBanner onClick={onBannerClick} />
+              <AdBanner onBannerClick={onBannerClick} />
             </div>
           </motion.div>
           </motion.div>

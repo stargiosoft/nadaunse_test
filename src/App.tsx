@@ -442,7 +442,7 @@ function ProductDetailPage() {
         onBack={() => navigate('/')}
         onHome={() => navigate('/')}
         onContentClick={(contentId) => navigate(`/product/${contentId}`)}
-        onBannerClick={() => navigate('/')}
+        onBannerClick={(productId) => navigate(`/product/${productId}`)}
       />
     );
   }
@@ -1002,12 +1002,7 @@ function FreeResultPage() {
       onProductClick={(productId) => {
         navigate(`/product/${productId}`);
       }}
-      onBannerClick={() => {
-        const fortuneProduct = allProducts.find(p => p.id === 5 || (p.type === 'paid' && p.category === '재물'));
-        if (fortuneProduct) {
-          navigate(`/product/${fortuneProduct.id}`);
-        }
-      }}
+      onBannerClick={(productId) => navigate(`/product/${productId}`)}
       onUserIconClick={() => navigate('/profile')}
     />
   );
@@ -1255,10 +1250,7 @@ function FreeContentDetailWrapper() {
         // ⭐ 추천 콘텐츠 클릭 시 현재 페이지를 교체 (히스토리 쌓지 않음)
         navigate(`/master/content/detail/${contentId}`, { replace: true });
       }}
-      onBannerClick={() => {
-        // 배너 클릭 시 특정 콘텐츠로 이동 (예: 재물운)
-        navigate('/');
-      }}
+      onBannerClick={(productId) => navigate(`/product/${productId}`)}
       onPurchase={undefined} // ⭐ handlePurchase fallback 사용
     />
   );
