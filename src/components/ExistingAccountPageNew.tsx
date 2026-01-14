@@ -440,6 +440,12 @@ export default function ExistingAccountPageNew({ provider, onBack, onLoginWithCo
     }
   };
 
+  // accountInfo가 없으면 쿠키에서 이메일 가져오기 (DB 조회 실패 대비)
+  // useMemo를 early return 전에 호출해야 hooks 규칙 준수
+  const cookieEmail = getLastLoginEmail();
+  const email = accountInfo?.email || cookieEmail || 'user****@example.com';
+  const createdAt = accountInfo?.created_at || new Date().toISOString();
+
   if (isLoading) {
     return (
       <div className="bg-white relative min-h-screen w-full flex justify-center items-center overflow-hidden">
@@ -447,11 +453,6 @@ export default function ExistingAccountPageNew({ provider, onBack, onLoginWithCo
       </div>
     );
   }
-
-  // accountInfo가 없으면 쿠키에서 이메일 가져오기 (DB 조회 실패 대비)
-  const cookieEmail = React.useMemo(() => getLastLoginEmail(), []);
-  const email = accountInfo?.email || cookieEmail || 'user****@example.com';
-  const createdAt = accountInfo?.created_at || new Date().toISOString();
 
   return (
     <div className="bg-white relative w-full h-[100vh] flex justify-center overflow-hidden" data-name="기가입자 안내">
