@@ -2,7 +2,7 @@
 
 > **프로젝트**: 나다운세 (운세 서비스)
 > **총 함수 수**: 20개
-> **최종 업데이트**: 2026-01-13
+> **최종 업데이트**: 2026-01-14
 > **필수 문서**: [CLAUDE.md](../../CLAUDE.md) - 개발 규칙
 
 ---
@@ -196,11 +196,18 @@ process-refund (환불 처리)
 
 **AI 모델**: OpenAI GPT-4.1-nano (빠르고 저렴)
 
+**사주 API 연동** (2026-01-14 추가):
+- `SAJU_API_KEY` 환경변수로 Stargio 사주 API 호출
+- 상세 사주 데이터(격국, 일주, 대운 등)를 AI 프롬프트에 포함
+- 3회 재시도 로직 (1초, 2초 간격)
+- API 실패 시 기본 생년월일 정보로 graceful degradation
+
 **플로우**:
 ```
-FreeBirthInfoInput → FreeContentService 
+FreeBirthInfoInput → FreeContentService
   → generate-free-preview (Edge Function)
-  → OpenAI API
+  → Stargio 사주 API (상세 데이터 조회)
+  → OpenAI API (사주 데이터 포함 프롬프트)
   → free_content_answers 저장
   → FreeContentLoading (폴링)
   → FreeSajuDetail (결과)
@@ -278,7 +285,7 @@ if (!sajuApiKey) {
 // 날짜 포맷 변환
 const birthday = dateOnly + timeOnly  // YYYYMMDDHHmm
 
-const sajuApiUrl = `https://service.stargio.co.kr:8400/StargioSaju?birthday=${birthday}&lunar=True&gender=${gender}&apiKey=${sajuApiKey}`
+const sajuApiUrl = `https://service.stargio.co.kr:8400/StargioSaju?birthday=${birthday}&lunar=false&gender=${gender}&apiKey=${sajuApiKey}`
 
 // 최대 3번 재시도
 for (let sajuAttempt = 1; sajuAttempt <= 3; sajuAttempt++) {
@@ -303,6 +310,27 @@ for (let sajuAttempt = 1; sajuAttempt <= 3; sajuAttempt++) {
 **출력**:
 - `order_results` 테이블에 답변 저장
 - `orders.ai_generation_completed = true` 업데이트
+
+**⭐ 알림톡 중복 발송 방지 (2026-01-14 추가)**:
+- 병렬 호출 시 알림톡이 2번 발송되는 문제 해결
+- `alimtalk_logs` 테이블에서 기존 발송 기록 확인 후 발송
+- `status = 'success'` 레코드 존재 시 스킵
+
+```typescript
+// 알림톡 발송 전 중복 체크
+const { data: existingAlimtalk } = await supabase
+  .from('alimtalk_logs')
+  .select('id, status')
+  .eq('order_id', orderId)
+  .eq('status', 'success')
+  .limit(1)
+
+if (existingAlimtalk?.length > 0) {
+  console.log('⏭️ 이미 알림톡이 발송됨. 중복 발송 스킵')
+} else {
+  // 알림톡 발송 진행
+}
+```
 
 ---
 
