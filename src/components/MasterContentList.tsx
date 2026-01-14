@@ -1108,7 +1108,7 @@ export default function MasterContentList({ onBack, onNavigateHome }: MasterCont
         )}
 
         {/* Content List */}
-        <div className="flex-1 flex flex-col gap-[10px] px-[20px] pb-[100px] overflow-y-auto">
+        <div className="flex-1 flex flex-col gap-[10px] px-[20px] pb-[100px]">
           {displayContents.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-[80px]">
               <p className="font-['Pretendard_Variable:Regular',sans-serif] text-[14px] text-[#999999]">
