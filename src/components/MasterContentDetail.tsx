@@ -266,6 +266,7 @@ export default function MasterContentDetail({ contentId, onBack, onHome }: Maste
   const [isLoading, setIsLoading] = useState(true);
   const [contentData, setContentData] = useState<MasterContent | null>(null);
   const [questions, setQuestions] = useState<MasterContentQuestion[]>([]);
+  const [originalQuestions, setOriginalQuestions] = useState<MasterContentQuestion[]>([]); // 원본 질문 (변경 감지용)
   
   // Form states
   const [title, setTitle] = useState('');
@@ -302,6 +303,7 @@ export default function MasterContentDetail({ contentId, onBack, onHome }: Maste
           console.log('✅ 캐시에서 데이터 로드 (콘텐츠 수정)');
           setContentData(data.content);
           setQuestions(data.questions);
+          setOriginalQuestions(data.questions); // 원본 저장
           // Form 데이터도 캐시에서 복원
           setTitle(data.content.title || '');
           setContentType(data.content.content_type as 'paid' | 'free');
@@ -517,7 +519,8 @@ export default function MasterContentDetail({ contentId, onBack, onHome }: Maste
         
         setContentData(content);
         setQuestions(finalQuestionsData);
-        
+        setOriginalQuestions(finalQuestionsData); // 원본 저장
+
         // 폼 데이터 초기화
         setTitle(content.title || '');
         setContentType(content.content_type as 'paid' | 'free');
@@ -667,34 +670,56 @@ export default function MasterContentDetail({ contentId, onBack, onHome }: Maste
         return;
       }
 
-      // 2. 기존 질문 삭제
-      const { error: deleteError } = await supabase
-        .from('master_content_questions')
-        .delete()
-        .eq('content_id', contentId);
+      // 2. 질문 변경 여부 체크 (변경 없으면 DELETE-INSERT 스킵)
+      const questionsChanged = (() => {
+        if (questions.length !== originalQuestions.length) return true;
+        return questions.some((q, i) => {
+          const orig = originalQuestions[i];
+          return q.question_text !== orig.question_text ||
+                 q.question_type !== orig.question_type ||
+                 q.question_order !== orig.question_order;
+        });
+      })();
 
-      if (deleteError) {
-        console.error('Delete questions error:', deleteError);
-        alert('질문 수정에 실패했습니다.');
-        return;
-      }
+      if (questionsChanged) {
+        console.log('📝 질문이 변경되어 DELETE-INSERT 수행');
 
-      // 3. 새 질문 추가
-      const questionsToInsert = questions.map((q, index) => ({
-        content_id: contentId,
-        question_order: index + 1,
-        question_type: q.question_type,
-        question_text: q.question_text,
-      }));
+        // 기존 질문 삭제
+        const { error: deleteError } = await supabase
+          .from('master_content_questions')
+          .delete()
+          .eq('content_id', contentId);
 
-      const { error: insertError } = await supabase
-        .from('master_content_questions')
-        .insert(questionsToInsert);
+        if (deleteError) {
+          console.error('Delete questions error:', deleteError);
+          // FK constraint 에러인 경우 안내 메시지
+          if (deleteError.code === '23503') {
+            alert('이미 주문이 완료된 콘텐츠의 질문은 수정할 수 없습니다.\n(기본 정보만 수정됨)');
+          } else {
+            alert('질문 수정에 실패했습니다.');
+            return;
+          }
+        } else {
+          // 새 질문 추가 (삭제 성공 시에만)
+          const questionsToInsert = questions.map((q, index) => ({
+            content_id: contentId,
+            question_order: index + 1,
+            question_type: q.question_type,
+            question_text: q.question_text,
+          }));
 
-      if (insertError) {
-        console.error('Insert questions error:', insertError);
-        alert('질문 저장에 실패했습니다.');
-        return;
+          const { error: insertError } = await supabase
+            .from('master_content_questions')
+            .insert(questionsToInsert);
+
+          if (insertError) {
+            console.error('Insert questions error:', insertError);
+            alert('질문 저장에 실패했습니다.');
+            return;
+          }
+        }
+      } else {
+        console.log('✅ 질문 변경 없음 - DELETE-INSERT 스킵');
       }
 
       console.log('Update successful');
