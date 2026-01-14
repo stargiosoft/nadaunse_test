@@ -1059,6 +1059,15 @@ export default function MasterContentList({ onBack, onNavigateHome }: MasterCont
           </div>
         )}
 
+        {/* 총 콘텐츠 개수 표시 */}
+        {!isDeployMode && (
+          <div className="px-[20px] py-[8px]">
+            <p className="font-['Pretendard_Variable:Regular',sans-serif] text-[13px] text-[#808080]">
+              총 {displayContents.length}개
+            </p>
+          </div>
+        )}
+
         {/* 전체선택 (배포모드일 때만) */}
         {isDeployMode && (
           <div className="bg-white px-[20px] py-[10px]">
