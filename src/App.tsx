@@ -39,7 +39,7 @@ import ErrorPage from './components/ErrorPage'; // ⭐ 공통 에러 페이지
 import ErrorBoundary from './components/ErrorBoundary'; // ⭐ 에러 바운더리
 import HomePage from './pages/HomePage';
 import AuthCallback from './pages/AuthCallback';
-import TarotDemo from './pages/TarotDemo'; // ⭐ 타로 데모 페이지
+// TarotDemo 백업됨 (TarotFlowPage 제거로 인해)
 import { allProducts } from './data/products';
 import { initGA, trackPageView } from './utils/analytics';
 import { supabase } from './lib/supabase';
@@ -1610,7 +1610,7 @@ export default function App() {
           <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/welcome-coupon" element={<WelcomeCouponPageWrapper />} />
           <Route path="/result/complete" element={<ResultCompletePage />} />
-          <Route path="/tarot-demo" element={<TarotDemo />} />
+          {/* TarotDemo 백업됨 */}
           
           {/* ⭐ 공통 에러 페이지 라우트 (DEV 확인용) */}
           <Route path="/error/404" element={<ErrorPage type="404" />} />
