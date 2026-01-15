@@ -264,13 +264,6 @@ export default function ResultCompletePage({ onBack, onClose }: ResultCompletePa
     };
   }, []);
 
-  // 🧪 테스트용: 페이지 로드 시 토스트 표시 (확인 후 삭제)
-  useEffect(() => {
-    setShowToast(true);
-    const timer = setTimeout(() => setShowToast(false), 5000);
-    return () => clearTimeout(timer);
-  }, []);
-
   // ⭐ 페이지 로드 시 쿠폰 발급 여부 체크 + 추천 콘텐츠 조회 + 현재 콘텐츠 카테고리 조회
   useEffect(() => {
     const initializePage = async () => {
