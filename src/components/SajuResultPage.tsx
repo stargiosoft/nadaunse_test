@@ -413,7 +413,7 @@ export default function SajuResultPage() {
         {currentAnswer ? (
           <div className="bg-[#f9f9f9] rounded-[16px] p-[20px] w-full">
             {/* Header */}
-            <div className="flex gap-[12px] items-center mb-[24px] w-full">
+            <div className="flex gap-[12px] items-center mb-[16px] w-full">
               <p className="font-['Pretendard_Variable:Bold',sans-serif] font-bold text-[20px] leading-[28px] tracking-[-0.2px] text-[#48b2af] shrink-0">
                 {String(currentAnswer.question_order).padStart(2, '0')}
               </p>
@@ -450,7 +450,7 @@ export default function SajuResultPage() {
             )}
 
             {/* Title */}
-            <div className="mb-[24px] w-full">
+            <div className="mb-[12px] w-full">
               <p className="font-['Pretendard_Variable:Bold',sans-serif] font-bold text-[18px] leading-[24px] tracking-[-0.36px] text-[#151515] break-keep">
                 {currentAnswer.question_text}
               </p>

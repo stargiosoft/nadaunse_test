@@ -433,7 +433,7 @@ export default function TarotResultPage() {
             className="bg-[#f9f9f9] rounded-[16px] p-[20px] w-full"
           >
             {/* Header with Number and Divider */}
-            <div className="flex gap-[12px] items-center mb-[40px] w-full">
+            <div className="flex gap-[12px] items-center mb-[16px] w-full">
               <p className="font-['Pretendard_Variable:SemiBold',sans-serif] font-semibold text-[20px] leading-[28px] tracking-[-0.2px] text-[#48b2af] shrink-0">
                 {String(result.question_order).padStart(2, '0')}
               </p>
@@ -441,7 +441,7 @@ export default function TarotResultPage() {
             </div>
 
             {/* Content Container */}
-            <div className="flex flex-col gap-[24px] items-center w-full">
+            <div className="flex flex-col gap-[16px] items-center w-full">
               {/* Tarot Card Image */}
               <div className="relative h-[260px] w-[150px] rounded-[16px] shadow-[6px_7px_12px_0px_rgba(0,0,0,0.04),-3px_-3px_12px_0px_rgba(0,0,0,0.04)] overflow-hidden bg-[#f0f0f0] shrink-0">
                 <img
@@ -477,7 +477,7 @@ export default function TarotResultPage() {
               </div>
 
               {/* Card Name and Response */}
-              <div className="flex flex-col gap-[24px] w-full">
+              <div className="flex flex-col gap-[12px] w-full">
                 {/* Card Name */}
                 <p className="font-['Pretendard_Variable:Bold',sans-serif] font-bold text-[18px] leading-[24px] tracking-[-0.36px] text-[#151515] text-center w-full break-keep">
                   {cardName}
