@@ -1406,20 +1406,21 @@ export const isFigmaSite(): boolean    // Figma Make 환경 체크
 1. **별도 Edge Functions 생성**
    - `/generate-tarot-answer` - 타로 해석 생성
    - `/generate-tarot-preview` - 타로 미리보기
-2. **새 컴포넌트 추가**
-   - `TarotFlowPage.tsx` - 타로 플로우 통합
-   - `TarotCardSelection.tsx` - 카드 선택 UI
-   - `TarotShufflePage.tsx` - 카드 섞기 애니메이션
+2. **컴포넌트 구조** (2026-01-15 업데이트)
+   - `TarotShufflePage.tsx` - 타로 셔플 페이지 (라우트: /tarot/shuffle)
+   - `TarotGame.tsx` - 카드 섞기 + 선택 통합 컴포넌트
    - `TarotResultPage.tsx` - 타로 결과 페이지
+   - ~~`TarotFlowPage.tsx`~~ - 레거시 (백업됨)
+   - ~~`TarotCardSelection.tsx`~~ - 레거시 (백업됨)
 3. **타로 카드 데이터 관리**
-   - `/lib/tarotCards.ts` - 78장 타로 카드 정보 (메이저 22장 + 마이너 56장)  
+   - `/lib/tarotCards.ts` - 78장 타로 카드 정보 (메이저 22장 + 마이너 56장)
 **기술적 구현**:
-- Framer Motion으로 카드 섞기 애니메이션 구현
-- 3장 선택 인터랙션 (과거/현재/미래)
-- AI 프롬프트에 선택된 카드 정보 전달  
-**영향**: 
+- Framer Motion으로 카드 섞기 애니메이션 구현 (TarotGame.tsx)
+- 1장 선택 인터랙션 (질문별 1장씩)
+- AI 프롬프트에 선택된 카드 정보 전달
+**영향**:
 - Edge Functions 2개 추가
-- 컴포넌트 4개 추가
+- 컴포넌트 3개 활성 (2개 레거시 백업)
 - `master_contents` 테이블에 `category_main = '타로'` 추가  
 **결과**: 
 - 서비스 다양성 확보

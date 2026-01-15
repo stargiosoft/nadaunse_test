@@ -37,6 +37,21 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
+    // 🛡️ 초기 중복 체크: AI API 호출 전에 이미 생성된 답변이 있는지 확인
+    const { data: existingResults } = await supabase
+      .from('order_results')
+      .select('id')
+      .eq('order_id', orderId)
+      .limit(1)
+
+    if (existingResults && existingResults.length > 0) {
+      console.log('⚠️ 이미 생성된 답변이 존재합니다. 중복 호출 방지로 종료.')
+      return new Response(
+        JSON.stringify({ success: true, message: '이미 생성된 답변이 존재합니다.', skipped: true }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     // 1. 콘텐츠 정보 조회
     const { data: content, error: contentError } = await supabase
       .from('master_contents')

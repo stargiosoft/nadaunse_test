@@ -421,46 +421,44 @@
 
 ## 🎴 타로 콘텐츠
 
-### TarotFlowPage.tsx
-- **역할**: 타로 콘텐츠 플로우 통합 페이지
-- **사용처**: TarotDemo.tsx
-- **타입**: Page Component
-- **주요 기능**: 
-  - 타로 운세 전체 플로우 관리
-  - 카드 섞기 → 선택 → 결과 순서 제어
-- **파일 경로**: `/components/TarotFlowPage.tsx`
-
-### TarotCardSelection.tsx
-- **역할**: 타로 카드 선택 컴포넌트
-- **사용처**: MasterContentDetailPage, TarotFlowPage
-- **타입**: Feature Component
-- **주요 기능**: 
-  - 타로 카드 선택 UI (3장)
-  - 카드 뒤집기 애니메이션
-  - 선택된 카드 정보 전달
-- **기술**: Framer Motion 애니메이션
-- **파일 경로**: `/components/TarotCardSelection.tsx`
-
 ### TarotShufflePage.tsx
-- **역할**: 타로 카드 섞기 페이지
+- **역할**: 타로 셔플 페이지 (라우트 컴포넌트)
 - **사용처**: `/tarot/shuffle` 라우트
 - **타입**: Page Component
-- **주요 기능**: 
-  - 타로 카드 섞기 애니메이션
-  - 사용자 인터랙션 (터치/클릭)
-  - 섞기 완료 후 선택 단계로 이동
-- **기술**: Framer Motion 애니메이션
+- **주요 기능**:
+  - TarotGame 컴포넌트 호스팅
+  - 세션 체크 및 리다이렉트
+  - order_results에서 질문 텍스트 로드
+  - 뒤로가기 핸들링 (구매내역 또는 홈으로)
+- **기술**: React Router, Supabase Auth
 - **파일 경로**: `/components/TarotShufflePage.tsx`
+
+### TarotGame.tsx
+- **역할**: 타로 카드 섞기 + 선택 통합 컴포넌트
+- **사용처**: TarotShufflePage 내부
+- **타입**: Feature Component
+- **주요 기능**:
+  - 카드 섞기 애니메이션 (22장 카드 부채꼴 배열)
+  - 카드 선택 UI (1장 선택)
+  - 카드 뒤집기 애니메이션
+  - 반응형 스케일링 (440px 기준)
+- **기술**: Framer Motion 애니메이션
+- **파일 경로**: `/components/TarotGame.tsx`
 
 ### TarotResultPage.tsx
 - **역할**: 타로 운세 결과 페이지
-- **사용처**: `/tarot/result` 라우트
+- **사용처**: `/result/tarot` 라우트
 - **타입**: Page Component
-- **주요 기능**: 
+- **주요 기능**:
   - 타로 카드 해석 결과 표시
-  - 카드별 의미 설명 (과거/현재/미래)
-  - AI 생성 해석
+  - AI 생성 해석 내용
+  - 다음 질문이 있으면 `/tarot/shuffle`로 이동
+  - 모든 질문 완료 시 홈 또는 구매내역으로 이동
 - **파일 경로**: `/components/TarotResultPage.tsx`
+
+### 레거시 (백업됨)
+- `TarotFlowPage.tsx` → `_backup/` (미사용)
+- `TarotCardSelection.tsx` → `_backup/` (미사용)
 
 ---
 
@@ -765,8 +763,9 @@
   - App.tsx에서 FreeSajuAddPage import 제거
   - ProfilePage.tsx에서 ProfileImage import 제거
 - **타로 서비스 통합**
-  - 타로 콘텐츠 섹션 추가 (4개 컴포넌트)
-  - TarotFlowPage, TarotCardSelection, TarotShufflePage, TarotResultPage
+  - 타로 콘텐츠 섹션 추가 (3개 컴포넌트)
+  - TarotShufflePage, TarotGame, TarotResultPage
+  - 레거시 백업: TarotFlowPage, TarotCardSelection → `_backup/`
 - **하단 고정 CTA 리팩토링**
   - BottomNavigation.tsx: iOS Safe Area 대응 완료
 - **에러 처리 섹션 신규 추가**

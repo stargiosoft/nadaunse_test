@@ -259,9 +259,8 @@ const sajuResponse = await fetch(sajuApiUrl, {
 <summary><b>타로 콘텐츠</b></summary>
 
 ```
-/components/TarotFlowPage.tsx           → 타로 플로우 통합
-/components/TarotCardSelection.tsx      → 카드 선택
-/components/TarotShufflePage.tsx        → 카드 섞기
+/components/TarotShufflePage.tsx        → 타로 셔플 페이지 (라우트)
+/components/TarotGame.tsx               → 카드 섞기 + 선택 통합 컴포넌트
 /components/TarotResultPage.tsx         → 타로 결과
 /pages/TarotDemo.tsx                    → 타로 데모
 /lib/tarotCards.ts                      → 타로 카드 데이터
@@ -376,9 +375,8 @@ const sajuResponse = await fetch(sajuApiUrl, {
 /components/SajuResultPage.tsx          → 사주 결과
 
 # 타로 콘텐츠
-/components/TarotFlowPage.tsx           → 타로 플로우 통합
-/components/TarotCardSelection.tsx      → 타로 카드 선택
-/components/TarotShufflePage.tsx        → 타로 카드 섞기
+/components/TarotShufflePage.tsx        → 타로 셔플 페이지 (라우트: /tarot/shuffle)
+/components/TarotGame.tsx               → 카드 섞기 + 선택 통합 컴포넌트
 /components/TarotResultPage.tsx         → 타로 결과
 
 # 프로필 & 사주 관리
@@ -689,47 +687,44 @@ AI 생성 요청 (Edge Function)
 
 ---
 
-### 3. 타로 서비스 플로우 (NEW!)
+### 3. 타로 서비스 플로우
 
 ```
-홈 → 타로 상세 → "타로 보기" 클릭
+홈 → 타로 콘텐츠 상세 → 결제
     ↓
-타로 카드 섞기 (TarotShufflePage)
-    │ (애니메이션)
+LoadingPage (AI 생성 대기)
     ↓
-카드 선택 (TarotCardSelection)
-    │ (3장 선택)
+/tarot/shuffle (TarotShufflePage)
     ↓
-질문 입력 (선택)
+TarotGame (카드 섞기 + 선택 통합)
+    │ - 섞기 애니메이션
+    │ - 카드 선택 (1장)
     ↓
 AI 타로 해석 요청
-    ↓
-Edge Function 호출
 (generate-tarot-answer)
     ↓
 타로 결과 표시 (TarotResultPage)
-    │ (카드별 해석)
+    │ (다음 질문이 있으면 다시 /tarot/shuffle로)
     ↓
-저장 또는 공유
+모든 질문 완료 → 홈 또는 구매내역
 ```
 
 **주요 파일**:
-- `/components/TarotFlowPage.tsx` - 타로 플로우 통합
-- `/components/TarotShufflePage.tsx` - 카드 섞기
-- `/components/TarotCardSelection.tsx` - 카드 선택
+- `/components/TarotShufflePage.tsx` - 타로 셔플 페이지 (라우트: /tarot/shuffle)
+- `/components/TarotGame.tsx` - 카드 섞기 + 선택 통합 컴포넌트
 - `/components/TarotResultPage.tsx` - 타로 결과
 - `/lib/tarotCards.ts` - 타로 카드 데이터
-- `/pages/TarotDemo.tsx` - 타로 데모
+- `/pages/TarotDemo.tsx` - 타로 데모 (개발용)
 
 **Edge Functions**:
 - `/generate-tarot-answer` - 타로 해석 생성
 - `/generate-tarot-preview` - 타로 미리보기
 
 **특징**:
-- ✅ 카드 섞기 애니메이션
-- ✅ 3장 선택 인터랙션
+- ✅ 카드 섞기 애니메이션 (TarotGame)
+- ✅ 카드 선택 인터랙션 (TarotGame)
 - ✅ AI 타로 해석 생성
-- ✅ 무료/유료 모두 지원
+- ✅ 유료 콘텐츠 전용
 
 ---
 
