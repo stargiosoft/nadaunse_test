@@ -32,6 +32,7 @@ import FreeContentLoading from './components/FreeContentLoading';
 import FreeBirthInfoInput from './components/FreeBirthInfoInput';
 import SajuResultPage from './components/SajuResultPage';
 import TarotResultPage from './components/TarotResultPage';
+import UnifiedResultPage from './components/UnifiedResultPage'; // ⭐ 통합 결과 페이지
 import TarotShufflePage from './components/TarotShufflePage'; // ⭐ 타로 셔플 페이지
 import WelcomeCouponPage from './components/WelcomeCouponPage'; // ⭐ 추가
 import ResultCompletePage from './components/ResultCompletePage'; // ⭐ 추가
@@ -1603,6 +1604,7 @@ export default function App() {
           <Route path="/saju/add" element={<SajuAddPageWrapper />} />
           <Route path="/loading" element={<LoadingPage />} />
           <Route path="/free-loading" element={<FreeContentLoading />} />
+          <Route path="/result" element={<UnifiedResultPage />} /> {/* ⭐ 통합 결과 페이지 */}
           <Route path="/result/saju" element={<SajuResultPage />} />
           <Route path="/result/tarot" element={<TarotResultPage />} />
           <Route path="/tarot/shuffle" element={<TarotShufflePage />} /> {/* ⭐ 타로 셔플 페이지 */}
