@@ -516,48 +516,31 @@ function PaymentNewPage() {
         contentId={id}
         onBack={() => navigate(`/product/${id}`)}
         onPurchase={async () => {
-          // ⭐ 로딩 페이지 이미지 미리 로드 (사주 입력/선택 동안 백그라운드에서 로드)
+          // ⭐ 로딩 페이지 이미지 미리 로드 (백그라운드에서 병렬 실행)
           preloadLoadingPageImages();
 
-          // 결제 완료 후 사주 정보 유무 확인하여 분기
+          // ⭐ 결제 완료 후 사주 정보 유무 확인 (최적화: 디버깅 쿼리 제거, ~200ms 절약)
           const { data: { user } } = await supabase.auth.getUser();
 
-          console.log('🔍 [handlePurchaseComplete] 사주 정보 확인 시작');
-          console.log('👤 [handlePurchaseComplete] user:', user?.id);
-          
           if (user) {
-            // 전체 사주 정보 조회 (디버깅용)
-            const { data: allSajuRecords, error: allError } = await supabase
+            // ⭐️ is_primary 필드로 본인 사주 확인 (단일 쿼리)
+            const { data: mySaju } = await supabase
               .from('saju_records')
-              .select('id, full_name, notes, is_primary')
-              .eq('user_id', user.id);
-
-            console.log('📋 [handlePurchaseComplete] 전체 사주 레코드:', allSajuRecords);
-            console.log('📋 [handlePurchaseComplete] 사주 개수:', allSajuRecords?.length || 0);
-            if (allError) console.error('❌ [handlePurchaseComplete] 사주 조회 에러:', allError);
-
-            // ⭐️ is_primary 필드로 본인 사주 확인
-            const { data: mySaju, error } = await supabase
-              .from('saju_records')
-              .select('id, full_name, notes, is_primary')
+              .select('id')
               .eq('user_id', user.id)
               .eq('is_primary', true)
               .maybeSingle();
 
-            console.log('✅ [handlePurchaseComplete] 본인 사주 정보:', mySaju);
-
             if (mySaju) {
               // 본인 사주 있음 → 사주 선택 페이지
-              console.log('✅ 결제 완료 → 본인 사주 있음 → 사주 선택 페이지로 이동');
+              console.log('✅ 결제 완료 → 사주 선택 페이지로 이동');
               navigate(`/product/${id}/saju-select`);
             } else {
               // 본인 사주 없음 → 사주 입력 페이지
-              console.log('✅ 결제 완료 → 본인 사주 없음 → 사주 입력 페이지로 이동');
+              console.log('✅ 결제 완료 → 사주 입력 페이지로 이동');
               navigate(`/product/${id}/birthinfo`);
             }
           } else {
-            // 로그인 안됨 (발생하면 안되는 케이스)
-            console.log('❌ [handlePurchaseComplete] 로그인 안됨 → 사주 입력 페이지로 이동');
             navigate(`/product/${id}/birthinfo`);
           }
         }}
@@ -569,48 +552,31 @@ function PaymentNewPage() {
 
   // ⭐ allProducts에서 찾은 경우 (기존 로직 유지)
   const handlePurchaseComplete = async () => {
-    // ⭐ 로딩 페이지 이미지 미리 로드 (사주 입력/선택 동안 백그라운드에서 로드)
+    // ⭐ 로딩 페이지 이미지 미리 로드 (백그라운드에서 병렬 실행)
     preloadLoadingPageImages();
 
-    // 결제 완료 후 사주 정보 유무 확인하여 분기
+    // ⭐ 결제 완료 후 사주 정보 유무 확인 (최적화: 디버깅 쿼리 제거, ~200ms 절약)
     const { data: { user } } = await supabase.auth.getUser();
 
-    console.log('🔍 [handlePurchaseComplete] 사주 정보 확인 시작');
-    console.log('👤 [handlePurchaseComplete] user:', user?.id);
-    
     if (user) {
-      // 전체 사주 정보 조회 (디버깅용)
-      const { data: allSajuRecords, error: allError } = await supabase
+      // ⭐️ is_primary 필드로 본인 사주 확인 (단일 쿼리)
+      const { data: mySaju } = await supabase
         .from('saju_records')
-        .select('id, full_name, notes, is_primary')
-        .eq('user_id', user.id);
-
-      console.log('📋 [handlePurchaseComplete] 전체 사주 레코드:', allSajuRecords);
-      console.log('📋 [handlePurchaseComplete] 사주 개수:', allSajuRecords?.length || 0);
-      if (allError) console.error('❌ [handlePurchaseComplete] 사주 조회 에러:', allError);
-
-      // ⭐️ is_primary 필드로 본인 사주 확인
-      const { data: mySaju, error } = await supabase
-        .from('saju_records')
-        .select('id, full_name, notes, is_primary')
+        .select('id')
         .eq('user_id', user.id)
         .eq('is_primary', true)
         .maybeSingle();
 
-      console.log('✅ [handlePurchaseComplete] 본인 사주 정보:', mySaju);
-
       if (mySaju) {
         // 본인 사주 있음 → 사주 선택 페이지
-        console.log('✅ 결제 완료 → 본인 사주 있음 → 사주 선택 페이지로 이동');
+        console.log('✅ 결제 완료 → 사주 선택 페이지로 이동');
         navigate(`/product/${id}/saju-select`);
       } else {
         // 본인 사주 없음 → 사주 입력 페이지
-        console.log('✅ 결제 완료 → 본인 사주 없음 → 사주 입력 페이지로 이동');
+        console.log('✅ 결제 완료 → 사주 입력 페이지로 이동');
         navigate(`/product/${id}/birthinfo`);
       }
     } else {
-      // 로그인 안됨 (발생하면 안되는 케이스)
-      console.log('❌ [handlePurchaseComplete] 로그인 안됨 → 사주 입력 페이지로 이동');
       navigate(`/product/${id}/birthinfo`);
     }
   };
@@ -1352,55 +1318,30 @@ function MasterContentPaymentPageWrapper() {
     return <Navigate to="/" replace />;
   }
 
+  // ⭐ 결제 완료 후 사주 정보 확인 (최적화: 디버깅 쿼리 제거, ~200ms 절약)
   const handlePurchaseSuccess = async () => {
     try {
-      // 본인 사주 정보 재 여부 확인
       const userJson = localStorage.getItem('user');
       const user = userJson ? JSON.parse(userJson) : null;
-      
+
       if (!user?.id) {
-        console.log('로그인되지 않은 사용자');
         navigate('/');
         return;
       }
 
-      console.log('🔍 [결제완료] 사주 정보 조회 시작, user_id:', user.id);
-
-      // 모든 사주 정보 조회 (디버깅용)
-      const { data: allSajuRecords, error: allError } = await supabase
+      // ⭐️ is_primary 필드로 본인 사주 조회 (단일 쿼리)
+      const { data: mySaju } = await supabase
         .from('saju_records')
-        .select('id, full_name, notes, is_primary')
-        .eq('user_id', user.id);
-
-      console.log('📋 [결제완료] 전체 사주 레코드:', allSajuRecords);
-      console.log('📋 [결제완료] 사주 레코드 상세:');
-      allSajuRecords?.forEach((record, idx) => {
-        console.log(`   [${idx}] id: ${record.id}, name: ${record.full_name}, notes: ${record.notes}, is_primary: ${record.is_primary}`);
-      });
-
-      // ⭐️ is_primary 필드로 본인 사주 조회 (notes 대신)
-      const { data: mySaju, error } = await supabase
-        .from('saju_records')
-        .select('id, full_name, notes, is_primary')
+        .select('id')
         .eq('user_id', user.id)
         .eq('is_primary', true)
         .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') {
-        // PGRST116 = Row not found (정상 케이스)
-        console.error('❌ [결제완료] 사주 정보 조회 실패:', error);
-      }
-
-      console.log('✅ [결제완료] 본인 사주 정보:', mySaju);
-
-      // 분기 처리
       if (mySaju) {
-        // 본인 사주 있음 → 사주 정보 선택 페이지
-        console.log('✅ [결제완료] 본인 사주 있음 → 사주 선택 페이지로 이동');
+        console.log('✅ 결제 완료 → 사주 선택 페이지로 이동');
         navigate(`/product/${id}/saju-select`);
       } else {
-        // 본인 사주 음 → 사주 정보 입력 페이지 (결제용)
-        console.log('📝 [결제완료] 본인 사주 없음 → 사주 입력 페이지로 이동');
+        console.log('✅ 결제 완료 → 사주 입력 페이지로 이동');
         navigate(`/product/${id}/birthinfo`);
       }
     } catch (error) {
