@@ -871,7 +871,7 @@ export default function SajuManagementPage({ onBack, onNavigateToInput, onNaviga
                       </div>
                     </div>
                   </div>
-                  <div className="content-stretch flex flex-col gap-[3px] items-start relative shrink-0 w-full">
+                  <div className="content-stretch flex flex-col gap-[3px] items-start relative shrink-0 w-full -mt-[2px]">
                     <div className="content-stretch flex items-center relative rounded-[12px] shrink-0 w-full">
                       <p className="font-normal leading-[16px] overflow-ellipsis overflow-hidden relative shrink-0 text-[#848484] text-[12px] text-nowrap tracking-[-0.24px]">
                         {formatBirthDate(mySaju.birth_date, mySaju.calendar_type)}
@@ -1003,7 +1003,7 @@ export default function SajuManagementPage({ onBack, onNavigateToInput, onNaviga
                           </div>
                         </div>
                       </div>
-                      <div className="content-stretch flex flex-col gap-[3px] items-start relative shrink-0 w-full">
+                      <div className="content-stretch flex flex-col gap-[3px] items-start relative shrink-0 w-full -mt-[2px]">
                         <div className="content-stretch flex items-center relative rounded-[12px] shrink-0 w-full">
                           <p className="font-normal leading-[16px] overflow-ellipsis overflow-hidden relative shrink-0 text-[#848484] text-[12px] text-nowrap tracking-[-0.24px]">
                             {formatBirthDate(saju.birth_date, saju.calendar_type)}
