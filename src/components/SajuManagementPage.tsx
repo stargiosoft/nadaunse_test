@@ -962,7 +962,7 @@ export default function SajuManagementPage({ onBack, onNavigateToInput, onNaviga
                 </div>
               </motion.div>
             ) : (
-              <div className="content-stretch flex flex-col gap-[4px] items-start relative shrink-0 w-full -mt-[108px]">
+              <div className="content-stretch flex flex-col gap-[1px] items-start relative shrink-0 w-full -mt-[108px]">
                 {otherSajuList.map((saju) => (
                   <motion.div key={saju.id} className="content-stretch flex gap-[12px] items-center px-[px] py-[4px] relative rounded-[12px] shrink-0 w-full" variants={itemVariants}>
                     {/* Radio Button */}
