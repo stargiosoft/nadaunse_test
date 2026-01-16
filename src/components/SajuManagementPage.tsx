@@ -17,6 +17,7 @@ import { getZodiacImageUrl, getConstellation } from '../lib/zodiacUtils';
 import { getChineseZodiacByLichun } from '../lib/zodiacCalculator';
 import { Radio } from './ui/Radio';
 import { motion } from "motion/react";
+import { PageLoader } from './ui/PageLoader';
 
 const containerVariants = {
   hidden: { opacity: 1 },
@@ -770,11 +771,7 @@ export default function SajuManagementPage({ onBack, onNavigateToInput, onNaviga
   };
 
   if (isLoading) {
-    return (
-      <div className="bg-white relative min-h-screen w-full flex justify-center items-center">
-        <div className="animate-spin rounded-full h-[32px] w-[32px] border-b-2 border-[#48b2af]"></div>
-      </div>
-    );
+    return <PageLoader />;
   }
 
   const hasOtherSaju = otherSajuList.length > 0;

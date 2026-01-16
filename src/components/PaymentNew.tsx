@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { motion } from "motion/react";
@@ -11,6 +11,7 @@ import { SessionExpiredDialog } from "./SessionExpiredDialog";
 import PaymentSkeleton from "./skeletons/PaymentSkeleton";
 import { DEV } from "../lib/env";
 import { preloadLoadingPageImages } from "../lib/imagePreloader";
+import { PageLoader } from "./ui/PageLoader";
 
 // 포트원 타입 선언
 declare global {
@@ -99,31 +100,251 @@ export default function PaymentNew({
 
   const navigate = useNavigate();
 
-  // ⭐ bfcache 복원 시 처리 (iOS Safari 스와이프 뒤로가기 대응)
+  // ⭐ 결제 진행 중 뒤로가기 감지를 위한 ref (상태보다 빠르게 감지)
+  const paymentInitiatedRef = useRef(false);
+  // ⭐ 결제 오버레이 감지용 interval ref
+  const paymentOverlayCheckRef = useRef<NodeJS.Timeout | null>(null);
+
+  // ⭐ 결제 오버레이 감지 시작/중지 함수
+  const startPaymentOverlayWatch = (finalContentId: string | undefined) => {
+    // 이미 실행 중이면 중복 방지
+    if (paymentOverlayCheckRef.current) return;
+
+    console.log('👀 [PaymentNew] 결제 오버레이 감지 시작');
+
+    // 첫 번째 체크에서 오버레이가 있는지 확인 (기준점 설정)
+    let overlayWasFound = false;
+
+    paymentOverlayCheckRef.current = setInterval(() => {
+      // 결제가 진행 중인 상태에서만 체크
+      if (!paymentInitiatedRef.current) {
+        stopPaymentOverlayWatch();
+        return;
+      }
+
+      // 포트원 결제 오버레이 감지 (다양한 방식으로 생성됨)
+      // 1. iframe 방식: src에 결제 관련 URL 포함
+      // 2. div 오버레이 방식: body에 직접 추가되는 div
+      const allIframes = document.querySelectorAll('iframe');
+      let paymentFrame: Element | null = null;
+
+      // 모든 iframe 검사 (실제로 보이는 것만)
+      allIframes.forEach(iframe => {
+        const src = iframe.getAttribute('src') || '';
+        const isVisible = iframe.offsetParent !== null &&
+                          getComputedStyle(iframe).display !== 'none' &&
+                          getComputedStyle(iframe).visibility !== 'hidden';
+
+        if (isVisible && (
+            src.includes('iamport') ||
+            src.includes('kakaopay') ||
+            src.includes('inicis') ||
+            src.includes('danal') ||
+            src.includes('service.iamport.kr'))) {
+          paymentFrame = iframe;
+        }
+      });
+
+      // div 오버레이 검사 (포트원은 때때로 div로 오버레이 생성, 실제로 보이는 것만)
+      if (!paymentFrame) {
+        const divCandidates = [
+          document.querySelector('div[class*="imp-"]'),
+          document.querySelector('div[id*="imp-"]'),
+          document.querySelector('.imp-dialog'),
+          document.querySelector('#imp-ui-container')
+        ].filter(Boolean) as HTMLElement[];
+
+        for (const div of divCandidates) {
+          const isVisible = div.offsetParent !== null &&
+                            getComputedStyle(div).display !== 'none' &&
+                            getComputedStyle(div).visibility !== 'hidden';
+          if (isVisible) {
+            paymentFrame = div;
+            break;
+          }
+        }
+      }
+
+      // 디버깅: 현재 찾은 오버레이 상태 로깅 (5초마다)
+      const now = Date.now();
+      if (now % 5000 < 500) {
+        console.log('👀 [PaymentNew] 오버레이 체크:', {
+          found: !!paymentFrame,
+          iframeCount: allIframes.length,
+          paymentInitiated: paymentInitiatedRef.current,
+          overlayWasFound
+        });
+      }
+
+      // 오버레이가 처음 발견됨
+      if (paymentFrame && !overlayWasFound) {
+        overlayWasFound = true;
+        console.log('✅ [PaymentNew] 결제 오버레이 발견:', paymentFrame);
+
+        // ✅ 로딩 상태 해제 (결제 UI가 준비됨)
+        setIsProcessingPayment(false);
+      }
+
+      // 오버레이가 있었다가 사라졌고, 아직 콜백을 받지 못한 상태 = 사용자가 닫음/뒤로감
+      if (overlayWasFound && !paymentFrame && paymentInitiatedRef.current) {
+        console.log('🔄 [PaymentNew] 결제 오버레이 사라짐 감지 → 상품 상세로 리다이렉트');
+        stopPaymentOverlayWatch();
+        paymentInitiatedRef.current = false;
+        setIsProcessingPayment(false);
+        window.history.replaceState({}, '', window.location.href);
+
+        if (finalContentId) {
+          navigate(`/product/${finalContentId}`, { replace: true });
+        } else {
+          navigate('/', { replace: true });
+        }
+      }
+    }, 500); // 500ms 간격으로 체크
+  };
+
+  const stopPaymentOverlayWatch = () => {
+    if (paymentOverlayCheckRef.current) {
+      console.log('🛑 [PaymentNew] 결제 오버레이 감지 중지');
+      clearInterval(paymentOverlayCheckRef.current);
+      paymentOverlayCheckRef.current = null;
+    }
+  };
+
+  // 컴포넌트 언마운트 시 interval 정리
   useEffect(() => {
+    return () => {
+      stopPaymentOverlayWatch();
+    };
+  }, []);
+
+  // ⭐ 결제 오버레이가 아직 열려있는지 확인하는 함수
+  const isPaymentOverlayOpen = (): boolean => {
+    const allIframes = document.querySelectorAll('iframe');
+    let paymentFrameExists = false;
+
+    // iframe 검사 (실제로 보이는 것만)
+    allIframes.forEach(iframe => {
+      const src = iframe.getAttribute('src') || '';
+      const isVisible = iframe.offsetParent !== null &&
+                        getComputedStyle(iframe).display !== 'none' &&
+                        getComputedStyle(iframe).visibility !== 'hidden';
+
+      if (isVisible && (
+          src.includes('iamport') ||
+          src.includes('kakaopay') ||
+          src.includes('inicis') ||
+          src.includes('danal') ||
+          src.includes('service.iamport.kr'))) {
+        paymentFrameExists = true;
+      }
+    });
+
+    // div 오버레이 검사 (실제로 보이는 것만)
+    if (!paymentFrameExists) {
+      const divCandidates = [
+        document.querySelector('div[class*="imp-"]'),
+        document.querySelector('div[id*="imp-"]'),
+        document.querySelector('.imp-dialog'),
+        document.querySelector('#imp-ui-container')
+      ].filter(Boolean) as HTMLElement[];
+
+      for (const div of divCandidates) {
+        const isVisible = div.offsetParent !== null &&
+                          getComputedStyle(div).display !== 'none' &&
+                          getComputedStyle(div).visibility !== 'hidden';
+        if (isVisible) {
+          paymentFrameExists = true;
+          break;
+        }
+      }
+    }
+
+    return paymentFrameExists;
+  };
+
+  // ⭐ 결제 중 뒤로가기 처리 (iOS Safari 스와이프, 브라우저 뒤로가기 버튼 대응)
+  useEffect(() => {
+    const finalContentId = contentId || productId;
+
+    const redirectToProductDetail = () => {
+      console.log('🔄 [PaymentNew] 결제 중 뒤로가기/복귀 감지 → 상품 상세로 리다이렉트');
+      stopPaymentOverlayWatch();
+      paymentInitiatedRef.current = false;
+      setIsProcessingPayment(false);
+      if (finalContentId) {
+        navigate(`/product/${finalContentId}`, { replace: true });
+      } else {
+        navigate('/', { replace: true });
+      }
+    };
+
+    // ⭐ popstate: 브라우저 뒤로가기/앞으로가기 버튼 클릭 시 발생
+    const handlePopState = () => {
+      console.log('🔄 [PaymentNew] popstate 이벤트, paymentInitiated:', paymentInitiatedRef.current);
+
+      if (paymentInitiatedRef.current) {
+        // ⭐ 결제 오버레이가 아직 열려있으면 리다이렉트하지 않음
+        if (isPaymentOverlayOpen()) {
+          console.log('⚠️ [PaymentNew] popstate: 결제 오버레이가 아직 열려있음 → 리다이렉트 취소');
+          return;
+        }
+
+        console.log('✅ [PaymentNew] popstate: 결제 오버레이 닫힘 확인 → 리다이렉트');
+        redirectToProductDetail();
+        return;
+      }
+    };
+
     const handlePageShow = (event: PageTransitionEvent) => {
-      console.log('🔄 [PaymentNew] pageshow 이벤트, persisted:', event.persisted);
+      console.log('🔄 [PaymentNew] pageshow 이벤트, persisted:', event.persisted, ', paymentInitiated:', paymentInitiatedRef.current);
+
+      if (paymentInitiatedRef.current) {
+        // ⭐ 결제 오버레이가 아직 열려있으면 리다이렉트하지 않음
+        if (isPaymentOverlayOpen()) {
+          console.log('⚠️ [PaymentNew] pageshow: 결제 오버레이가 아직 열려있음 → 리다이렉트 취소');
+          return;
+        }
+
+        console.log('✅ [PaymentNew] pageshow: 결제 오버레이 닫힘 확인 → 리다이렉트');
+        redirectToProductDetail();
+        return;
+      }
+
       if (event.persisted) {
-        console.log('🔄 [PaymentNew] bfcache 복원 감지 → isProcessingPayment 리셋');
         setIsProcessingPayment(false);
       }
     };
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        console.log('🔄 [PaymentNew] visibilitychange visible → isProcessingPayment 리셋');
+        console.log('🔄 [PaymentNew] visibilitychange visible, paymentInitiated:', paymentInitiatedRef.current);
+
+        if (paymentInitiatedRef.current) {
+          // ⭐ 결제 오버레이가 아직 열려있으면 리다이렉트하지 않음
+          if (isPaymentOverlayOpen()) {
+            console.log('⚠️ [PaymentNew] visibilitychange: 결제 오버레이가 아직 열려있음 → 리다이렉트 취소');
+            return;
+          }
+
+          console.log('✅ [PaymentNew] visibilitychange: 결제 오버레이 닫힘 확인 → 리다이렉트');
+          redirectToProductDetail();
+          return;
+        }
+
         setIsProcessingPayment(false);
       }
     };
 
+    window.addEventListener('popstate', handlePopState);
     window.addEventListener('pageshow', handlePageShow);
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
+      window.removeEventListener('popstate', handlePopState);
       window.removeEventListener('pageshow', handlePageShow);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, []);
+  }, [contentId, productId, navigate]);
 
   // contentId가 있으면 DB에서 데이터 로드
   useEffect(() => {
@@ -332,14 +553,12 @@ export default function PaymentNew({
       return;
     }
 
-    // ⭐ 결제 처리 시작 - 버튼 로딩 상태 즉시 표시
-    setIsProcessingPayment(true);
-    console.log('🔄 [PaymentNew] 결제 처리 시작');
-
     const finalContentId = contentId || productId;
 
-    // 결제금액이 0원이면 바로 주문 저장 후 다음 단계로
+    // 결제금액이 0원이면 바로 주문 저장 후 다음 단계로 (PG 호출 없음)
+    // ⭐ 0원 결제는 "결제 페이지로 이동중" 로딩을 표시하지 않음
     if (totalPrice === 0) {
+      // ⭐ 0원 결제는 PG 리다이렉트가 없으므로 ref 설정 불필요
       try {
         const merchantUid = `order_${Date.now()}`;
 
@@ -437,6 +656,10 @@ export default function PaymentNew({
       return;
     }
 
+    // ⭐ 유료 결제 처리 시작 - "결제 페이지로 이동중" 로딩 표시
+    setIsProcessingPayment(true);
+    console.log('🔄 [PaymentNew] 유료 결제 처리 시작');
+
     // 결제 수단에 따른 PG 설정
     const pgProvider =
       selectedPaymentMethod === "kakaopay"
@@ -468,11 +691,29 @@ export default function PaymentNew({
     }
 
     // 포트원 결제 요청
-    setIsProcessingPayment(true);
+    // ⭐ PG 팝업/리다이렉트 전에 ref 설정 (뒤로가기 감지용)
+    paymentInitiatedRef.current = true;
+
+    // ⭐ 결제창 열기 전 history에 상태 푸시 (뒤로가기 시 popstate 이벤트 발생 보장)
+    window.history.pushState({ paymentInProgress: true }, '', window.location.href);
+
+    // ⭐ 결제 오버레이 감지 시작 (iframe이 사라지면 뒤로가기로 판단)
+    // 약간의 딜레이 후 시작 (iframe이 로드될 시간 확보)
+    setTimeout(() => {
+      startPaymentOverlayWatch(finalContentId);
+    }, 1000);
+
+    console.log('🔄 [PaymentNew] 포트원 결제 요청 시작, paymentInitiated:', paymentInitiatedRef.current);
+
     window.IMP.request_pay(
       paymentParams,
       async function (response: any) {
+        // ⭐ 콜백 실행 = 정상 플로우 → ref 리셋 및 오버레이 감지 중지
+        stopPaymentOverlayWatch();
+        paymentInitiatedRef.current = false;
         setIsProcessingPayment(false);
+        console.log('🔄 [PaymentNew] 포트원 콜백 수신, success:', response.success);
+
         if (response.success) {
           try {
             const savedOrder = await saveOrder({
@@ -566,14 +807,20 @@ export default function PaymentNew({
             // ⭐ 로딩 페이지 이미지 미리 로드
             preloadLoadingPageImages();
 
+            // ⭐ 결제 성공 시 푸시된 history state 정리 후 다음 페이지로 이동
+            window.history.replaceState({}, '', window.location.href);
             onPurchase();
           } catch (error) {
             console.error("주문 저장 실패:", error);
+            // ⭐ 에러 시에도 history state 정리
+            window.history.replaceState({}, '', window.location.href);
             alert(
               "결제는 완료되었으나 주문 저장에 실패했습니다. 고객센터에 문의해주세요.",
             );
           }
         } else {
+          // ⭐ 결제 실패/취소 시 푸시된 history state 정리 (네비게이션 없이 state만 제거)
+          window.history.replaceState({}, '', window.location.href);
           alert("결제 실패: " + response.error_msg);
         }
       },
@@ -596,15 +843,10 @@ export default function PaymentNew({
           scrollbar-width: none;
         }
       `}</style>
-      {/* 결제 처리 중 오버레이 */}
+      {/* 결제 처리 중 전체화면 로딩 */}
       {isProcessingPayment && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-[16px] px-[32px] py-[24px] flex flex-col items-center gap-[16px]">
-            <div className="animate-spin rounded-full h-[48px] w-[48px] border-b-2 border-[#48b2af]"></div>
-            <p className="font-['Pretendard_Variable:Medium',sans-serif] text-[16px] text-black">
-              결제 페이지로 이동 중...
-            </p>
-          </div>
+        <div className="fixed inset-0 z-50">
+          <PageLoader message="결제 페이지로 이동 중..." />
         </div>
       )}
 

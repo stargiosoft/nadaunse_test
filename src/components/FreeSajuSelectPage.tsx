@@ -15,6 +15,7 @@ import emptyStateSvgPaths from "../imports/svg-297vu4q7h0"; // Empty State 아�
 import { SajuKebabMenu } from './SajuKebabMenu';
 import { ConfirmDialog } from './ConfirmDialog';
 import SajuCard, { SajuCardData } from './SajuCard';
+import { PageLoader } from './ui/PageLoader';
 
 interface FreeSajuSelectPageProps {
   productId: string;
@@ -529,11 +530,7 @@ export default function FreeSajuSelectPage({ productId, onBack, prefetchedSajuRe
   };
 
   if (isLoading) {
-    return (
-      <div className="bg-white relative min-h-screen w-full flex justify-center items-center">
-        <div className="animate-spin rounded-full h-[32px] w-[32px] border-b-2 border-[#48b2af]"></div>
-      </div>
-    );
+    return <PageLoader />;
   }
 
   // 본인 사주와 함께 보는 사주 분리

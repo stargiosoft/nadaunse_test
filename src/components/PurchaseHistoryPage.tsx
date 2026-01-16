@@ -6,6 +6,7 @@ import ArrowLeft from './ArrowLeft';
 import svgPathsEmpty from '../imports/svg-q49yf219uv';
 import { preloadTarotImages } from '../lib/tarotImageCache'; // ⭐ 타로 캐시 추가
 import { SessionExpiredDialog } from './SessionExpiredDialog';
+import { PageLoader } from './ui/PageLoader';
 
 interface PurchaseItem {
   id: string;
@@ -359,11 +360,7 @@ export default function PurchaseHistoryPage() {
   };
 
   if (loading && purchases.length === 0) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="animate-spin rounded-full h-[32px] w-[32px] border-b-2 border-[#48b2af]"></div>
-      </div>
-    );
+    return <PageLoader />;
   }
 
   return (

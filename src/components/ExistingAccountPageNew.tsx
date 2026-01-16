@@ -5,6 +5,7 @@ import { imgGroup, imgGroup1, imgGroup2, imgGroup3 } from "../imports/svg-cp95o"
 import { supabase } from '../lib/supabase';
 import { signInWithKakao, signInWithGoogle } from '../lib/auth';
 import { isDevelopment } from '../lib/env';
+import { PageLoader } from './ui/PageLoader';
 
 declare global {
   interface Window {
@@ -447,11 +448,7 @@ export default function ExistingAccountPageNew({ provider, onBack, onLoginWithCo
   const createdAt = accountInfo?.created_at || new Date().toISOString();
 
   if (isLoading) {
-    return (
-      <div className="bg-white relative min-h-screen w-full flex justify-center items-center overflow-hidden">
-        <div className="animate-spin rounded-full h-[48px] w-[48px] border-b-2 border-[#48b2af]"></div>
-      </div>
-    );
+    return <PageLoader />;
   }
 
   return (

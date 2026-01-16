@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase';
 import { getThumbnailUrl } from '../lib/image';
 import { preloadImages } from '../lib/imagePreloader';
 import HomeSkeleton from '../components/skeletons/HomeSkeleton';
+import { DotLoading } from '../components/ui/PageLoader';
 import svgPaths from "../imports/svg-94402brxf8";
 import svgPathsLogo from "../imports/svg-7fu3k5931y";
 
@@ -1651,7 +1652,7 @@ export default function HomePage() {
               {/* Loading Indicator */}
               {isLoading && (
                 <div className="flex items-center justify-center w-full py-[20px]">
-                  <div className="animate-spin rounded-full h-[32px] w-[32px] border-b-2 border-[#48b2af]"></div>
+                  <DotLoading />
                 </div>
               )}
 

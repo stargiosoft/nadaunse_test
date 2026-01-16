@@ -1,24 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { X } from 'lucide-react';
-import { AnimatePresence } from 'motion/react';
-import svgPaths from "../imports/svg-ir0ch2bhrx";
-import { BottomNavigation } from './BottomNavigation';
 import { TarotGame } from './TarotGame';
 import { supabase } from '../lib/supabase';
-import img3 from "figma:asset/f494ca2b3b180a2d66b2960718e3e515db3248a2.png";
-import imgAvocado from "figma:asset/e1537c8771a828aa09f2f853176e35c41217f557.png";
-import TableOfContentsBottomSheet from './TableOfContentsBottomSheet';
+import { getRandomTarotCard, getTarotCardImageUrl } from '../lib/tarotCards';
 import { SessionExpiredDialog } from './SessionExpiredDialog';
-
-interface TarotResult {
-  question_order: number;
-  question_text: string;
-  card_image_url?: string;
-  card_name?: string;
-  content_id?: string;
-  question_type?: 'tarot' | 'saju';
-}
+import { PageLoader } from './ui/PageLoader';
 
 export default function TarotShufflePage() {
   const navigate = useNavigate();
@@ -32,15 +19,12 @@ export default function TarotShufflePage() {
   const questionOrderParam = searchParams.get('questionOrder');
   const questionOrder = questionOrderParam ? parseInt(questionOrderParam, 10) : 1;
 
-  const [phase, setPhase] = useState<'scatter' | 'fan' | 'picked'>('scatter');
-  const [selectedCardIndex, setSelectedCardIndex] = useState<number | null>(null);
-  const [fanCardPositions, setFanCardPositions] = useState<Array<{ inset: string; rotate: number; skewX: number }>>([]);
   const [questionText, setQuestionText] = useState<string>('');
-  const [totalQuestions, setTotalQuestions] = useState<number>(1);
   const [contentIdState, setContentIdState] = useState<string | null>(null);
-  const [showTableOfContents, setShowTableOfContents] = useState(false);
-  const [allResults, setAllResults] = useState<TarotResult[]>([]);
   const [isSessionExpired, setIsSessionExpired] = useState(false);
+
+  // ⭐ 카드 저장 중 상태
+  const [isSavingCard, setIsSavingCard] = useState(false);
 
   // ⭐ 세션 체크 상태 추가 (알림톡 링크 접속 시 세션 없으면 로그인 페이지로 리다이렉트)
   // ✅ 최적화: localStorage에 캐시된 유저 정보가 있으면 세션 체크 건너뛰기 (즉시 렌더링)
@@ -156,19 +140,12 @@ export default function TarotShufflePage() {
 
           if (!orderResultsError && orderResults && orderResults.length > 0) {
             // ⭐ order_results에 데이터가 있으면 여기서 가져온 question_text 사용
-            setAllResults(orderResults.map(item => ({
-              question_order: item.question_order,
-              question_text: item.question_text || '',
-              question_type: item.question_type
-            })));
-
             const currentResult = orderResults.find(r => r.question_order === questionOrder);
             if (currentResult && currentResult.question_text) {
               console.log('🔍 [TarotShufflePage] questionOrder:', questionOrder);
               console.log('🔍 [TarotShufflePage] currentResult.question_text:', currentResult.question_text);
               setQuestionText(currentResult.question_text);
             }
-            setTotalQuestions(orderResults.length);
           } else {
             // ⭐ order_results에 데이터가 없으면 master_content_questions에서 가져오기 (최초 카드 뽑기)
             const { data: flowData, error: flowError } = await supabase
@@ -180,17 +157,10 @@ export default function TarotShufflePage() {
             if (flowError) throw flowError;
 
             if (flowData) {
-              setAllResults(flowData.map(item => ({
-                question_order: item.question_order,
-                question_text: item.question_text,
-                question_type: item.question_type
-              })));
-
               const currentFlow = flowData.find(f => f.question_order === questionOrder);
               if (currentFlow) {
                 setQuestionText(currentFlow.question_text);
               }
-              setTotalQuestions(flowData.length);
             }
           }
         }
@@ -202,91 +172,50 @@ export default function TarotShufflePage() {
     fetchData();
   }, [orderId, contentIdParam, questionOrder, isCheckingSession, hasValidSession]);
 
+  // ⭐ 카드 선택 완료 시 DB 저장 후 결과 페이지로 이동
+  const handleConfirmCard = async () => {
+    if (!orderId || isSavingCard) return;
 
-  // Initialize fan positions
-  useEffect(() => {
-    const count = 21;
-    const baseAngle = 10;
-    const positions = [];
-    for (let i = 0; i < count; i++) {
-      const offset = i - (count - 1) / 2;
-      const rotate = offset * 5;
-      const xOffset = offset * 12; // Spread horizontal
-      const yOffset = Math.abs(offset) * 2; // Arch effect
+    setIsSavingCard(true);
 
-      // Using inset for positioning relative to center bottom
-      // left: 50% + xOffset
-      // top: yOffset
-      // But in the fan phase, we want them clustered.
-      
-      // Let's approximate the Figma layout logic for 'fan'
-      // In Figma, they are absolutely positioned.
-      // We'll use a simplified relative positioning here or standard absolute.
-      
-      // Re-reading Figma import might help, but let's stick to a clean logical arch.
-      // The original code used style={{ inset: ... }} which is tricky.
-      // Let's use standard left/transform.
-      
-      positions.push({
-        inset: `${yOffset}px auto auto calc(50% + ${xOffset}px)`, // Approximate
-        rotate: rotate,
-        skewX: 0
+    try {
+      // 1. 랜덤 타로 카드 선택
+      const selectedCardName = getRandomTarotCard();
+      const cardImageUrl = getTarotCardImageUrl(selectedCardName);
+
+      console.log('🎴 [TarotShufflePage] 카드 선택:', {
+        cardName: selectedCardName,
+        questionOrder,
+        orderId
       });
+
+      // 2. order_results 테이블 업데이트
+      const { error } = await supabase
+        .from('order_results')
+        .update({
+          tarot_card_name: selectedCardName,
+          tarot_card_image_url: cardImageUrl,
+          tarot_user_viewed: true
+        })
+        .eq('order_id', orderId)
+        .eq('question_order', questionOrder);
+
+      if (error) {
+        console.error('❌ [TarotShufflePage] 카드 저장 실패:', error);
+        throw error;
+      }
+
+      console.log('✅ [TarotShufflePage] 카드 저장 완료 → 결과 페이지로 이동');
+
+      // 3. 결과 페이지로 이동 (UnifiedResultPage)
+      const fromParam = from ? `&from=${from}` : '';
+      const contentIdParamStr = contentIdState ? `&contentId=${contentIdState}` : '';
+      navigate(`/result?orderId=${orderId}&questionOrder=${questionOrder}${contentIdParamStr}${fromParam}`, { replace: true });
+
+    } catch (error) {
+      console.error('❌ [TarotShufflePage] 카드 선택 처리 실패:', error);
+      setIsSavingCard(false);
     }
-    // Better Fan Logic matching the visual:
-    // They are centered.
-    const newPositions = Array(21).fill(0).map((_, i) => {
-      const total = 21;
-      const center = (total - 1) / 2;
-      const dist = i - center;
-      const rotate = dist * 4; 
-      const x = dist * 8; // tighter overlap
-      const y = Math.abs(dist) * 3;
-      
-      return {
-        inset: `${y}px auto auto calc(50% + ${x}px)`, 
-        rotate: rotate,
-        skewX: 0
-      };
-    });
-    setFanCardPositions(newPositions);
-  }, []);
-
-  // Scatter -> Fan animation
-  useEffect(() => {
-    if (phase === 'scatter') {
-      const timer = setTimeout(() => {
-        setPhase('fan');
-      }, 1000); // 1 second scatter then fan
-      return () => clearTimeout(timer);
-    }
-  }, [phase]);
-
-  const handleCardClick = (index: number) => {
-    if (phase === 'fan') {
-      setPhase('picked');
-      setSelectedCardIndex(index);
-    }
-  };
-
-  const handleShuffle = () => {
-    setPhase('scatter');
-    setSelectedCardIndex(null);
-  };
-
-  const handleConfirmCard = () => {
-    // Navigate to next step or result loading
-    // For now, let's assume we go to result loading or interpretation
-    // Based on user flow, maybe 'Analysis' page.
-    // Let's navigate to the same result page with a 'step=loading' or similar?
-    // Or maybe the next question?
-    
-    // Logic: Save selection (mock) and go next
-    // navigate(`/result/tarot?orderId=${orderId}&questionOrder=${questionOrder}&step=loading...`);
-    // Check Next Logic from BottomNav:
-    const fromParam = from ? `&from=${from}` : '';
-    const contentIdParamStr = contentIdState ? `&contentId=${contentIdState}` : '';
-    navigate(`/result/tarot?orderId=${orderId}&questionOrder=${questionOrder}${contentIdParamStr}${fromParam}&step=3`); // step=3 might be result
   };
 
   const handleClose = () => {
@@ -307,10 +236,6 @@ export default function TarotShufflePage() {
       navigate('/');
     }
   };
-  
-  const handleToggleList = () => {
-    setShowTableOfContents(true);
-  };
 
   // ⭐ 다른 계정 주문 → 로그아웃 후 다시 로그인 유도
   const handleLogoutAndRetry = async () => {
@@ -322,11 +247,7 @@ export default function TarotShufflePage() {
 
   // ⭐ 세션 체크 중이면 로딩 화면 표시
   if (isCheckingSession) {
-    return (
-      <div className="bg-white flex items-center justify-center min-h-screen w-full max-w-[440px] mx-auto">
-        <div className="animate-spin rounded-full h-[48px] w-[48px] border-b-2 border-[#48b2af]"></div>
-      </div>
-    );
+    return <PageLoader />;
   }
 
   return (
@@ -354,34 +275,7 @@ export default function TarotShufflePage() {
         </div>
       </div>
 
-      <BottomNavigation
-        disableShadow
-        currentStep={questionOrder}
-        totalSteps={totalQuestions}
-        onPrevious={() => {
-          // ... logic ...
-           navigate(-1); // Simple fallback
-        }}
-        onNext={() => {
-          // 타로 결과 페이지로 이동
-          const fromParam = from ? `&from=${from}` : '';
-          const contentIdParamStr = contentIdState ? `&contentId=${contentIdState}` : '';
-          navigate(`/result/tarot?orderId=${orderId}&questionOrder=${questionOrder}${contentIdParamStr}${fromParam}`);
-        }}
-        onToggleList={handleToggleList}
-        disablePrevious={questionOrder === 1}
-      />
-
-      {/* TableOfContentsBottomSheet 내부에 AnimatePresence가 있으므로 외부 AnimatePresence 제거 */}
-      {orderId && contentIdState && (
-        <TableOfContentsBottomSheet
-          isOpen={showTableOfContents}
-          onClose={() => setShowTableOfContents(false)}
-          orderId={orderId}
-          contentId={contentIdState}
-          currentQuestionOrder={questionOrder}
-        />
-      )}
+      {/* ⭐ 타로 카드 뽑기 화면에서는 하단 네비게이션 & 목차 숨김 */}
 
       <SessionExpiredDialog isOpen={isSessionExpired} />
 

@@ -28,6 +28,25 @@ export const TAROT_DECK = [
 ];
 
 /**
+ * 78장 덱에서 랜덤으로 카드를 선택합니다 (중복 없음).
+ * @param count 선택할 카드 개수
+ * @returns 선택된 카드명 배열
+ */
+export function getRandomTarotCards(count: number): string[] {
+  const shuffled = [...TAROT_DECK].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, Math.min(count, TAROT_DECK.length));
+}
+
+/**
+ * 78장 덱에서 랜덤으로 1장의 카드를 선택합니다.
+ * @returns 선택된 카드명
+ */
+export function getRandomTarotCard(): string {
+  const randomIndex = Math.floor(Math.random() * TAROT_DECK.length);
+  return TAROT_DECK[randomIndex];
+}
+
+/**
  * 타로 질문 개수만큼 랜덤 카드를 선택합니다.
  * @param questionCount 타로 질문 개수
  * @returns { [질문순서]: 타로카드명 } 형태의 객체
@@ -35,11 +54,11 @@ export const TAROT_DECK = [
 export function getTarotCardsForQuestions(questionCount: number): Record<number, string> {
   const cards = getRandomTarotCards(questionCount);
   const result: Record<number, string> = {};
-  
+
   cards.forEach((card, index) => {
     result[index + 1] = card; // 질문 순서는 1부터 시작
   });
-  
+
   return result;
 }
 

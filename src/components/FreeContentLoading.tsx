@@ -11,22 +11,10 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import svgPaths from "../imports/svg-rj5zh7ifhy";
 import { supabase } from '../lib/supabase';
 import { toast } from '../lib/toast';
+import { DotLoading } from './ui/PageLoader';
 
 interface FreeContentLoadingProps {
   userName?: string;
-}
-
-function DotLoading() {
-  return (
-    <div className="flex items-center gap-[10px] h-[10px]" data-name="Dot loading">
-      <div className="w-[10px] h-[10px] rounded-full bg-[#E4F7F7] animate-[dotPulse_1.4s_ease-in-out_infinite]" 
-           style={{ animationDelay: '0s' }} />
-      <div className="w-[10px] h-[10px] rounded-full bg-[#7ED4D2] animate-[dotPulse_1.4s_ease-in-out_infinite]" 
-           style={{ animationDelay: '0.2s' }} />
-      <div className="w-[10px] h-[10px] rounded-full bg-[#48B2AF] animate-[dotPulse_1.4s_ease-in-out_infinite]" 
-           style={{ animationDelay: '0.4s' }} />
-    </div>
-  );
 }
 
 function NavigationTopBar({ onClose }: { onClose?: () => void }) {

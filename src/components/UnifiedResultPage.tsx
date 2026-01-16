@@ -8,6 +8,7 @@ import { getCachedTarotImage, cacheTarotImage } from '../lib/tarotImageCache';
 import TableOfContentsBottomSheet from './TableOfContentsBottomSheet';
 import { BottomNavigation } from './BottomNavigation';
 import { SessionExpiredDialog } from './SessionExpiredDialog';
+import { PageLoader } from './ui/PageLoader';
 
 interface ResultItem {
   question_order: number;
@@ -382,11 +383,7 @@ export default function UnifiedResultPage() {
 
   // ⭐ 로딩 중
   if (isCheckingSession || loading) {
-    return (
-      <div className="bg-white flex items-center justify-center min-h-screen w-full max-w-[440px] mx-auto">
-        <div className="animate-spin rounded-full h-[48px] w-[48px] border-b-2 border-[#48b2af]"></div>
-      </div>
-    );
+    return <PageLoader />;
   }
 
   // ⭐ 결과 없음

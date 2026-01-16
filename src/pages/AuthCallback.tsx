@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { projectId } from '../utils/supabase/info';
 import { setUser as setSentryUser } from '../lib/sentry';
+import { PageLoader } from '../components/ui/PageLoader';
 
 export default function AuthCallback() {
   const navigate = useNavigate();
@@ -193,12 +194,5 @@ export default function AuthCallback() {
     }
   };
 
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-white">
-      <div className="text-center">
-        <div className="w-16 h-16 border-4 border-[#48b2af] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-        <p className="text-black font-['Pretendard_Variable'] text-[16px]">로그인 처리 중...</p>
-      </div>
-    </div>
-  );
+  return <PageLoader message="로그인 처리 중..." />;
 }

@@ -21,6 +21,8 @@ import MasterContentQuestions, { Question } from './components/MasterContentQues
 import MasterContentDetail from './components/MasterContentDetail';
 import MasterContentDetailPage from './components/MasterContentDetailPage';
 import FreeContentDetail from './components/FreeContentDetail';
+import PaidContentDetailSkeleton from './components/skeletons/PaidContentDetailSkeleton'; // ⭐ 스켈레톤 로딩
+import { freeContentService } from './lib/freeContentService'; // ⭐ 무료 콘텐츠 캐시 체크
 import SajuInputPage from './components/SajuInputPage';
 import SajuManagementPage from './components/SajuManagementPage';
 import SajuAddPage from './components/SajuAddPage';
@@ -30,14 +32,13 @@ import FreeSajuAddPage from './components/FreeSajuAddPage';
 import LoadingPage from './components/LoadingPage';
 import FreeContentLoading from './components/FreeContentLoading';
 import FreeBirthInfoInput from './components/FreeBirthInfoInput';
-import SajuResultPage from './components/SajuResultPage';
-import TarotResultPage from './components/TarotResultPage';
 import UnifiedResultPage from './components/UnifiedResultPage'; // ⭐ 통합 결과 페이지
 import TarotShufflePage from './components/TarotShufflePage'; // ⭐ 타로 셔플 페이지
 import WelcomeCouponPage from './components/WelcomeCouponPage'; // ⭐ 추가
 import ResultCompletePage from './components/ResultCompletePage'; // ⭐ 추가
 import ErrorPage from './components/ErrorPage'; // ⭐ 공통 에러 페이지
 import ErrorBoundary from './components/ErrorBoundary'; // ⭐ 에러 바운더리
+import { PageLoader } from './components/ui/PageLoader'; // ⭐ 공통 로딩 컴포넌트
 import HomePage from './pages/HomePage';
 import AuthCallback from './pages/AuthCallback';
 // TarotDemo 백업됨 (TarotFlowPage 제거로 인해)
@@ -222,15 +223,26 @@ function ProductDetailPage() {
   const numericId = Number(id);
   const staticProduct = !isNaN(numericId) ? allProducts.find(p => p.id === numericId) : null;
 
+  // ⭐️ UUID 콘텐츠: freeContentService 캐시 확인 (동기)
+  // 캐시가 있으면 무료 콘텐츠이므로 즉시 FreeContentDetail 렌더링 가능
+  const cachedFreeContent = !staticProduct && id ? freeContentService.loadFromCache(id) : null;
+
   const [product, setProduct] = useState<any>(staticProduct || null);
-  // ⭐️ allProducts에서 찾았으면 로딩 불필요
-  const [isLoading, setIsLoading] = useState(!staticProduct);
+  // ⭐️ allProducts에서 찾았거나 캐시가 있으면 로딩 불필요
+  const [isLoading, setIsLoading] = useState(!staticProduct && !cachedFreeContent);
 
   // ⭐️ master_contents 조회 (UUID 콘텐츠인 경우에만)
   useEffect(() => {
-    // allProducts에서 이미 찾았으면 DB 조회 스킵
+    // allProducts에서 이미 찾았거나 캐시가 있으면 DB 조회 스킵
     if (staticProduct) {
       console.log('✅ [ProductDetailPage] allProducts에서 즉시 로드:', staticProduct.title);
+      return;
+    }
+
+    // ⭐️ freeContentService 캐시가 있으면 DB 조회 스킵
+    // (FreeContentDetail이 자체적으로 데이터를 관리함)
+    if (cachedFreeContent) {
+      console.log('✅ [ProductDetailPage] 캐시 존재 → DB 조회 스킵');
       return;
     }
 
@@ -289,12 +301,25 @@ function ProductDetailPage() {
     loadProduct();
   }, [id]);
 
-  if (isLoading) {
+  // ⭐️ 무료 콘텐츠 캐시가 있으면 즉시 FreeContentDetail 렌더링 (로딩 스킵)
+  if (cachedFreeContent && id) {
+    console.log('✅ [ProductDetailPage] 캐시 감지 → FreeContentDetail 즉시 렌더링');
     return (
-      <div className="flex items-center justify-center min-h-screen bg-white">
-        <div className="animate-spin rounded-full h-[32px] w-[32px] border-b-2 border-[#48b2af]"></div>
-      </div>
+      <FreeContentDetail
+        contentId={id}
+        onBack={() => navigate('/')}
+        onHome={() => navigate('/')}
+        onContentClick={(contentId) => navigate(`/product/${contentId}`)}
+        onBannerClick={(productId) => navigate(`/product/${productId}`)}
+      />
     );
+  }
+
+  // ⭐️ UUID 콘텐츠 로딩 중: 스켈레톤 표시 (PageLoader 대신)
+  // - 자식 컴포넌트(FreeContentDetail, MasterContentDetailPage)가 자체 스켈레톤을 갖고 있어서
+  //   PageLoader 사용 시 로딩이 2번 연속 표시되는 문제 해결
+  if (isLoading) {
+    return <PaidContentDetailSkeleton />;
   }
 
   if (!product) {
@@ -480,11 +505,7 @@ function PaymentNewPage() {
   }, [staticProduct]);
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-[32px] w-[32px] border-b-2 border-[#48b2af]"></div>
-      </div>
-    );
+    return <PageLoader />;
   }
 
   // ⭐ allProducts에서 찾지 못한 경우 (UUID인 경우)는 contentId만 전달
@@ -723,11 +744,7 @@ function BirthInfoPage() {
   }, [product, id, navigate]);
 
   if (isLoading || (product?.type === 'free' && hasSajuInfo === null)) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-white">
-        <div className="animate-spin rounded-full h-[32px] w-[32px] border-b-2 border-[#48b2af]"></div>
-      </div>
-    );
+    return <PageLoader />;
   }
 
   if (!product) {
@@ -927,13 +944,9 @@ function FreeResultPage() {
 
   // 로딩 중
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-white">
-        <div className="animate-spin rounded-full h-[32px] w-[32px] border-b-2 border-[#48b2af]"></div>
-      </div>
-    );
+    return <PageLoader />;
   }
-  
+
   // ⭐️ product만 체크 (recordId는 localStorage key이므로 반드시 있음)
   if (!product) {
     console.error('❌ [FreeResultPage] product 없음');
@@ -1472,11 +1485,7 @@ function MasterContentCreateFlowWrapper() {
 
   // 권한 확인 중이면 로딩 표시
   if (isCheckingAuth) {
-    return (
-      <div className="bg-white relative w-full min-h-screen flex justify-center items-center">
-        <div className="animate-spin rounded-full h-[32px] w-[32px] border-b-2 border-[#48b2af]"></div>
-      </div>
-    );
+    return <PageLoader />;
   }
 
   // 현재 화면 결정 (URL 기반)
@@ -1605,8 +1614,6 @@ export default function App() {
           <Route path="/loading" element={<LoadingPage />} />
           <Route path="/free-loading" element={<FreeContentLoading />} />
           <Route path="/result" element={<UnifiedResultPage />} /> {/* ⭐ 통합 결과 페이지 */}
-          <Route path="/result/saju" element={<SajuResultPage />} />
-          <Route path="/result/tarot" element={<TarotResultPage />} />
           <Route path="/tarot/shuffle" element={<TarotShufflePage />} /> {/* ⭐ 타로 셔플 페이지 */}
           <Route path="/signup/terms" element={<TermsPageWrapper />} />
           <Route path="/auth/callback" element={<AuthCallback />} />

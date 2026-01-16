@@ -11,6 +11,7 @@ import { SajuKebabMenu } from './SajuKebabMenu';
 import { ConfirmDialog } from './ConfirmDialog';
 import SajuCard, { SajuCardData } from './SajuCard';
 import { SessionExpiredDialog } from './SessionExpiredDialog';
+import { PageLoader } from './ui/PageLoader';
 
 interface SajuRecord {
   id: string;
@@ -761,11 +762,7 @@ export default function SajuSelectPage() {
     });
 
   if (isLoading) {
-    return (
-      <div className="bg-white relative min-h-screen w-full flex justify-center items-center">
-        <div className="animate-spin rounded-full h-[32px] w-[32px] border-b-2 border-[#48b2af]"></div>
-      </div>
-    );
+    return <PageLoader />;
   }
 
   if (showLoading) {
