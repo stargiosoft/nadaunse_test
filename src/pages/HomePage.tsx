@@ -452,7 +452,7 @@ function TopNavigationContainer({
             </div>
           </div>
         </div>
-        <div className={`z-10 bg-white box-border content-stretch flex flex-col gap-[4px] items-start relative shrink-0 w-full py-[8px] mb-[-8px] transition-all duration-200 ease-in-out ${isVisible ? '' : '-translate-y-full opacity-0'}`} data-name="Selected=Left">
+        <div className={`z-10 bg-white box-border content-stretch flex flex-col gap-[4px] items-start relative shrink-0 w-full py-[8px] mb-[-8px] transition-all duration-300 ease-out ${isVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0 pointer-events-none'}`} data-name="Selected=Left">
           <div className="max-w-[440px] mx-auto w-full px-[20px]">
             <SegmentedControl selectedType={selectedType} onTypeChange={onTypeChange} />
           </div>
@@ -622,6 +622,7 @@ export default function HomePage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [availableCategories, setAvailableCategories] = useState<TabCategory[]>(['전체']);
   const observerTarget = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [showNavigation, setShowNavigation] = useState(true);
   const lastScrollY = useRef(0);
 
@@ -736,23 +737,27 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
-    const controlNavbar = () => {
-      if (typeof window !== 'undefined') {
-        const currentScrollY = window.scrollY;
-        
-        if (currentScrollY > lastScrollY.current && currentScrollY > 50) { 
-          setShowNavigation(false);
-        } else {
-          setShowNavigation(true);
-        }
+    const scrollContainer = scrollContainerRef.current;
+    if (!scrollContainer) return;
 
-        lastScrollY.current = currentScrollY;
+    const controlNavbar = () => {
+      const currentScrollY = scrollContainer.scrollTop;
+
+      // 아래로 스크롤 (50px 이상) → 탭바 숨김
+      if (currentScrollY > lastScrollY.current && currentScrollY > 50) {
+        setShowNavigation(false);
       }
+      // 위로 스크롤 → 탭바 노출
+      else if (currentScrollY < lastScrollY.current) {
+        setShowNavigation(true);
+      }
+
+      lastScrollY.current = currentScrollY;
     };
 
-    window.addEventListener('scroll', controlNavbar);
+    scrollContainer.addEventListener('scroll', controlNavbar);
     return () => {
-      window.removeEventListener('scroll', controlNavbar);
+      scrollContainer.removeEventListener('scroll', controlNavbar);
     };
   }, []);
   
@@ -1600,7 +1605,7 @@ export default function HomePage() {
         />
 
         {/* ⭐ Scrollable Content Area - overscroll-contain으로 iOS 바운스 방지 */}
-        <div className="flex-1 overflow-y-auto overscroll-contain">
+        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto overscroll-contain">
           {/* Content Area */}
           <div className="content-stretch flex flex-col gap-[8px] items-start px-[20px] pt-[182px] pb-[60px] relative shrink-0 w-full">
           

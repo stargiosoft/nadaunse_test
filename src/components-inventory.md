@@ -739,6 +739,12 @@
   - 흰색 배경 페이지와 시각적 일관성 개선
 
 ### 2026-01-16
+- **HomePage.tsx 탭바 스크롤 숨김/노출 기능 추가**
+  - 스크롤 방향 감지: 아래로 스크롤 시 SegmentedControl (종합/심화 해석판/무료 체험판) 숨김
+  - 위로 스크롤 시 자동으로 다시 노출
+  - `window.scrollY` → `scrollContainer.scrollTop` 사용 (내부 div 스크롤 감지)
+  - 애니메이션: 300ms ease-out transition, pointer-events-none으로 클릭 방지
+  - 스크롤 threshold: 50px (상단 50px 이하에서는 항상 노출)
 - **FreeContentDetail.tsx 광고 배너 하단 여백 추가**
   - 스크롤 컨테이너에 `paddingBottom: '250px'` inline style 적용
   - 광고 배너와 하단 CTA 버튼 사이 충분한 여유 공간 확보
