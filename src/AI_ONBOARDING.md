@@ -3,7 +3,7 @@
 > **대상**: 이 프로젝트를 처음 맡는 AI 어시스턴트
 > **목적**: 5분 안에 프로젝트 컨텍스트를 파악하고 즉시 작업 시작
 > **GitHub**: https://github.com/stargiosoft/nadaunse
-> **최종 업데이트**: 2026-01-15
+> **최종 업데이트**: 2026-01-16
 
 ---
 
@@ -737,6 +737,7 @@ useEffect(() => {
 
 | 버전 | 날짜 | 변경 내용 | 작성자 |
 |------|------|-----------|--------|
+| 1.7.6 | 2026-01-16 | FreeContentDetail 광고 배너 하단 250px 여백 추가 | AI Assistant |
 | 1.0.0 | 2025-12-21 | 초기 문서 작성 | AI Assistant |
 | 1.1.0 | 2025-12-31 | LoadingPage 이미지 최적화, 목차 더미 데이터 제거 반영 | AI Assistant |
 | 1.2.0 | 2026-01-06 | 개발/배포 환경 분리, iOS Safari 최적화, 타로 서비스 추가, 컴포넌트 51개/Edge Functions 17개 반영 | AI Assistant |
@@ -746,6 +747,10 @@ useEffect(() => {
 | 1.6.0 | 2026-01-14 | iOS Safari 무한 스와이프 뒤로가기 지원 (동적 버퍼 재충전), 사주 API 문서 오류 수정 | AI Assistant |
 | 1.7.0 | 2026-01-15 | ResultCompletePage 토스트 아이콘 변경 (PositiveIcon), TarotDemo 삭제, 결과 페이지 레이아웃 조정 | AI Assistant |
 | 1.7.1 | 2026-01-15 | ProfilePage 디버그 버튼 제거, Footer 레이아웃 개선 | AI Assistant |
+| 1.7.2 | 2026-01-16 | SajuManagementPage 타이포그래피/레이아웃 정밀 조정 | AI Assistant |
+| 1.7.3 | 2026-01-16 | WelcomeCouponPage 수직 중앙 정렬 (pb-[160px]) | AI Assistant |
+| 1.7.4 | 2026-01-16 | iOS Safari 상태바 색상 흰색으로 변경 (theme-color #ffffff) | AI Assistant |
+| 1.7.5 | 2026-01-16 | FreeSajuSelectPage, SajuCard UI 통일 (SajuManagementPage와 동일) | AI Assistant |
 
 ---
 
@@ -816,6 +821,6 @@ useEffect(() => {
 
 ---
 
-**문서 버전**: 1.7.1
-**최종 업데이트**: 2026-01-15
+**문서 버전**: 1.7.6
+**최종 업데이트**: 2026-01-16
 **다음 AI에게**: 이 문서 읽는 데 5분 투자하면, 수십 시간의 삽질을 막을 수 있어요. **사주 API는 Edge Function에서 `SAJU_API_KEY`로 서버 직접 호출** (IP 화이트리스트 + 키 인증), iOS Safari 무한 스와이프 뒤로가기 지원 (동적 버퍼 재충전), 이미지 캐시 버스팅을 꼭 기억하세요! 화이팅! 🚀

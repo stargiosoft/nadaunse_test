@@ -3,7 +3,7 @@
 > **AI 디버깅 전용 컨텍스트 파일**
 > 버그 발생 시 AI에게 가장 먼저 제공해야 하는 프로젝트 뇌(Brain)
 > **GitHub**: https://github.com/stargiosoft/nadaunse
-> **최종 업데이트**: 2026-01-15
+> **최종 업데이트**: 2026-01-16
 
 ---
 
@@ -1100,6 +1100,7 @@ useEffect(() => {
 
 | 버전 | 날짜 | 변경 내용 | 작성자 |
 |------|------|-----------|--------|
+| 1.8.6 | 2026-01-16 | FreeContentDetail 광고 배너 하단 250px 여백 추가 (inline style) - 하단 CTA 버튼과 충분한 공간 확보 | AI Assistant |
 | 1.0.0 | 2025-12-20 | 초기 문서 작성 | AI Assistant |
 | 1.1.0 | 2025-12-20 | DEV_FLOW.md 통합 (무료/유료 플로우 추가) | AI Assistant |
 | 1.2.0 | 2026-01-06 | 타로 서비스 추가, 개발/배포 환경 분리, iOS Safari 최적화, 컴포넌트 51개/Edge Functions 17개 반영 | AI Assistant |
@@ -1112,6 +1113,10 @@ useEffect(() => {
 | 1.7.0 | 2026-01-13 | 사주 API 백엔드 서버 직접 호출 (SAJU_API_KEY 사용), 이미지 캐시 버스팅, iOS 클릭 이벤트 버그 추가 | AI Assistant |
 | 1.8.0 | 2026-01-15 | TarotDemo.tsx 삭제, ResultCompletePage 토스트 아이콘 변경 (PositiveIcon), 결과 페이지 레이아웃 조정 | AI Assistant |
 | 1.8.1 | 2026-01-15 | ProfilePage.tsx 디버그 버튼 제거, Footer 레이아웃 개선 (min-height wrapper + flexible spacer) | AI Assistant |
+| 1.8.2 | 2026-01-16 | SajuManagementPage 타이포그래피/레이아웃 정밀 조정 (섹션 타이틀 font-semibold, 프로필 이름 font-medium, 간격 최적화) | AI Assistant |
+| 1.8.3 | 2026-01-16 | WelcomeCouponPage 수직 중앙 정렬 (pb-[160px]) | AI Assistant |
+| 1.8.4 | 2026-01-16 | iOS Safari 상태바 색상 흰색으로 변경 (theme-color #ffffff) | AI Assistant |
+| 1.8.5 | 2026-01-16 | FreeSajuSelectPage, SajuCard UI 통일 (SajuManagementPage와 동일) - 섹션 타이틀 font-semibold, 프로필 이름 font-medium, 간격 조정 | AI Assistant |
 
 ---
 
@@ -1213,6 +1218,6 @@ useEffect(() => {
 
 ---
 
-**문서 버전**: 1.8.1
-**최종 업데이트**: 2026-01-15
+**문서 버전**: 1.8.6
+**최종 업데이트**: 2026-01-16
 **문서 끝**

@@ -1,6 +1,6 @@
 # Components Inventory
 
-> **최종 업데이트**: 2026-01-15
+> **최종 업데이트**: 2026-01-16
 > **총 컴포넌트 수**: 51개 (활성화)
 > **UI 컴포넌트 (shadcn/ui)**: 48개
 > **프로젝트**: 타로/사주 운세 모바일 웹 서비스
@@ -150,10 +150,11 @@
 - **역할**: 가입 축하 쿠폰 안내 페이지
 - **사용처**: 신규 가입 플로우
 - **타입**: Page Component
-- **주요 기능**: 
+- **주요 기능**:
   - 웰컴 쿠폰 발급 안내
   - Edge Function `/issue-welcome-coupon` 호출
 - **파일 경로**: `/components/WelcomeCouponPage.tsx`
+- **최근 업데이트**: 2026-01-16 - 캐릭터/타이틀 수직 중앙 정렬 (pb-[160px])
 
 ---
 
@@ -174,11 +175,15 @@
 - **역할**: 무료 콘텐츠용 사주 선택 페이지
 - **사용처**: `/product/:id/free-saju-select` 라우트
 - **타입**: Page Component
-- **주요 기능**: 
+- **주요 기능**:
   - 로그인 사용자의 저장된 사주 목록 조회
   - 대표 사주 우선 표시
   - **개발 모드**: localStorage에서 데이터 로드 (프론트 UI 테스트용)
 - **파일 경로**: `/components/FreeSajuSelectPage.tsx`
+- **최근 업데이트**: 2026-01-16 - SajuManagementPage와 동일한 UI로 스타일링 통일
+  - 섹션 타이틀 font-semibold 적용
+  - 섹션 타이틀-프로필 카드 간격 6px
+  - 사주 목록 간격 1px로 조정 (SajuManagementPage와 동일)
 
 ### FreeSajuSelectPageWrapper.tsx
 - **역할**: FreeSajuSelectPage URL 파라미터 래퍼
@@ -200,12 +205,13 @@
 - **역할**: 무료 콘텐츠 상세 페이지 (메인 로직)
 - **사용처**: `/master/content/detail/:id` 라우트 (무료 콘텐츠)
 - **타입**: Page Component
-- **주요 기능**: 
+- **주요 기능**:
   - AI 운세 생성 요청 (Edge Function `/generate-free-preview`)
   - localStorage 캐시 관리
   - 결과 표시
 - **비즈니스 로직**: `FreeContentService` 싱글톤 클래스 사용
 - **파일 경로**: `/components/FreeContentDetail.tsx`
+- **최근 업데이트**: 2026-01-16 - 광고 배너 하단 250px 여백 추가 (inline style)
 
 ### FreeContentDetailComponents.tsx
 - **역할**: 무료 콘텐츠 상세 UI 컴포넌트 모음
@@ -359,12 +365,18 @@
 - **역할**: 사주 정보 관리 메인 페이지
 - **사용처**: `/profile/saju` 라우트
 - **타입**: Page Component
-- **주요 기능**: 
+- **주요 기능**:
   - 저장된 사주 목록 조회
   - 사주 수정/삭제
   - 대표 사주 설정
   - Kebab 메뉴 UI
 - **파일 경로**: `/components/SajuManagementPage.tsx`
+- **최근 업데이트**: 2026-01-16 - 타이포그래피 및 레이아웃 정밀 조정
+  - 섹션 타이틀 font-semibold, 프로필 이름 font-medium
+  - 닉네임-생년월일 간격 축소 (-mb-[8px], -mt-[4px])
+  - Info Container 하단 마진 8px (이미지 정렬)
+  - 섹션 타이틀-프로필 카드 간격 6px
+  - 함께 보는 사주 리스트 간격 1px
 
 ### SajuDetail.tsx
 - **역할**: 사주 상세 정보 조회 페이지
@@ -404,7 +416,7 @@
   - Database Trigger로 다른 사주 자동 업데이트
 - **파일 경로**: `/components/PrimarySajuChangeDialog.tsx`
 
-### SajuCard.tsx (NEW!)
+### SajuCard.tsx
 - **역할**: 사주 정보 카드 공통 컴포넌트
 - **사용처**: FreeSajuSelectPage, SajuSelectPage, SajuManagementPage
 - **타입**: Presentational Component
@@ -416,6 +428,11 @@
   - 케밥 메뉴 버튼 (옵션)
 - **파일 경로**: `/components/SajuCard.tsx`
 - **추가 날짜**: 2026-01-07
+- **최근 업데이트**: 2026-01-16 - SajuManagementPage와 동일한 UI로 스타일링 통일
+  - 프로필 이름 font-medium 적용
+  - 닉네임-생년월일 간격 축소 (-mb-[8px], -mt-[4px])
+  - Info Container 하단 마진 8px (프로필 이미지와 정렬)
+  - 프로필 이미지 위치 조정 (-ml-[11px] pl-[1px] mr-[-3px])
 
 ---
 
@@ -708,6 +725,25 @@
 
 ## 🔄 업데이트 이력
 
+### 2026-01-16
+- **FreeSajuSelectPage.tsx, SajuCard.tsx UI 통일 (SajuManagementPage와 동일)**
+  - FreeSajuSelectPage: 섹션 타이틀 font-semibold, 간격 조정 (gap-[6px], gap-[1px])
+  - SajuCard: 프로필 이름 font-medium, 닉네임-생년월일 간격 축소, 이미지 위치 조정
+  - 사주 정보 선택 화면과 사주관리 화면이 동일한 UI로 통일
+- **WelcomeCouponPage.tsx 레이아웃 중앙 정렬**
+  - 캐릭터, 메인 타이틀, 서브 타이틀이 하단으로 치우쳐져 있던 문제 수정
+  - ImageContainer에 `pb-[160px]` 적용하여 수직 중앙 정렬
+  - 하단 고정 버튼 영역을 고려한 시각적 균형 조정
+- **iOS Safari 상태바 색상 변경**
+  - index.html `theme-color` 메타 태그 #48b2af(민트) → #ffffff(흰색)
+  - 흰색 배경 페이지와 시각적 일관성 개선
+
+### 2026-01-16
+- **FreeContentDetail.tsx 광고 배너 하단 여백 추가**
+  - 스크롤 컨테이너에 `paddingBottom: '250px'` inline style 적용
+  - 광고 배너와 하단 CTA 버튼 사이 충분한 여유 공간 확보
+  - Tailwind JIT 컴파일 문제로 `pb-[250px]` 클래스 대신 inline style 사용
+
 ### 2026-01-15
 - **ProfilePage.tsx 디버그 버튼 제거 및 Footer 레이아웃 개선**
   - 디버그 버튼 3개 완전 제거: `[디버그] 미등록 화면 보기`, `[DEV] 에러 페이지 확인`
@@ -828,7 +864,7 @@
 
 ---
 
-**문서 버전**: 2.4.0
-**최종 업데이트**: 2026-01-15
+**문서 버전**: 2.5.0
+**최종 업데이트**: 2026-01-16
 **다음 업데이트**: 새 컴포넌트 추가 또는 주요 변경 시
 **문서 끝**

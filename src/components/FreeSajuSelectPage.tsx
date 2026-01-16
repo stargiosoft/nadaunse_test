@@ -585,12 +585,12 @@ export default function FreeSajuSelectPage({ productId, onBack, prefetchedSajuRe
         <div className="px-[20px] pb-[20px]">
           {/* 내 사주 섹션 */}
           {mySaju && (
-            <div className="content-stretch flex flex-col gap-[8px] items-start relative shrink-0 w-full">
+            <div className="content-stretch flex flex-col gap-[6px] items-start relative shrink-0 w-full">
               {/* Section Title */}
-              <div className="content-stretch flex flex-col gap-[12px] items-center relative shrink-0 w-full">
+              <div className="content-stretch flex flex-col gap-[6px] items-center relative shrink-0 w-full">
                 <div className="content-stretch flex items-center justify-between relative shrink-0 w-full">
                   <div className="basis-0 content-stretch flex grow items-center justify-center min-h-px min-w-px relative shrink-0">
-                    <p className="basis-0 grow leading-[24px] min-h-px min-w-px relative shrink-0 text-[17px] text-black tracking-[-0.34px]">
+                    <p className="basis-0 grow leading-[24px] min-h-px min-w-px relative shrink-0 text-[17px] text-black tracking-[-0.34px] font-semibold">
                       내 사주
                     </p>
                   </div>
@@ -615,13 +615,13 @@ export default function FreeSajuSelectPage({ productId, onBack, prefetchedSajuRe
           )}
 
           {/* 함께 보는 사주 섹션 */}
-          <div className="content-stretch flex flex-col gap-[88px] items-start relative shrink-0 w-full mt-[44px]">
+          <div className="content-stretch flex flex-col gap-[120px] items-start relative shrink-0 w-full mt-[32px]">
             <div className="content-stretch flex flex-col items-start relative shrink-0 w-full">
               {/* Section Title */}
-              <div className="content-stretch flex flex-col gap-[12px] items-center relative shrink-0 w-full">
+              <div className="content-stretch flex flex-col gap-[6px] items-center relative shrink-0 w-full mb-[-6px]">
                 <div className="content-stretch flex items-center justify-between relative shrink-0 w-full">
                   <div className="basis-0 content-stretch flex grow items-center justify-center min-h-px min-w-px relative shrink-0">
-                    <p className="basis-0 grow leading-[24px] min-h-px min-w-px relative shrink-0 text-[17px] text-black tracking-[-0.34px]">
+                    <p className="basis-0 grow leading-[24px] min-h-px min-w-px relative shrink-0 text-[17px] text-black tracking-[-0.34px] font-semibold">
                       함께 보는 사주
                     </p>
                   </div>
@@ -664,7 +664,7 @@ export default function FreeSajuSelectPage({ productId, onBack, prefetchedSajuRe
                 </div>
               </div>
             ) : (
-              <div className="content-stretch flex flex-col gap-[12px] items-start relative shrink-0 w-full -mt-[80px]">
+              <div className="content-stretch flex flex-col gap-[1px] items-start relative shrink-0 w-full -mt-[108px]">
                 {otherSajus.map((saju) => (
                   <SajuCard
                     key={saju.id}

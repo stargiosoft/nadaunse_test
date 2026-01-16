@@ -812,12 +812,12 @@ export default function SajuManagementPage({ onBack, onNavigateToInput, onNaviga
         <motion.div className="pt-[68px] pb-[120px] px-[20px]" variants={containerVariants} initial="hidden" animate="visible">
           {/* 내 사주 섹션 */}
           {mySaju && (
-            <div className="content-stretch flex flex-col gap-[8px] items-start relative shrink-0 w-full">
+            <div className="content-stretch flex flex-col gap-[6px] items-start relative shrink-0 w-full">
               {/* Section Title */}
               <motion.div className="content-stretch flex flex-col gap-[6px] items-center relative shrink-0 w-full" variants={itemVariants}>
                 <div className="content-stretch flex items-center justify-between relative shrink-0 w-full">
                   <div className="basis-0 content-stretch flex grow items-center justify-center min-h-px min-w-px relative shrink-0">
-                    <p className="basis-0 grow leading-[24px] min-h-px min-w-px relative shrink-0 text-[17px] text-black tracking-[-0.34px]">
+                    <p className="basis-0 grow leading-[24px] min-h-px min-w-px relative shrink-0 text-[17px] text-black tracking-[-0.34px] font-semibold">
                       내 사주
                     </p>
                   </div>
@@ -855,8 +855,8 @@ export default function SajuManagementPage({ onBack, onNavigateToInput, onNaviga
                 </div>
 
                 {/* Info Container */}
-                <div className="basis-0 content-stretch flex flex-col grow items-start min-h-px min-w-px relative shrink-0">
-                  <div className="content-stretch flex items-center justify-between relative shrink-0 w-full -mb-[3px]">
+                <div className="basis-0 content-stretch flex flex-col grow items-start min-h-px min-w-px relative shrink-0 mb-[8px]">
+                  <div className="content-stretch flex items-center justify-between relative shrink-0 w-full -mb-[8px]">
                     <p className="overflow-hidden relative text-[15px] text-black tracking-[-0.45px] font-medium line-clamp-2">
                       {mySaju.full_name} {mySaju.notes && `(${mySaju.notes})`}
                     </p>
@@ -871,7 +871,7 @@ export default function SajuManagementPage({ onBack, onNavigateToInput, onNaviga
                       </div>
                     </div>
                   </div>
-                  <div className="content-stretch flex flex-col gap-[3px] items-start relative shrink-0 w-full">
+                  <div className="content-stretch flex flex-col gap-[3px] items-start relative shrink-0 w-full -mt-[4px]">
                     <div className="content-stretch flex items-center relative rounded-[12px] shrink-0 w-full">
                       <p className="font-normal leading-[16px] overflow-ellipsis overflow-hidden relative shrink-0 text-[#848484] text-[12px] text-nowrap tracking-[-0.24px]">
                         {formatBirthDate(mySaju.birth_date, mySaju.calendar_type)}
@@ -881,7 +881,7 @@ export default function SajuManagementPage({ onBack, onNavigateToInput, onNaviga
                       <p className="font-normal leading-[16px] overflow-ellipsis overflow-hidden relative shrink-0 text-[#848484] text-[12px] text-nowrap tracking-[-0.24px]">
                         {mySaju.zodiac || getChineseZodiac(mySaju.birth_date, mySaju.birth_time)}
                       </p>
-                      <div className="h-[6px] relative shrink-0 w-[1px]">
+                      <div className="h-[6px] relative shrink-0 w-[0.5px]">
                         <div className="absolute inset-[-8.33%_-0.4px]">
                           <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 1 7">
                             <path d="M0.5 0.5V6.5" stroke="#D4D4D4" strokeLinecap="round" />
@@ -895,7 +895,7 @@ export default function SajuManagementPage({ onBack, onNavigateToInput, onNaviga
                           return getConstellation(parseInt(month), parseInt(day));
                         })()}
                       </p>
-                      <div className="h-[6px] relative shrink-0 w-[1px]">
+                      <div className="h-[6px] relative shrink-0 w-[0.5px]">
                         <div className="absolute inset-[-8.33%_-0.4px]">
                           <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 1 7">
                             <path d="M0.5 0.5V6.5" stroke="#D4D4D4" strokeLinecap="round" />
@@ -916,10 +916,10 @@ export default function SajuManagementPage({ onBack, onNavigateToInput, onNaviga
           <div className="content-stretch flex flex-col gap-[120px] items-start relative shrink-0 w-full mt-[32px]">
             <div className="content-stretch flex flex-col items-start relative shrink-0 w-full">
               {/* Section Title */}
-              <motion.div className="content-stretch flex flex-col gap-[6px] items-center relative shrink-0 w-full mb-[-4px]" variants={itemVariants}>
+              <motion.div className="content-stretch flex flex-col gap-[6px] items-center relative shrink-0 w-full mb-[-6px]" variants={itemVariants}>
                 <div className="content-stretch flex items-center justify-between relative shrink-0 w-full">
                   <div className="basis-0 content-stretch flex grow items-center justify-center min-h-px min-w-px relative shrink-0">
-                    <p className="basis-0 grow leading-[24px] min-h-px min-w-px relative shrink-0 text-[17px] text-black tracking-[-0.34px]">
+                    <p className="basis-0 grow leading-[24px] min-h-px min-w-px relative shrink-0 text-[17px] text-black tracking-[-0.34px] font-semibold">
                       함께 보는 사주
                     </p>
                   </div>
@@ -962,7 +962,7 @@ export default function SajuManagementPage({ onBack, onNavigateToInput, onNaviga
                 </div>
               </motion.div>
             ) : (
-              <div className="content-stretch flex flex-col gap-[4px] items-start relative shrink-0 w-full -mt-[108px]">
+              <div className="content-stretch flex flex-col gap-[1px] items-start relative shrink-0 w-full -mt-[108px]">
                 {otherSajuList.map((saju) => (
                   <motion.div key={saju.id} className="content-stretch flex gap-[12px] items-center px-[px] py-[4px] relative rounded-[12px] shrink-0 w-full" variants={itemVariants}>
                     {/* Radio Button */}
@@ -987,9 +987,9 @@ export default function SajuManagementPage({ onBack, onNavigateToInput, onNaviga
                     </div>
 
                     {/* Info Container */}
-                    <div className="basis-0 content-stretch flex flex-col grow items-start min-h-px min-w-px relative shrink-0">
-                      <div className="content-stretch flex items-center justify-between relative shrink-0 w-full -mb-[3px]">
-                        <p className="overflow-hidden relative text-[15px] text-black tracking-[-0.45px] line-clamp-2">
+                    <div className="basis-0 content-stretch flex flex-col grow items-start min-h-px min-w-px relative shrink-0 mb-[8px]">
+                      <div className="content-stretch flex items-center justify-between relative shrink-0 w-full -mb-[8px]">
+                        <p className="overflow-hidden relative text-[15px] text-black tracking-[-0.45px] font-medium line-clamp-2">
                           {saju.full_name} {saju.notes && `(${saju.notes})`}
                         </p>
                         <div 
@@ -1003,7 +1003,7 @@ export default function SajuManagementPage({ onBack, onNavigateToInput, onNaviga
                           </div>
                         </div>
                       </div>
-                      <div className="content-stretch flex flex-col gap-[3px] items-start relative shrink-0 w-full">
+                      <div className="content-stretch flex flex-col gap-[3px] items-start relative shrink-0 w-full -mt-[4px]">
                         <div className="content-stretch flex items-center relative rounded-[12px] shrink-0 w-full">
                           <p className="font-normal leading-[16px] overflow-ellipsis overflow-hidden relative shrink-0 text-[#848484] text-[12px] text-nowrap tracking-[-0.24px]">
                             {formatBirthDate(saju.birth_date, saju.calendar_type)}
@@ -1013,7 +1013,7 @@ export default function SajuManagementPage({ onBack, onNavigateToInput, onNaviga
                           <p className="font-normal leading-[16px] overflow-ellipsis overflow-hidden relative shrink-0 text-[#848484] text-[12px] text-nowrap tracking-[-0.24px]">
                             {saju.zodiac || getChineseZodiac(saju.birth_date, saju.birth_time)}
                           </p>
-                          <div className="h-[6px] relative shrink-0 w-[1px]">
+                          <div className="h-[6px] relative shrink-0 w-[0.5px]">
                             <div className="absolute inset-[-8.33%_-0.4px]">
                               <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 1 7">
                                 <path d="M0.5 0.5V6.5" stroke="#D4D4D4" strokeLinecap="round" />
@@ -1027,7 +1027,7 @@ export default function SajuManagementPage({ onBack, onNavigateToInput, onNaviga
                               return getConstellation(parseInt(month), parseInt(day));
                             })()}
                           </p>
-                          <div className="h-[6px] relative shrink-0 w-[1px]">
+                          <div className="h-[6px] relative shrink-0 w-[0.5px]">
                             <div className="absolute inset-[-8.33%_-0.4px]">
                               <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 1 7">
                                 <path d="M0.5 0.5V6.5" stroke="#D4D4D4" strokeLinecap="round" />
