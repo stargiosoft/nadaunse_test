@@ -553,10 +553,13 @@ export default function PaymentNew({
       return;
     }
 
+    // ⭐ 즉시 로딩 상태 활성화 (버튼 클릭 즉시 피드백)
+    setIsProcessingPayment(true);
+    console.log('🔄 [PaymentNew] 결제 처리 시작 - 로딩 표시');
+
     const finalContentId = contentId || productId;
 
     // 결제금액이 0원이면 바로 주문 저장 후 다음 단계로 (PG 호출 없음)
-    // ⭐ 0원 결제는 "결제 페이지로 이동중" 로딩을 표시하지 않음
     if (totalPrice === 0) {
       // ⭐ 0원 결제는 PG 리다이렉트가 없으므로 ref 설정 불필요
       try {
@@ -653,12 +656,11 @@ export default function PaymentNew({
       alert(
         "결제 모듈을 불러오는 중입니다. 잠시 후 다시 시도해주세요.",
       );
+      setIsProcessingPayment(false); // ⭐ 에러 시 로딩 해제
       return;
     }
 
-    // ⭐ 유료 결제 처리 시작 - "결제 페이지로 이동중" 로딩 표시
-    setIsProcessingPayment(true);
-    console.log('🔄 [PaymentNew] 유료 결제 처리 시작');
+    console.log('🔄 [PaymentNew] 유료 결제 PG 호출 시작');
 
     // 결제 수단에 따른 PG 설정
     const pgProvider =
