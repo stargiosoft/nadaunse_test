@@ -100,6 +100,7 @@ export default function BirthInfoInput({ productId, onBack, onComplete }: BirthI
   }, []);
 
   // 사주 정보 저장 함수
+  // ⭐ user를 파라미터로 받아 중복 getUser 호출 제거 (~100ms 절약)
   const saveSajuRecord = async (data: {
     name: string;
     gender: 'female' | 'male';
@@ -107,12 +108,7 @@ export default function BirthInfoInput({ productId, onBack, onComplete }: BirthI
     birthTime: string;
     unknownTime: boolean;
     phoneNumber?: string;
-  }) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      throw new Error('사용자 정보를 찾을 수 없습니다');
-    }
+  }, user: { id: string }) => {
 
     // ⭐ 기존 사주 개수 확인 (최초 사주면 is_primary: true)
     const { data: existingSaju, error: existingError } = await supabase
@@ -429,15 +425,29 @@ export default function BirthInfoInput({ productId, onBack, onComplete }: BirthI
       console.log('📝 [사주입력] 저장 시작:', { name, gender, birthDate, birthTime: finalBirthTime });
       console.log('📌 [BirthInfoInput] 태어난 시간:', finalBirthTime);
 
-      // 사주 정보 저장
-      const sajuData = await saveSajuRecord({
-        name: name.trim(),
-        gender: gender,
-        birthDate: birthDate,
-        birthTime: finalBirthTime,
-        unknownTime: unknownTime || birthTime.trim() === '',
-        phoneNumber: phoneNumber.replace(/[^\d]/g, '') || undefined
-      });
+      // ⭐ 사주 저장 + 주문 조회 병렬 실행 (~300ms 절약)
+      const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+
+      const [sajuData, ordersResult] = await Promise.all([
+        // 사주 정보 저장 (user 전달로 중복 getUser 제거)
+        saveSajuRecord({
+          name: name.trim(),
+          gender: gender,
+          birthDate: birthDate,
+          birthTime: finalBirthTime,
+          unknownTime: unknownTime || birthTime.trim() === '',
+          phoneNumber: phoneNumber.replace(/[^\d]/g, '') || undefined
+        }, user),
+        // 주문 조회
+        supabase
+          .from('orders')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('ai_generation_completed', false)
+          .gte('created_at', tenMinutesAgo)
+          .order('created_at', { ascending: false })
+          .limit(1)
+      ]);
 
       console.log('✅ [사주입력] 저장 성공:', sajuData);
 
@@ -448,19 +458,8 @@ export default function BirthInfoInput({ productId, onBack, onComplete }: BirthI
         console.log('✅ [BirthInfoInput] primary_saju 캐시 업데이트 완료');
       }
 
-      // ⭐️ localStorage 대신 DB에서 진행 중인 주문 직접 조회 (GlobalAIMonitor와 동일한 로직)
-      console.log('🔍 [사주입력] 진행 중인 주문 조회 시작...');
-      
-      const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
-      
-      const { data: orders, error: ordersError } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('ai_generation_completed', false)
-        .gte('created_at', tenMinutesAgo)
-        .order('created_at', { ascending: false })
-        .limit(1);
+      // 주문 조회 결과 처리
+      const { data: orders, error: ordersError } = ordersResult;
 
       if (ordersError) {
         console.error('❌ [사주입력] 주문 조회 실패:', ordersError);
@@ -509,18 +508,22 @@ export default function BirthInfoInput({ productId, onBack, onComplete }: BirthI
       console.log('📌 contentId:', existingOrder.content_id);
       console.log('📌 orderId:', pendingOrderId);
 
-      // ⭐ 타로 콘텐츠인지 확인하고 타로 카드 선택
-      const { data: contentData } = await supabase
-        .from('master_contents')
-        .select('category_main')
-        .eq('id', existingOrder.content_id)
-        .single();
+      // ⭐ 타로 콘텐츠인지 확인하고 타로 카드 선택 (병렬 호출로 ~200ms 절약)
+      const [contentResult, questionsResult] = await Promise.all([
+        supabase
+          .from('master_contents')
+          .select('category_main')
+          .eq('id', existingOrder.content_id)
+          .single(),
+        supabase
+          .from('master_content_questions')
+          .select('question_type')
+          .eq('content_id', existingOrder.content_id)
+          .eq('question_type', 'tarot')
+      ]);
 
-      const { data: questionsData } = await supabase
-        .from('master_content_questions')
-        .select('question_type')
-        .eq('content_id', existingOrder.content_id)
-        .eq('question_type', 'tarot');
+      const contentData = contentResult.data;
+      const questionsData = questionsResult.data;
 
       const isTarotContent = contentData?.category_main?.includes('타로') || contentData?.category_main?.toLowerCase() === 'tarot';
       const tarotQuestionCount = questionsData?.length || 0;

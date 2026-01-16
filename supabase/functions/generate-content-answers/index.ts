@@ -289,7 +289,24 @@ serve(async (req) => {
             return { questionId: question.id, success: true, type: 'saju', attempt }
 
           } else if (question.question_type === 'tarot') {
-            // 타로 풀이
+            // ⭐ 타로 풀이 - 먼저 사용자가 선택한 카드가 있는지 확인
+            let selectedTarotCard = question.tarot_cards || null;
+
+            // order_results에 이미 선택된 카드가 있는지 확인
+            const { data: existingCard } = await supabase
+              .from('order_results')
+              .select('tarot_card_name')
+              .eq('order_id', orderId)
+              .eq('question_id', question.id)
+              .single();
+
+            if (existingCard?.tarot_card_name) {
+              selectedTarotCard = existingCard.tarot_card_name;
+              console.log(`🎴 [타로] 사용자가 선택한 카드 사용: ${selectedTarotCard}`);
+            } else {
+              console.log(`🎴 [타로] 카드 지정 없음 → AI가 랜덤 선택 또는 question.tarot_cards 사용`);
+            }
+
             response = await fetchWithTimeout(`${supabaseUrl}/functions/v1/generate-tarot-answer`, {
               method: 'POST',
               headers: {
@@ -302,7 +319,7 @@ serve(async (req) => {
                 questionerInfo: content.questioner_info,
                 questionText: question.question_text,
                 questionId: question.id,
-                tarotCards: question.tarot_cards || null
+                tarotCards: selectedTarotCard
               })
             })
 

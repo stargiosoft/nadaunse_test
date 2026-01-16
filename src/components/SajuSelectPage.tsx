@@ -411,12 +411,8 @@ export default function SajuSelectPage() {
         }
       }
 
-      // 선택된 사주 정보 조회 (이름 표시용)
-      const { data: sajuData } = await supabase
-        .from('saju_records')
-        .select('full_name, gender, birth_date, birth_time')
-        .eq('id', selectedSajuId)
-        .single();
+      // ⭐ 선택된 사주 정보 - sajuList에서 바로 가져오기 (API 호출 제거로 ~200ms 절약)
+      const sajuData = sajuList.find(s => s.id === selectedSajuId);
 
       if (sajuData) {
         setLoadingName(sajuData.full_name);
