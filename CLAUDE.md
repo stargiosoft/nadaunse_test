@@ -33,9 +33,16 @@
 ## 핵심 규칙 (Critical Rules)
 
 ### 1. 스타일링
-- **Tailwind CSS만 사용** - inline style, CSS 파일 직접 작성 금지
+- **Tailwind CSS 우선 사용** - CSS 파일 직접 작성 금지
 - 색상/간격은 Tailwind 토큰 사용 (`bg-primary`, `p-4` 등)
 - **폰트 클래스 사용 금지**: `text-*`, `font-*`, `leading-*` 클래스 사용 금지 (globals.css에 토큰 정의됨)
+- **Tailwind Arbitrary Value 제한**:
+  - Tailwind v4에서 일부 arbitrary value가 작동하지 않을 수 있음
+  - 특히 HEX 색상(`bg-[#f0f8f8]`), 픽셀 단위 spacing(`px-[7px]`) 등
+  - **해결 방법**:
+    1. **1순위**: globals.css에 CSS 변수로 정의 후 Tailwind 토큰 사용
+    2. **2순위**: inline style 사용 (임시 해결책, 예외 허용)
+  - 참고: `DECISIONS.md` → "2026-01-16 Tailwind CSS v4 Arbitrary Value 제한"
 
 ### 2. TypeScript
 - **모든 파일 TypeScript 필수** - `.js` 파일 생성 금지
@@ -173,10 +180,49 @@ chore:    기타 변경
 
 ---
 
+## FigmaMake 통합 가이드
+
+### 왜 특별한 처리가 필요한가?
+FigmaMake가 생성하는 코드는 기본적으로 Tailwind arbitrary value를 사용합니다 (`text-[15px]`, `bg-[#f0f8f8]` 등).
+하지만 이 프로젝트의 `globals.css`에 정의된 base typography가 Tailwind 클래스를 덮어쓰기 때문에,
+FigmaMake 코드를 그대로 통합하면 **디자인이 완전히 깨집니다** (텍스트가 세로로 표시되는 등의 문제).
+
+### 통합 시 필수 변환 규칙
+
+| 속성 | 변환 방법 |
+|------|----------|
+| 타이포그래피 (fontSize, fontWeight, lineHeight, letterSpacing) | **반드시 inline style** |
+| 색상 (color, backgroundColor, borderColor) | **반드시 inline style** |
+| 레이아웃 (flex, items-center, justify-between) | Tailwind 클래스 OK |
+| 간격 (gap, padding, margin) | Tailwind 클래스 OK (arbitrary value는 inline style) |
+| 크기 (width, height, maxWidth) | inline style 권장 |
+
+### 권장 FigmaMake 프롬프트
+
+FigmaMake에 아래 프롬프트를 사용하면 통합이 더 수월합니다:
+
+```
+코드 생성 규칙:
+1. 모든 텍스트 스타일(fontSize, fontWeight, lineHeight, color, letterSpacing)은
+   반드시 inline style로 작성하세요. Tailwind의 text-*, font-*, leading-* 클래스를 사용하지 마세요.
+2. 배경색, 테두리색 등 색상 관련 속성도 inline style로 작성하세요.
+3. 레이아웃(flex, grid, items-center 등)은 Tailwind 클래스를 사용해도 됩니다.
+4. fontFamily는 'Pretendard Variable'을 사용하세요.
+5. gap, padding 등 spacing에서 arbitrary value가 필요하면 inline style을 사용하세요.
+```
+
+### 통합 체크리스트
+- [ ] 모든 `text-[*]`, `font-[*]`, `leading-[*]` 클래스를 inline style로 변환
+- [ ] 모든 `bg-[#...]`, `text-[#...]`, `border-[#...]` 색상 클래스를 inline style로 변환
+- [ ] SVG 경로는 별도 파일로 분리 (`src/imports/` 폴더)
+- [ ] 일러스트/아이콘 컴포넌트도 inline style 적용
+
+---
+
 ## 금지 사항
 
 - `any` 타입 사용
-- inline style 사용
+- inline style 사용 **(예외: FigmaMake 통합 시 타이포그래피/색상은 허용)**
 - `text-*`, `font-*`, `leading-*` Tailwind 클래스 사용
 - 개발 전용 코드 프로덕션 노출
 - Supabase 정보 하드코딩
@@ -197,4 +243,4 @@ chore:    기타 변경
 
 ---
 
-**최종 업데이트**: 2026-01-14
+**최종 업데이트**: 2026-01-16

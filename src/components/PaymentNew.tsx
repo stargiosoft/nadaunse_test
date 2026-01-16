@@ -316,6 +316,12 @@ export default function PaymentNew({
   };
 
   const handlePurchaseClick = async () => {
+    // ⭐ 중복 클릭 방지
+    if (isProcessingPayment) {
+      console.log('⚠️ [PaymentNew] 이미 결제 처리 중 - 중복 클릭 무시');
+      return;
+    }
+
     // ⭐️ 로그인 체크 추가
     const userJson = localStorage.getItem("user");
     const user = userJson ? JSON.parse(userJson) : null;
@@ -325,6 +331,10 @@ export default function PaymentNew({
       onBack();
       return;
     }
+
+    // ⭐ 결제 처리 시작 - 버튼 로딩 상태 즉시 표시
+    setIsProcessingPayment(true);
+    console.log('🔄 [PaymentNew] 결제 처리 시작');
 
     const finalContentId = contentId || productId;
 
@@ -415,6 +425,7 @@ export default function PaymentNew({
       } catch (error) {
         console.error("❌ 0원 주문 저장 실패:", error);
         alert("주문 저장에 실패했습니다. 다시 시도해주세요.");
+        setIsProcessingPayment(false); // ⭐ 에러 시 로딩 해제
       }
       return;
     }
@@ -1202,15 +1213,29 @@ export default function PaymentNew({
                   <div className="w-full max-w-[440px] mx-auto px-[20px] pb-[12px] pt-[12px] bg-white">
                     <button
                       onClick={handlePurchaseClick}
-                      className="bg-[#48b2af] h-[56px] relative rounded-[16px] shrink-0 w-full border-none cursor-pointer transition-all duration-200 ease-out active:scale-96 active:bg-[#41a09e]"
+                      disabled={isProcessingPayment}
+                      className={`h-[56px] relative rounded-[16px] shrink-0 w-full border-none transition-all duration-200 ease-out ${
+                        isProcessingPayment
+                          ? 'bg-[#48b2af]/70 cursor-not-allowed'
+                          : 'bg-[#48b2af] cursor-pointer active:scale-96 active:bg-[#41a09e]'
+                      }`}
                     >
                       <div className="flex flex-row items-center justify-center size-full">
                         <div className="content-stretch flex items-center justify-center px-[12px] py-0 relative size-full">
                           <div className="content-stretch flex gap-[4px] items-center relative shrink-0">
-                            <p className="font-['Pretendard_Variable:Medium',sans-serif] font-medium leading-[25px] relative shrink-0 text-[16px] text-nowrap text-white tracking-[-0.32px]">
-                              {totalPrice.toLocaleString()}원
-                              구매하기
-                            </p>
+                            {isProcessingPayment ? (
+                              <div className="flex items-center gap-[8px]">
+                                <div className="animate-spin rounded-full h-[20px] w-[20px] border-2 border-white border-t-transparent"></div>
+                                <p className="font-['Pretendard_Variable:Medium',sans-serif] font-medium leading-[25px] relative shrink-0 text-[16px] text-nowrap text-white tracking-[-0.32px]">
+                                  처리 중...
+                                </p>
+                              </div>
+                            ) : (
+                              <p className="font-['Pretendard_Variable:Medium',sans-serif] font-medium leading-[25px] relative shrink-0 text-[16px] text-nowrap text-white tracking-[-0.32px]">
+                                {totalPrice.toLocaleString()}원
+                                구매하기
+                              </p>
+                            )}
                           </div>
                         </div>
                       </div>

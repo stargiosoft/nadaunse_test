@@ -1613,7 +1613,7 @@ export default function App() {
           <Route path="/welcome-coupon" element={<WelcomeCouponPageWrapper />} />
           <Route path="/result/complete" element={<ResultCompletePage />} />
           {/* TarotDemo 백업됨 */}
-          
+
           {/* ⭐ 공통 에러 페이지 라우트 (DEV 확인용) */}
           <Route path="/error/404" element={<ErrorPage type="404" />} />
           <Route path="/error/500" element={<ErrorPage type="500" />} />

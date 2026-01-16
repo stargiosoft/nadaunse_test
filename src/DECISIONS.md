@@ -3,7 +3,7 @@
 > **아키텍처 결정 기록 (Architecture Decision Records)**
 > "왜 이렇게 만들었어?"에 대한 대답
 > **GitHub**: https://github.com/stargiosoft/nadaunse
-> **최종 업데이트**: 2026-01-14 (문서 정리)
+> **최종 업데이트**: 2026-01-16
 
 ---
 
@@ -12,6 +12,218 @@
 ```
 [날짜] [결정 내용] | [이유/배경] | [영향 범위]
 ```
+
+---
+
+## 2026-01-16
+
+### Tailwind CSS v4 Arbitrary Value 제한 및 Inline Style 사용
+**결정**: Tailwind CSS v4에서 arbitrary value가 일부 상황에서 작동하지 않을 때 inline style 사용 허용
+
+**배경**:
+- Tailwind CSS v4로 업그레이드 후 일부 arbitrary value가 런타임에 적용되지 않는 문제 발견
+- 특히 HEX 색상 값 (`bg-[#f0f8f8]`), 픽셀 단위 패딩 (`px-[7px]`) 등이 적용 안 됨
+- 브라우저 개발자 도구에서 확인 시 해당 클래스가 생성되지 않음
+- CSS 캐시 클리어, 개발 서버 재시작(`--force` 플래그), 하드 리프레시 모두 시도했으나 해결 안 됨
+
+**⚠️ 근본 원인 (2026-01-16 FigmaMake 통합 시 발견)**:
+문제의 근본 원인은 Tailwind v4 자체가 아니라 **`globals.css`의 base typography 스타일과 Tailwind 클래스 간의 CSS 우선순위 충돌**입니다.
+
+```css
+/* globals.css에 정의된 base 스타일이 Tailwind 유틸리티 클래스를 덮어씀 */
+/* 예: p, span 등에 정의된 font-family, line-height 등 */
+```
+
+이 base 스타일들이 Tailwind의 `text-[15px]`, `font-[500]`, `leading-[22px]` 등의 유틸리티 클래스보다 **CSS 우선순위가 높거나 충돌**하여 Tailwind 클래스가 적용되지 않습니다.
+
+**증상**:
+- 텍스트가 세로로 표시됨 (line-height 미적용)
+- 폰트 크기가 의도와 다름
+- 체크마크 등 SVG 아이콘이 비정상적으로 커짐
+- 전체 레이아웃이 깨짐
+
+**문제 사례**:
+```tsx
+// ❌ 작동하지 않음 - globals.css base 스타일에 덮어씌워짐
+<div className="bg-[#f0f8f8] px-[7px] py-[7px]">
+  <p className="text-[15px] font-[500] leading-[22px] text-[#368683]">태그</p>
+</div>
+
+// ✅ 해결책: 타이포그래피/색상은 inline style 사용
+<div className="flex items-center justify-center"
+     style={{ backgroundColor: '#f0f8f8', padding: '7px', borderRadius: '999px' }}>
+  <p style={{
+    fontFamily: 'Pretendard Variable',
+    fontSize: '15px',
+    fontWeight: 500,
+    lineHeight: '22px',
+    color: '#368683'
+  }}>태그</p>
+</div>
+```
+
+**속성별 사용 가이드**:
+| 속성 유형 | 권장 방법 | 이유 |
+|----------|----------|------|
+| 타이포그래피 (fontSize, fontWeight, lineHeight, letterSpacing) | **inline style 필수** | globals.css 충돌 |
+| 색상 (color, backgroundColor, borderColor) | **inline style 필수** | arbitrary value 미작동 |
+| 레이아웃 (flex, grid, items-center, justify-between) | Tailwind OK | 충돌 없음 |
+| 포지셔닝 (relative, absolute, fixed) | Tailwind OK | 충돌 없음 |
+| 크기 (width, height) | inline style 권장 | arbitrary value 불안정 |
+| 간격 (gap, padding, margin) | Tailwind 토큰 OK, arbitrary는 inline | 일부 arbitrary 미작동 |
+| 테두리 (rounded, border) | Tailwind OK | 대부분 작동 |
+
+**해결 방법 우선순위**:
+1. **1순위**: globals.css에 CSS 변수로 정의 후 Tailwind 토큰 사용
+   ```css
+   :root {
+     --color-nadaum-tag-bg: #f0f8f8;
+     --color-nadaum-tag-text: #368683;
+   }
+   ```
+   ```tsx
+   <div className="bg-[var(--color-nadaum-tag-bg)]">
+   ```
+
+2. **2순위**: inline style 사용 (FigmaMake 통합 등 외부 코드에 권장)
+   ```tsx
+   <div style={{ backgroundColor: '#f0f8f8' }}>
+   ```
+
+**적용 파일**:
+- `src/components/ProfilePage.tsx`: 나다운 태그 섹션
+- `src/components/NadaumRecordPage.tsx`: FigmaMake 통합 컴포넌트
+- `src/imports/DuckIllustration.tsx`: FigmaMake 일러스트 컴포넌트
+
+**개발 원칙 수정**:
+- CLAUDE.md 업데이트: Tailwind arbitrary value 작동하지 않을 시 inline style 예외 허용
+- 특히 **FigmaMake 통합 시 타이포그래피/색상은 반드시 inline style 사용**
+
+**관련 파일**:
+- `src/components/ProfilePage.tsx`
+- `src/components/NadaumRecordPage.tsx`
+- `src/imports/DuckIllustration.tsx`
+- `CLAUDE.md` (스타일링 규칙 업데이트)
+
+---
+
+### FigmaMake 통합 시 스타일 충돌 문제 및 해결
+**결정**: FigmaMake 생성 코드 통합 시 타이포그래피/색상 속성은 반드시 inline style로 변환
+
+**배경**:
+- FigmaMake(Figma 플러그인)로 '나다움 기록하기' (ND_NR_001) 화면 퍼블리싱 후 프로젝트에 통합 시도
+- FigmaMake 자체 미리보기에서는 정상 렌더링
+- 프로젝트에 통합 후 **디자인이 완전히 깨지는 현상** 발생
+
+**증상 상세**:
+1. **텍스트 세로 표시**: `text-[15px]`, `leading-[22px]` 등이 적용되지 않아 글자가 세로로 나열
+2. **체크마크 비대화**: `size-7` 클래스가 의도대로 작동하지 않아 체크 아이콘이 화면을 가득 채움
+3. **색상 미적용**: `bg-[#f0f8f8]`, `text-[#368683]` 등 배경색/글자색이 적용 안 됨
+4. **전체 레이아웃 붕괴**: 버튼, 카드, 일러스트 배치가 모두 깨짐
+
+**원인**:
+FigmaMake는 Tailwind arbitrary value를 적극 사용하여 코드 생성:
+```tsx
+// FigmaMake 생성 코드 예시
+<p className="text-[15px] font-medium leading-[25.5px] tracking-[-0.3px] text-[#368683]">
+  설득력 있는
+</p>
+```
+
+하지만 이 프로젝트의 `globals.css`에 정의된 base typography 스타일이 Tailwind 클래스를 덮어쓰기 때문에 스타일이 적용되지 않음.
+
+**해결 과정**:
+1. ❌ **시도 1**: FigmaMake 원본 코드 그대로 복사 → 실패 (디자인 깨짐)
+2. ❌ **시도 2**: Tailwind v4 캐시 클리어, 서버 재시작 → 실패
+3. ✅ **시도 3**: 타이포그래피/색상을 모두 inline style로 변환 → 성공
+
+**최종 해결책 - 변환 패턴**:
+```tsx
+// ❌ FigmaMake 원본 (작동 안 함)
+<p className="text-[15px] font-medium leading-[25.5px] tracking-[-0.3px] text-[#368683]">
+  설득력 있는
+</p>
+
+// ✅ 변환 후 (정상 작동)
+<p style={{
+  fontFamily: 'Pretendard Variable',
+  fontSize: '15px',
+  fontWeight: 500,
+  lineHeight: '25.5px',
+  letterSpacing: '-0.3px',
+  color: '#368683'
+}}>
+  설득력 있는
+</p>
+```
+
+**FigmaMake 권장 프롬프트**:
+향후 FigmaMake 사용 시 아래 프롬프트를 추가하면 변환 작업 최소화:
+```
+코드 생성 규칙:
+1. 모든 텍스트 스타일(fontSize, fontWeight, lineHeight, color, letterSpacing)은
+   반드시 inline style로 작성하세요. Tailwind의 text-*, font-*, leading-* 클래스를 사용하지 마세요.
+2. 배경색, 테두리색 등 색상 관련 속성도 inline style로 작성하세요.
+3. 레이아웃(flex, grid, items-center 등)은 Tailwind 클래스를 사용해도 됩니다.
+4. fontFamily는 'Pretendard Variable'을 사용하세요.
+5. gap, padding 등 spacing에서 arbitrary value가 필요하면 inline style을 사용하세요.
+```
+
+**통합 체크리스트**:
+- [ ] `text-[*]`, `font-[*]`, `leading-[*]`, `tracking-[*]` → inline style 변환
+- [ ] `bg-[#...]`, `text-[#...]`, `border-[#...]` → inline style 변환
+- [ ] `size-*` 클래스 → `width`, `height` inline style 변환
+- [ ] SVG path 데이터 → `src/imports/` 폴더에 별도 파일로 분리
+- [ ] 일러스트/아이콘 컴포넌트 → inline style 전면 적용
+
+**생성된 파일**:
+- `src/components/NadaumRecordPage.tsx` - 메인 페이지 컴포넌트
+- `src/imports/nadaum-svg-paths.ts` - SVG 경로 데이터 모듈
+- `src/imports/DuckIllustration.tsx` - 오리 캐릭터 일러스트 컴포넌트
+
+**교훈**:
+1. **외부 도구 생성 코드는 그대로 사용 불가** - 프로젝트 환경에 맞게 변환 필수
+2. **globals.css base 스타일 주의** - Tailwind 클래스와 충돌 가능성 항상 고려
+3. **미리보기 ≠ 실제 환경** - FigmaMake 미리보기가 정상이어도 통합 후 테스트 필수
+4. **레이아웃은 Tailwind, 스타일링은 inline** - 하이브리드 접근법이 가장 안정적
+
+**관련 파일**:
+- `src/components/NadaumRecordPage.tsx`
+- `src/imports/DuckIllustration.tsx`
+- `src/imports/nadaum-svg-paths.ts`
+- `CLAUDE.md` (FigmaMake 통합 가이드 섹션 추가)
+
+---
+
+### 나다운 태그 기능 Feature Flag (DEV)
+**결정**: 나다운 태그 섹션을 `DEV` 플래그로 감싸 프로덕션에서 숨김
+
+**배경**:
+- 나다운 태그는 개발/기획 중인 신규 기능
+- 스테이징 환경에서는 테스트를 위해 노출 필요
+- 프로덕션(nadaunse.com)에서는 완전히 숨김 필요
+
+**구현**:
+```tsx
+{/* 나다운 태그 Section - 프로덕션에서는 숨김 (스테이징/개발 환경에서만 표시) */}
+{DEV && (
+  <>
+    <motion.div>나다운 태그 UI</motion.div>
+  </>
+)}
+```
+
+**환경별 노출 여부**:
+- ✅ **로컬(localhost)**: 표시
+- ✅ **스테이징(기타 figma.site)**: 표시
+- ❌ **프로덕션(nadaunse.com, www.nadaunse.com, nadaunse.figma.site)**: 숨김
+
+**적용 파일**:
+- `src/components/ProfilePage.tsx` (604-661번 줄)
+
+**영향 범위**:
+- ProfilePage 마이페이지
+- 나다운 태그 관련 신규 기능 개발 시 동일 패턴 적용
 
 ---
 

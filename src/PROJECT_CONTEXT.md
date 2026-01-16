@@ -9,14 +9,19 @@
 
 ## 📚 Tech Stack
 
-- **Frontend**: React 18 + TypeScript + React Router v6
-- **Styling**: Tailwind CSS v4.0 (토큰 기반)
-- **Build Tool**: Vite
+- **Frontend**: React 18.3.1 + TypeScript + React Router v7.11.0
+- **Styling**: Tailwind CSS v4.0 (CSS 변수 기반)
+- **Build Tool**: Vite 6.3.5
 - **Backend**: Supabase
-  - Auth: OAuth (Google, Kakao)
+  - **Auth**:
+    - Google: Supabase OAuth (`signInWithOAuth`)
+    - Kakao: Kakao SDK (커스텀 구현, `signInWithPassword` 기반)
   - Database: PostgreSQL + RLS
   - Edge Functions: Deno runtime (20개)
-- **AI**: OpenAI GPT-4o, Anthropic Claude-3.5-Sonnet, Google Gemini
+- **AI**:
+  - OpenAI GPT-4o
+  - Anthropic Claude-3.5-Sonnet
+  - Google Gemini 2.5 Flash (이미지 생성)
 - **Payment**: PortOne (구 아임포트) v2
 - **Notification**: TalkDream API (카카오 알림톡)
 - **Error Monitoring**: Sentry (사용자 컨텍스트, 에러 추적)
@@ -26,7 +31,10 @@
   - Staging: `hyltbeewxaqashyivilu`
 - **State Management**: React Hooks (useState, useEffect)
 - **Animation**: Framer Motion
-- **Image Optimization**: Supabase Storage (thumbnail variants)
+- **Image Optimization**:
+  - PNG → WebP 변환 (ImageMagick WASM)
+  - 압축률: 40-50% (PNG 300KB → WebP 150KB)
+  - Supabase Storage (`thumbnails/{contentId}.webp`)
 
 ---
 
@@ -96,10 +104,14 @@
 ## 🚨 Critical Rules (절대 규칙)
 
 ### 1. 스타일링
-- ✅ **Tailwind CSS만 사용** (v4.0 CSS 변수 기반)
-- ❌ `styled-components`, `inline style`, `emotion` 절대 금지
+- ✅ **Tailwind CSS 우선 사용** (v4.0 CSS 변수 기반)
+- ❌ `styled-components`, `emotion` 절대 금지
 - ❌ `text-*`, `font-*`, `leading-*` 클래스 **사용 금지** (globals.css에 토큰 정의됨)
-- ✅ 사용자가 명시적으로 요청한 경우에만 폰트 클래스 사용
+- ⚠️ **Tailwind Arbitrary Value 제한**:
+  - v4에서 일부 arbitrary value 작동 안 함 (HEX 색상, 픽셀 spacing 등)
+  - 1순위: globals.css에 CSS 변수 정의
+  - 2순위: inline style 사용 (예외 허용)
+  - 참고: `DECISIONS.md` → "2026-01-16 Tailwind CSS v4 Arbitrary Value 제한"
 
 ### 2. 타입 정의
 - ✅ **TypeScript `interface` 필수 정의**
