@@ -817,7 +817,7 @@ export default function SajuManagementPage({ onBack, onNavigateToInput, onNaviga
               <motion.div className="content-stretch flex flex-col gap-[6px] items-center relative shrink-0 w-full" variants={itemVariants}>
                 <div className="content-stretch flex items-center justify-between relative shrink-0 w-full">
                   <div className="basis-0 content-stretch flex grow items-center justify-center min-h-px min-w-px relative shrink-0">
-                    <p className="basis-0 grow leading-[24px] min-h-px min-w-px relative shrink-0 text-[17px] text-black tracking-[-0.34px]">
+                    <p className="basis-0 grow leading-[24px] min-h-px min-w-px relative shrink-0 text-[17px] text-black tracking-[-0.34px] font-semibold">
                       내 사주
                     </p>
                   </div>
@@ -856,7 +856,7 @@ export default function SajuManagementPage({ onBack, onNavigateToInput, onNaviga
 
                 {/* Info Container */}
                 <div className="basis-0 content-stretch flex flex-col grow items-start min-h-px min-w-px relative shrink-0">
-                  <div className="content-stretch flex items-center justify-between relative shrink-0 w-full -mb-[3px]">
+                  <div className="content-stretch flex items-center justify-between relative shrink-0 w-full -mb-[5px]">
                     <p className="overflow-hidden relative text-[15px] text-black tracking-[-0.45px] font-medium line-clamp-2">
                       {mySaju.full_name} {mySaju.notes && `(${mySaju.notes})`}
                     </p>
@@ -881,7 +881,7 @@ export default function SajuManagementPage({ onBack, onNavigateToInput, onNaviga
                       <p className="font-normal leading-[16px] overflow-ellipsis overflow-hidden relative shrink-0 text-[#848484] text-[12px] text-nowrap tracking-[-0.24px]">
                         {mySaju.zodiac || getChineseZodiac(mySaju.birth_date, mySaju.birth_time)}
                       </p>
-                      <div className="h-[6px] relative shrink-0 w-[1px]">
+                      <div className="h-[6px] relative shrink-0 w-[0.5px]">
                         <div className="absolute inset-[-8.33%_-0.4px]">
                           <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 1 7">
                             <path d="M0.5 0.5V6.5" stroke="#D4D4D4" strokeLinecap="round" />
@@ -895,7 +895,7 @@ export default function SajuManagementPage({ onBack, onNavigateToInput, onNaviga
                           return getConstellation(parseInt(month), parseInt(day));
                         })()}
                       </p>
-                      <div className="h-[6px] relative shrink-0 w-[1px]">
+                      <div className="h-[6px] relative shrink-0 w-[0.5px]">
                         <div className="absolute inset-[-8.33%_-0.4px]">
                           <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 1 7">
                             <path d="M0.5 0.5V6.5" stroke="#D4D4D4" strokeLinecap="round" />
@@ -919,7 +919,7 @@ export default function SajuManagementPage({ onBack, onNavigateToInput, onNaviga
               <motion.div className="content-stretch flex flex-col gap-[6px] items-center relative shrink-0 w-full mb-[-4px]" variants={itemVariants}>
                 <div className="content-stretch flex items-center justify-between relative shrink-0 w-full">
                   <div className="basis-0 content-stretch flex grow items-center justify-center min-h-px min-w-px relative shrink-0">
-                    <p className="basis-0 grow leading-[24px] min-h-px min-w-px relative shrink-0 text-[17px] text-black tracking-[-0.34px]">
+                    <p className="basis-0 grow leading-[24px] min-h-px min-w-px relative shrink-0 text-[17px] text-black tracking-[-0.34px] font-semibold">
                       함께 보는 사주
                     </p>
                   </div>
@@ -988,8 +988,8 @@ export default function SajuManagementPage({ onBack, onNavigateToInput, onNaviga
 
                     {/* Info Container */}
                     <div className="basis-0 content-stretch flex flex-col grow items-start min-h-px min-w-px relative shrink-0">
-                      <div className="content-stretch flex items-center justify-between relative shrink-0 w-full -mb-[3px]">
-                        <p className="overflow-hidden relative text-[15px] text-black tracking-[-0.45px] line-clamp-2">
+                      <div className="content-stretch flex items-center justify-between relative shrink-0 w-full -mb-[5px]">
+                        <p className="overflow-hidden relative text-[15px] text-black tracking-[-0.45px] font-medium line-clamp-2">
                           {saju.full_name} {saju.notes && `(${saju.notes})`}
                         </p>
                         <div 
@@ -1013,7 +1013,7 @@ export default function SajuManagementPage({ onBack, onNavigateToInput, onNaviga
                           <p className="font-normal leading-[16px] overflow-ellipsis overflow-hidden relative shrink-0 text-[#848484] text-[12px] text-nowrap tracking-[-0.24px]">
                             {saju.zodiac || getChineseZodiac(saju.birth_date, saju.birth_time)}
                           </p>
-                          <div className="h-[6px] relative shrink-0 w-[1px]">
+                          <div className="h-[6px] relative shrink-0 w-[0.5px]">
                             <div className="absolute inset-[-8.33%_-0.4px]">
                               <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 1 7">
                                 <path d="M0.5 0.5V6.5" stroke="#D4D4D4" strokeLinecap="round" />
@@ -1027,7 +1027,7 @@ export default function SajuManagementPage({ onBack, onNavigateToInput, onNaviga
                               return getConstellation(parseInt(month), parseInt(day));
                             })()}
                           </p>
-                          <div className="h-[6px] relative shrink-0 w-[1px]">
+                          <div className="h-[6px] relative shrink-0 w-[0.5px]">
                             <div className="absolute inset-[-8.33%_-0.4px]">
                               <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 1 7">
                                 <path d="M0.5 0.5V6.5" stroke="#D4D4D4" strokeLinecap="round" />
