@@ -856,7 +856,7 @@ export default function SajuManagementPage({ onBack, onNavigateToInput, onNaviga
 
                 {/* Info Container */}
                 <div className="basis-0 content-stretch flex flex-col grow items-start min-h-px min-w-px relative shrink-0">
-                  <div className="content-stretch flex items-center justify-between relative shrink-0 w-full -mb-[5px]">
+                  <div className="content-stretch flex items-center justify-between relative shrink-0 w-full -mb-[8px]">
                     <p className="overflow-hidden relative text-[15px] text-black tracking-[-0.45px] font-medium line-clamp-2">
                       {mySaju.full_name} {mySaju.notes && `(${mySaju.notes})`}
                     </p>
@@ -988,7 +988,7 @@ export default function SajuManagementPage({ onBack, onNavigateToInput, onNaviga
 
                     {/* Info Container */}
                     <div className="basis-0 content-stretch flex flex-col grow items-start min-h-px min-w-px relative shrink-0">
-                      <div className="content-stretch flex items-center justify-between relative shrink-0 w-full -mb-[5px]">
+                      <div className="content-stretch flex items-center justify-between relative shrink-0 w-full -mb-[8px]">
                         <p className="overflow-hidden relative text-[15px] text-black tracking-[-0.45px] font-medium line-clamp-2">
                           {saju.full_name} {saju.notes && `(${saju.notes})`}
                         </p>
