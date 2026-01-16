@@ -1114,6 +1114,8 @@ useEffect(() => {
 | 1.8.1 | 2026-01-15 | ProfilePage.tsx 디버그 버튼 제거, Footer 레이아웃 개선 (min-height wrapper + flexible spacer) | AI Assistant |
 | 1.8.2 | 2026-01-16 | SajuManagementPage 타이포그래피/레이아웃 정밀 조정 (섹션 타이틀 font-semibold, 프로필 이름 font-medium, 간격 최적화) | AI Assistant |
 | 1.8.3 | 2026-01-16 | WelcomeCouponPage 수직 중앙 정렬 (pb-[160px]) | AI Assistant |
+| 1.8.4 | 2026-01-16 | iOS Safari 상태바 색상 흰색으로 변경 (theme-color #ffffff) | AI Assistant |
+| 1.8.5 | 2026-01-16 | FreeSajuSelectPage, SajuCard UI 통일 (SajuManagementPage와 동일) - 섹션 타이틀 font-semibold, 프로필 이름 font-medium, 간격 조정 | AI Assistant |
 
 ---
 
@@ -1215,6 +1217,6 @@ useEffect(() => {
 
 ---
 
-**문서 버전**: 1.8.3
+**문서 버전**: 1.8.5
 **최종 업데이트**: 2026-01-16
 **문서 끝**

@@ -81,7 +81,7 @@ export default function SajuCard({
 
   return (
     <div
-      className={`content-stretch flex gap-[11px] items-center px-[8px] py-[12px] relative rounded-[12px] shrink-0 w-full ${className}`}
+      className={`content-stretch flex gap-[12px] items-center px-[px] py-[4px] relative rounded-[12px] shrink-0 w-full ${className}`}
       onClick={onSelect}
     >
       {/* Radio Button */}
@@ -100,7 +100,7 @@ export default function SajuCard({
       )}
 
       {/* Profile Image */}
-      <div className="grid-cols-[max-content] grid-rows-[max-content] inline-grid leading-[0] place-items-start relative shrink-0">
+      <div className="-ml-[11px] pl-[1px] mr-[-3px] grid-cols-[max-content] grid-rows-[max-content] inline-grid leading-[0] place-items-start relative shrink-0">
         <div className="[grid-area:1_/_1] ml-0 mt-0 pointer-events-none relative rounded-[8px] shrink-0 size-[60px]">
           <img
             alt={zodiac}
@@ -113,9 +113,9 @@ export default function SajuCard({
       </div>
 
       {/* Info Container */}
-      <div className="basis-0 content-stretch flex flex-col grow items-start min-h-px min-w-px relative shrink-0">
-        <div className="content-stretch flex items-center justify-between relative shrink-0 w-full">
-          <p className="overflow-ellipsis overflow-hidden relative shrink-0 text-[15px] text-black text-nowrap tracking-[-0.45px]">
+      <div className="basis-0 content-stretch flex flex-col grow items-start min-h-px min-w-px relative shrink-0 mb-[8px]">
+        <div className="content-stretch flex items-center justify-between relative shrink-0 w-full -mb-[8px]">
+          <p className="overflow-hidden relative text-[15px] text-black tracking-[-0.45px] font-medium line-clamp-2">
             {saju.full_name} {saju.notes && `(${saju.notes})`}
           </p>
           {onKebabClick && (
@@ -134,7 +134,7 @@ export default function SajuCard({
             </div>
           )}
         </div>
-        <div className="content-stretch flex flex-col gap-[3px] items-start relative shrink-0 w-full">
+        <div className="content-stretch flex flex-col gap-[3px] items-start relative shrink-0 w-full -mt-[4px]">
           {/* 생년월일 */}
           <div className="content-stretch flex items-center relative rounded-[12px] shrink-0 w-full">
             <p className="font-normal leading-[16px] overflow-ellipsis overflow-hidden relative shrink-0 text-[#848484] text-[12px] text-nowrap tracking-[-0.24px]">

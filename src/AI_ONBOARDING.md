@@ -748,6 +748,8 @@ useEffect(() => {
 | 1.7.1 | 2026-01-15 | ProfilePage 디버그 버튼 제거, Footer 레이아웃 개선 | AI Assistant |
 | 1.7.2 | 2026-01-16 | SajuManagementPage 타이포그래피/레이아웃 정밀 조정 | AI Assistant |
 | 1.7.3 | 2026-01-16 | WelcomeCouponPage 수직 중앙 정렬 (pb-[160px]) | AI Assistant |
+| 1.7.4 | 2026-01-16 | iOS Safari 상태바 색상 흰색으로 변경 (theme-color #ffffff) | AI Assistant |
+| 1.7.5 | 2026-01-16 | FreeSajuSelectPage, SajuCard UI 통일 (SajuManagementPage와 동일) | AI Assistant |
 
 ---
 
@@ -818,6 +820,6 @@ useEffect(() => {
 
 ---
 
-**문서 버전**: 1.7.3
+**문서 버전**: 1.7.5
 **최종 업데이트**: 2026-01-16
 **다음 AI에게**: 이 문서 읽는 데 5분 투자하면, 수십 시간의 삽질을 막을 수 있어요. **사주 API는 Edge Function에서 `SAJU_API_KEY`로 서버 직접 호출** (IP 화이트리스트 + 키 인증), iOS Safari 무한 스와이프 뒤로가기 지원 (동적 버퍼 재충전), 이미지 캐시 버스팅을 꼭 기억하세요! 화이팅! 🚀
