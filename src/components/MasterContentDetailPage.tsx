@@ -405,9 +405,9 @@ export default function MasterContentDetailPage({ contentId }: MasterContentDeta
               const orderId = ordersData[0].id;
               console.log('✅ [타로] 주문 찾음, orderId:', orderId);
 
-              // order_answers에서 답변 존재 여부 확인
+              // order_results에서 답변 존재 여부 확인
               const { data: answersData, error: answersError } = await supabase
-                .from('order_answers')
+                .from('order_results')
                 .select('id')
                 .eq('order_id', orderId)
                 .limit(1);
@@ -1317,7 +1317,7 @@ export default function MasterContentDetailPage({ contentId }: MasterContentDeta
                                   </svg>
                                 </div>
                               </div>
-                              <p className="font-medium leading-[19px] min-w-full not-italic relative shrink-0 text-[#151515] text-[13px] text-center tracking-[-0.26px] w-[min-content]">현재 관계</p>
+                              <p className="font-medium leading-[19px] min-w-full not-italic relative shrink-0 text-[#151515] text-[13px] text-center tracking-[-0.26px] w-[min-content]">나의 본성</p>
                             </div>
                           </div>
                         </div>
@@ -1337,7 +1337,7 @@ export default function MasterContentDetailPage({ contentId }: MasterContentDeta
                                   </svg>
                                 </div>
                               </div>
-                              <p className="font-medium leading-[19px] min-w-full not-italic relative shrink-0 text-[#151515] text-[13px] text-center tracking-[-0.26px] w-[min-content]">인연의 깊이</p>
+                              <p className="font-medium leading-[19px] min-w-full not-italic relative shrink-0 text-[#151515] text-[13px] text-center tracking-[-0.26px] w-[min-content]">주의할 점</p>
                             </div>
                           </div>
                         </div>
