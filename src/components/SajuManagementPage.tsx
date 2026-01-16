@@ -812,7 +812,7 @@ export default function SajuManagementPage({ onBack, onNavigateToInput, onNaviga
         <motion.div className="pt-[68px] pb-[120px] px-[20px]" variants={containerVariants} initial="hidden" animate="visible">
           {/* 내 사주 섹션 */}
           {mySaju && (
-            <div className="content-stretch flex flex-col gap-[8px] items-start relative shrink-0 w-full">
+            <div className="content-stretch flex flex-col gap-[6px] items-start relative shrink-0 w-full">
               {/* Section Title */}
               <motion.div className="content-stretch flex flex-col gap-[6px] items-center relative shrink-0 w-full" variants={itemVariants}>
                 <div className="content-stretch flex items-center justify-between relative shrink-0 w-full">
@@ -916,7 +916,7 @@ export default function SajuManagementPage({ onBack, onNavigateToInput, onNaviga
           <div className="content-stretch flex flex-col gap-[120px] items-start relative shrink-0 w-full mt-[32px]">
             <div className="content-stretch flex flex-col items-start relative shrink-0 w-full">
               {/* Section Title */}
-              <motion.div className="content-stretch flex flex-col gap-[6px] items-center relative shrink-0 w-full mb-[-4px]" variants={itemVariants}>
+              <motion.div className="content-stretch flex flex-col gap-[6px] items-center relative shrink-0 w-full mb-[-6px]" variants={itemVariants}>
                 <div className="content-stretch flex items-center justify-between relative shrink-0 w-full">
                   <div className="basis-0 content-stretch flex grow items-center justify-center min-h-px min-w-px relative shrink-0">
                     <p className="basis-0 grow leading-[24px] min-h-px min-w-px relative shrink-0 text-[17px] text-black tracking-[-0.34px] font-semibold">
