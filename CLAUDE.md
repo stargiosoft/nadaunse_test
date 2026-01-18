@@ -112,6 +112,36 @@ npx supabase functions deploy generate-thumbnail --project-ref kcthtpmxffppfbkjj
 - **핵심 파일**: `supabase/functions/generate-content-answers/index.ts` (96-174번 줄)
 - **상세 내용**: `DECISIONS.md` → "2026-01-13 사주 API 서버 직접 호출" 섹션
 
+### 9. Serena 사용 (MANDATORY - 토큰 절약)
+
+**Serena는 LSP 기반 심볼 검색/편집 도구로, 파일 전체를 읽지 않고 필요한 코드만 조회하여 토큰을 대폭 절약합니다.**
+
+#### 필수 워크플로우
+1. **코드 탐색 시작**: `get_symbols_overview` → 프로젝트 전체 구조 파악
+2. **특정 코드 찾기**: `find_symbol("함수명")` → 클래스/함수/변수 정확한 위치 찾기
+3. **영향도 분석**: `find_referencing_symbols` → 수정 전 의존성/참조 확인 (필수!)
+4. **코드 수정**: `replace_symbol`, `insert_after_symbol`, `insert_before_symbol`
+
+#### 절대 규칙
+- ❌ **파일 전체 읽기 금지**: Read 도구로 500줄 파일 전체 읽기 금지 → Serena로 필요한 심볼(함수/클래스)만 조회
+- ❌ **grep/ripgrep 금지**: 문자열 검색 대신 Serena 시맨틱 검색 사용
+- ✅ **수정 전 영향도 체크 필수**: `find_referencing_symbols`로 해당 코드를 참조하는 곳 확인
+- ✅ **컴포넌트 찾기**: `find_symbol("MyComponent")` → `components-inventory.md` 검색보다 정확
+
+#### 예외 (Serena 사용 안 함)
+- 설정 파일: `.env`, `package.json`, `tsconfig.json`, `vite.config.ts` 등
+- Serena 인덱싱 안 된 파일: `.md`, `.yaml`, `.txt` 등 문서 파일
+- 단순 텍스트 파일: `README.md`, `CHANGELOG.md` 등
+
+#### 토큰 절약 효과
+```
+기존 방식: Read "src/components/UserProfile.tsx" → 500줄 전체 로드
+Serena 방식: find_symbol("UserProfile") → 해당 컴포넌트 30줄만 로드
+→ 94% 토큰 절약!
+```
+
+**프로젝트 규모** (컴포넌트 51개, 페이지 38개, Edge Functions 20개)에서 Serena는 필수입니다.
+
 ---
 
 ## 핵심 라이브러리
