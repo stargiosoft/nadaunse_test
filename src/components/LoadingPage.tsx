@@ -473,6 +473,14 @@ export default function LoadingPage() {
   // 홈으로 가기
   const handleGoHome = () => {
     if (isGhostClick()) return;
+
+    // ⭐ 홈으로 이동하면서 localStorage에 필터 정보 저장
+    // - '전체' 카테고리로 자동 선택
+    localStorage.setItem('homeFilter', JSON.stringify({
+      category: '전체',
+      contentType: 'all'  // ⭐ '종합' 필터로 설정
+    }));
+    console.log('🏠 [LoadingPage] 홈으로 가기 클릭 - 홈 필터 설정:', { category: '전체' });
     navigate('/');
   };
 
