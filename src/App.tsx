@@ -36,6 +36,7 @@ import UnifiedResultPage from './components/UnifiedResultPage'; // ⭐ 통합 �
 import TarotShufflePage from './components/TarotShufflePage'; // ⭐ 타로 셔플 페이지
 import WelcomeCouponPage from './components/WelcomeCouponPage'; // ⭐ 추가
 import ResultCompletePage from './components/ResultCompletePage'; // ⭐ 추가
+import AlimtalkInfoInputPage from './components/AlimtalkInfoInputPage'; // ⭐ 알림톡 정보 입력 페이지
 import ErrorPage from './components/ErrorPage'; // ⭐ 공통 에러 페이지
 import ErrorBoundary from './components/ErrorBoundary'; // ⭐ 에러 바운더리
 import { PageLoader } from './components/ui/PageLoader'; // ⭐ 공통 로딩 컴포넌트
@@ -1042,6 +1043,22 @@ function FreeResultPage() {
 }
 
 // Profile Page Wrapper
+// ⭐ 알림톡 정보 입력 페이지 Wrapper
+function AlimtalkInfoInputPageWrapper() {
+  const navigate = useNavigate();
+  const goBack = useGoBack('/');
+
+  return (
+    <AlimtalkInfoInputPage
+      onBack={goBack}
+      onNext={(phoneNumber) => {
+        console.log('📱 [AlimtalkInfoInput] 휴대폰 번호:', phoneNumber);
+        // TODO: 다음 페이지로 이동 로직 구현
+      }}
+    />
+  );
+}
+
 function ProfilePageWrapper() {
   const navigate = useNavigate();
   const goBack = useGoBack('/'); // 🛡️ iOS 스와이프 뒤로가기 대응: navigate(-1) 사용
@@ -1622,6 +1639,7 @@ export default function App() {
           <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/welcome-coupon" element={<WelcomeCouponPageWrapper />} />
           <Route path="/result/complete" element={<ResultCompletePage />} />
+          <Route path="/alimtalk/input" element={<AlimtalkInfoInputPageWrapper />} /> {/* ⭐ 알림톡 정보 입력 */}
           {/* TarotDemo 백업됨 */}
 
           {/* ⭐ 공통 에러 페이지 라우트 (DEV 확인용) */}
