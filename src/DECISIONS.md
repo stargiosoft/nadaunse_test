@@ -3,7 +3,7 @@
 > **아키텍처 결정 기록 (Architecture Decision Records)**
 > "왜 이렇게 만들었어?"에 대한 대답
 > **GitHub**: https://github.com/stargiosoft/nadaunse
-> **최종 업데이트**: 2026-01-17
+> **최종 업데이트**: 2026-01-19
 
 ---
 
@@ -12,6 +12,77 @@
 ```
 [날짜] [결정 내용] | [이유/배경] | [영향 범위]
 ```
+
+---
+
+## 2026-01-19
+
+### UnifiedResultPage에서 Framer Motion AnimatePresence 제거
+**결정**: `UnifiedResultPage.tsx`에서 `AnimatePresence`와 `motion.div`를 제거하고 일반 `div`로 교체
+
+**배경**:
+- 운세 결과 페이지(`/result`)에서 모바일 터치 스크롤이 전혀 작동하지 않는 심각한 버그 발생
+- 마우스로 스크롤바를 직접 드래그해야만 스크롤 가능
+- iOS Safari, Android Chrome 모두에서 터치 스크롤 불가
+
+**원인 분석**:
+- `AnimatePresence mode="popLayout"`이 터치 이벤트를 가로채서 스크롤 컨테이너로 전달하지 않음
+- Framer Motion의 layout 애니메이션이 스크롤 컨테이너의 터치 이벤트 처리를 방해
+- 이전에도 동일한 문제가 발생하여 `mode="wait"`로 변경한 이력 있음 (#1598, #1599)
+
+**시도한 해결 방법**:
+1. `mode="wait"` → 공백 문제 발생 (exit 애니메이션 완료까지 대기)
+2. `mode="popLayout"` → 터치 스크롤 불가
+3. **최종 결정**: AnimatePresence 완전 제거
+
+**변경 내용**:
+```tsx
+// Before - 터치 스크롤 불가
+import { motion, AnimatePresence } from 'motion/react';
+
+<AnimatePresence mode="popLayout" initial={false} custom={direction}>
+  <motion.div
+    key={`result-${currentQuestionOrder}`}
+    custom={direction}
+    variants={slideVariants}
+    initial="enter"
+    animate="center"
+    exit="exit"
+    transition={{ duration: 0.2, ease: "easeOut" }}
+    className="bg-[#f9f9f9] rounded-[16px] p-[20px] w-full"
+  >
+    {/* 콘텐츠 */}
+  </motion.div>
+</AnimatePresence>
+
+// After - 터치 스크롤 정상 작동
+<div
+  key={`result-${currentQuestionOrder}`}
+  className="bg-[#f9f9f9] rounded-[16px] p-[20px] w-full"
+>
+  {/* 콘텐츠 */}
+</div>
+```
+
+**제거된 코드**:
+- `import { motion, AnimatePresence } from 'motion/react'`
+- `slideVariants` 객체
+- `direction` 계산 로직
+- `prevOrderRef` ref
+
+**트레이드오프**:
+- ❌ 질문 전환 시 슬라이드 애니메이션 없음
+- ✅ 터치 스크롤 100% 정상 작동
+- ✅ 코드 단순화 (불필요한 상태/ref 제거)
+- ✅ 번들 사이즈 감소 (motion import 제거)
+
+**영향 범위**:
+- `/components/UnifiedResultPage.tsx` - 운세 결과 페이지
+
+**교훈**:
+- Framer Motion의 AnimatePresence는 스크롤 컨테이너 내부에서 사용 시 터치 이벤트 충돌 주의
+- 스크롤이 필수인 페이지에서는 CSS transition이나 애니메이션 없는 전환 권장
+- 모바일 터치 스크롤 테스트는 실제 기기에서 반드시 수행
 
 ---
 
