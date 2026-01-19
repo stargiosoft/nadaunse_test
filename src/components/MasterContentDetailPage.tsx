@@ -13,7 +13,6 @@ import tarotCardImg from "figma:asset/2ced5a86877d398cd3930c1ef08e032cadaa48d4.p
 import { supabase, saveOrder } from '../lib/supabase';
 import { getThumbnailUrl } from '../lib/image';
 import FreeContentDetail from './FreeContentDetail';
-import { TarotCardSelection } from './TarotCardSelection';
 import PaidContentDetailSkeleton from './skeletons/PaidContentDetailSkeleton';
 
 // Animation Variants
@@ -139,8 +138,7 @@ export default function MasterContentDetailPage({ contentId }: MasterContentDeta
   const navigate = useNavigate();
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
-  const showTarotFlow = searchParams.get('showTarotFlow') === 'true'; // ⭐ 타로 플로우 강�� 표시
-  
+
   const [content, setContent] = useState<MasterContent | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [userCoupons, setUserCoupons] = useState<UserCoupon[]>([]);
@@ -155,9 +153,6 @@ export default function MasterContentDetailPage({ contentId }: MasterContentDeta
   const [welcomeCouponDiscount, setWelcomeCouponDiscount] = useState<number | null>(null); // ⭐ 로그아웃 유저용 welcome 쿠폰 할인 금액
   const [isCouponLoaded, setIsCouponLoaded] = useState(false); // ⭐ 로그아웃 시 쿠폰 로딩 완료 여부
 
-  // ⭐ 타로 카드 선택 상태
-  const [isTarotCardSelectionComplete, setIsTarotCardSelectionComplete] = useState(false);
-  const [selectedTarotCardId, setSelectedTarotCardId] = useState<number | null>(null);
   const [hasExistingAnswers, setHasExistingAnswers] = useState(false); // ⭐ 이미 생성된 답변 존재 여부
   const [isCheckingAnswers, setIsCheckingAnswers] = useState(false); // ⭐ 초기값 false
 
@@ -410,10 +405,10 @@ export default function MasterContentDetailPage({ contentId }: MasterContentDeta
               const orderId = ordersData[0].id;
               console.log('✅ [타로] 주문 찾음, orderId:', orderId);
 
-              // order_results에서 답변 존재 여부 확인
+              // order_results에서 답변 존재 여부 확인 (RLS 통과를 위해 orders 조인)
               const { data: answersData, error: answersError } = await supabase
                 .from('order_results')
-                .select('id')
+                .select('id, orders!inner(user_id)')
                 .eq('order_id', orderId)
                 .limit(1);
 
@@ -660,49 +655,6 @@ export default function MasterContentDetailPage({ contentId }: MasterContentDeta
           </button>
         </div>
       </div>
-    );
-  }
-
-  // ⭐ 타로 콘텐츠이고 답변이 없거나 showTarotFlow=true면 카드 선택 화면 표���
-  const isTarotContent = content.category_main?.includes('타로') || content.category_main?.toLowerCase() === 'tarot';
-  
-  // 🔍 LoadingPage에서 왔을 때만 상세 로그 출력 (showTarotFlow가 있거나 orderId가 있을 때)
-  const orderId = searchParams.get('orderId');
-  if (showTarotFlow || orderId) {
-    console.log('🎴 [MasterContentDetailPage] 타로 플로우 체크 (LoadingPage에서 이동):', {
-      isTarotContent,
-      showTarotFlow,
-      hasExistingAnswers,
-      isTarotCardSelectionComplete,
-      isCheckingAnswers,
-      category_main: content.category_main,
-      content_type: content.content_type,
-      orderId
-    });
-  }
-  
-  if (isTarotContent && (showTarotFlow || !hasExistingAnswers) && !isTarotCardSelectionComplete) {
-    console.log('🎴 [타로] ✅ 카드 선택 화면 렌더링 조건 통과!');
-    
-    // 타로 질문지 가져오기 (첫 번째 타로 질문)
-    const tarotQuestion = questions.find(q => q.question_type === 'tarot');
-    
-    return (
-      <TarotCardSelection
-        title={tarotQuestion?.question_text || content.title}
-        question="질문을 떠올리며 카드를 뽑아주세요"
-        onComplete={(cardId) => {
-          console.log('🎴 [타로] 카드 선택 완료, cardId:', cardId);
-          setSelectedTarotCardId(cardId);
-          setIsTarotCardSelectionComplete(true);
-          
-          // ⭐ 카드 선택 완료 후 타로 결과 페이지로 이동
-          const orderId = searchParams.get('orderId');
-          if (orderId) {
-            navigate(`/result/tarot?orderId=${orderId}&contentId=${contentId}`);
-          }
-        }}
-      />
     );
   }
 

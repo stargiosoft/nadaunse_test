@@ -5,6 +5,7 @@ import ArrowLeft from './ArrowLeft';
 import { generateImagePrompt, generateThumbnail } from '../lib/masterContentAI';
 import FreeContentDetail from './FreeContentDetail';
 import { toast } from '../lib/toast';
+import { PageLoader } from './ui/PageLoader';
 
 // 🔧 Build v1.2.6 - Router alias fix
 
@@ -1069,11 +1070,7 @@ export default function MasterContentDetail({ contentId, onBack, onHome }: Maste
   };
 
   if (isLoading) {
-    return (
-      <div className="bg-white flex items-center justify-center min-h-screen w-full">
-        <div className="animate-spin rounded-full h-[32px] w-[32px] border-b-2 border-[#48b2af]"></div>
-      </div>
-    );
+    return <PageLoader />;
   }
 
   if (!contentData) {

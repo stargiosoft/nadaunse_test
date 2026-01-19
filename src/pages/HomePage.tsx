@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase';
 import { getThumbnailUrl } from '../lib/image';
 import { preloadImages } from '../lib/imagePreloader';
 import HomeSkeleton from '../components/skeletons/HomeSkeleton';
+import { DotLoading } from '../components/ui/PageLoader';
 import svgPaths from "../imports/svg-94402brxf8";
 import svgPathsLogo from "../imports/svg-7fu3k5931y";
 
@@ -452,7 +453,7 @@ function TopNavigationContainer({
             </div>
           </div>
         </div>
-        <div className={`z-10 bg-white box-border content-stretch flex flex-col gap-[4px] items-start relative shrink-0 w-full py-[8px] mb-[-8px] transition-all duration-200 ease-in-out ${isVisible ? '' : '-translate-y-full opacity-0'}`} data-name="Selected=Left">
+        <div className={`z-10 bg-white box-border content-stretch flex flex-col gap-[4px] items-start relative shrink-0 w-full py-[8px] mb-[-8px] transition-all duration-300 ease-out ${isVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0 pointer-events-none'}`} data-name="Selected=Left">
           <div className="max-w-[440px] mx-auto w-full px-[20px]">
             <SegmentedControl selectedType={selectedType} onTypeChange={onTypeChange} />
           </div>
@@ -486,7 +487,7 @@ function ContentCard({ content, onClick, isFeatured = false, index = 0 }: Conten
           <img
             alt={content.title}
             loading="eager"
-            fetchPriority="high"
+            fetchpriority="high"
             className="absolute inset-0 object-cover rounded-[16px] size-full"
             src={content.thumbnail_url}
             onLoad={(e) => {
@@ -541,7 +542,7 @@ function ContentCard({ content, onClick, isFeatured = false, index = 0 }: Conten
             <img
               alt={content.title}
               loading={index < 5 ? "eager" : "lazy"}
-              fetchPriority={index < 5 ? "high" : "auto"}
+              fetchpriority={index < 5 ? "high" : "auto"}
               className="absolute inset-0 max-w-none object-50%-50% object-cover rounded-[12px] size-full"
               src={content.thumbnail_url}
               onLoad={(e) => {
@@ -622,6 +623,7 @@ export default function HomePage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [availableCategories, setAvailableCategories] = useState<TabCategory[]>(['전체']);
   const observerTarget = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [showNavigation, setShowNavigation] = useState(true);
   const lastScrollY = useRef(0);
 
@@ -736,23 +738,27 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
-    const controlNavbar = () => {
-      if (typeof window !== 'undefined') {
-        const currentScrollY = window.scrollY;
-        
-        if (currentScrollY > lastScrollY.current && currentScrollY > 50) { 
-          setShowNavigation(false);
-        } else {
-          setShowNavigation(true);
-        }
+    const scrollContainer = scrollContainerRef.current;
+    if (!scrollContainer) return;
 
-        lastScrollY.current = currentScrollY;
+    const controlNavbar = () => {
+      const currentScrollY = scrollContainer.scrollTop;
+
+      // 아래로 스크롤 (50px 이상) → 탭바 숨김
+      if (currentScrollY > lastScrollY.current && currentScrollY > 50) {
+        setShowNavigation(false);
       }
+      // 위로 스크롤 → 탭바 노출
+      else if (currentScrollY < lastScrollY.current) {
+        setShowNavigation(true);
+      }
+
+      lastScrollY.current = currentScrollY;
     };
 
-    window.addEventListener('scroll', controlNavbar);
+    scrollContainer.addEventListener('scroll', controlNavbar);
     return () => {
-      window.removeEventListener('scroll', controlNavbar);
+      scrollContainer.removeEventListener('scroll', controlNavbar);
     };
   }, []);
   
@@ -807,6 +813,8 @@ export default function HomePage() {
           }
 
           setAllContents(contents);
+          // ⭐ 캐시에서 로드할 때도 hasMore 설정 (10개 초과면 더 있음)
+          setHasMore(contents.length > 10);
           return true;
         } else {
           console.log(`⏰ 캐시 만료됨 (${category}/${type})`);
@@ -1598,7 +1606,7 @@ export default function HomePage() {
         />
 
         {/* ⭐ Scrollable Content Area - overscroll-contain으로 iOS 바운스 방지 */}
-        <div className="flex-1 overflow-y-auto overscroll-contain">
+        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto overscroll-contain">
           {/* Content Area */}
           <div className="content-stretch flex flex-col gap-[8px] items-start px-[20px] pt-[182px] pb-[60px] relative shrink-0 w-full">
           
@@ -1644,7 +1652,7 @@ export default function HomePage() {
               {/* Loading Indicator */}
               {isLoading && (
                 <div className="flex items-center justify-center w-full py-[20px]">
-                  <div className="animate-spin rounded-full h-[32px] w-[32px] border-b-2 border-[#48b2af]"></div>
+                  <DotLoading />
                 </div>
               )}
 

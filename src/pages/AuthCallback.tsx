@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { projectId } from '../utils/supabase/info';
 import { setUser as setSentryUser } from '../lib/sentry';
+import { clearUserCaches } from '../lib/auth';
+import { PageLoader } from '../components/ui/PageLoader';
 
 export default function AuthCallback() {
   const navigate = useNavigate();
@@ -127,6 +129,10 @@ export default function AuthCallback() {
 
         console.log('✅ 사용자 데이터:', userData);
 
+        // ⭐ 로그인 성공 → 이전 계정의 캐시 클리어 (계정 전환 대응)
+        console.log('🧹 [구글 로그인] 이전 계정 캐시 클리어');
+        clearUserCaches();
+
         localStorage.setItem('user', JSON.stringify(userData));
         console.log('💾 localStorage에 저장 완료');
 
@@ -193,12 +199,5 @@ export default function AuthCallback() {
     }
   };
 
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-white">
-      <div className="text-center">
-        <div className="w-16 h-16 border-4 border-[#48b2af] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-        <p className="text-black font-['Pretendard_Variable'] text-[16px]">로그인 처리 중...</p>
-      </div>
-    </div>
-  );
+  return <PageLoader message="로그인 처리 중..." />;
 }

@@ -37,6 +37,21 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
+    // 🛡️ 초기 중복 체크: AI API 호출 전에 이미 생성된 답변이 있는지 확인
+    const { data: existingResults } = await supabase
+      .from('order_results')
+      .select('id')
+      .eq('order_id', orderId)
+      .limit(1)
+
+    if (existingResults && existingResults.length > 0) {
+      console.log('⚠️ 이미 생성된 답변이 존재합니다. 중복 호출 방지로 종료.')
+      return new Response(
+        JSON.stringify({ success: true, message: '이미 생성된 답변이 존재합니다.', skipped: true }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     // 1. 콘텐츠 정보 조회
     const { data: content, error: contentError } = await supabase
       .from('master_contents')
@@ -274,7 +289,24 @@ serve(async (req) => {
             return { questionId: question.id, success: true, type: 'saju', attempt }
 
           } else if (question.question_type === 'tarot') {
-            // 타로 풀이
+            // ⭐ 타로 풀이 - 먼저 사용자가 선택한 카드가 있는지 확인
+            let selectedTarotCard = question.tarot_cards || null;
+
+            // order_results에 이미 선택된 카드가 있는지 확인
+            const { data: existingCard } = await supabase
+              .from('order_results')
+              .select('tarot_card_name')
+              .eq('order_id', orderId)
+              .eq('question_id', question.id)
+              .single();
+
+            if (existingCard?.tarot_card_name) {
+              selectedTarotCard = existingCard.tarot_card_name;
+              console.log(`🎴 [타로] 사용자가 선택한 카드 사용: ${selectedTarotCard}`);
+            } else {
+              console.log(`🎴 [타로] 카드 지정 없음 → AI가 랜덤 선택 또는 question.tarot_cards 사용`);
+            }
+
             response = await fetchWithTimeout(`${supabaseUrl}/functions/v1/generate-tarot-answer`, {
               method: 'POST',
               headers: {
@@ -287,7 +319,7 @@ serve(async (req) => {
                 questionerInfo: content.questioner_info,
                 questionText: question.question_text,
                 questionId: question.id,
-                tarotCards: question.tarot_cards || null
+                tarotCards: selectedTarotCard
               })
             })
 
@@ -320,14 +352,12 @@ serve(async (req) => {
                   question_text: question.question_text,
                   gpt_response: data.answerText,
                   question_type: 'tarot',  // 질문 타입 추가
-                  tarot_card_id: data.tarotCardId || null,  // ⭐ 타로 카드 ID
                   tarot_card_name: data.tarotCard || null,  // ⭐ 타로 카드 이름
                   tarot_card_image_url: data.imageUrl || null,  // ⭐ 타로 카드 이미지 URL
                   created_at: new Date().toISOString()
                 })
 
               console.log('🎴 [타로] DB 저장 데이터:', {
-                tarot_card_id: data.tarotCardId,
                 tarot_card_name: data.tarotCard,
                 tarot_card_image_url: data.imageUrl
               })

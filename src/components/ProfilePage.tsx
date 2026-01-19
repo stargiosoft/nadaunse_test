@@ -451,11 +451,13 @@ export default function ProfilePage({
 
         {/* ⭐ Scrollable Content Area - overscroll-contain으로 iOS 바운스 방지 */}
         <div className="flex-1 overflow-y-auto overscroll-contain">
+          {/* Min-height wrapper - 스크롤 영역 전체를 채우면서 Footer가 항상 맨 아래에 위치 */}
+          <div className="min-h-full flex flex-col">
           {/* Spacer */}
           <div className="h-[16px] shrink-0 w-full" />
 
           {/* Main Content */}
-          <div className="flex-1 flex flex-col px-[20px] pb-0 font-['Pretendard_Variable',sans-serif]">
+          <div className="flex flex-col px-[20px] pb-0 font-['Pretendard_Variable',sans-serif]">
           
           {/* Profile Section - 조건부 렌링 */}
           {isLoadingSaju ? (
@@ -598,11 +600,65 @@ export default function ProfilePage({
                 ]
               )}
 
-              {/* Divider */}
-              <motion.div 
-                variants={itemVariants}
-                className="h-[8px] -mx-[20px] bg-[#f9f9f9] my-[0px]" 
-              />
+              {/* 나다운 태그 Section - 프로덕션에서는 숨김 (스테이징/개발 환경에서만 표시) */}
+              {DEV && (
+                <>
+                  {/* Divider */}
+                  <motion.div
+                    variants={itemVariants}
+                    className="h-[8px] -mx-[20px] bg-[#f9f9f9] my-[0px]"
+                  />
+
+                  <motion.div
+                    variants={itemVariants}
+                    className="w-full"
+                  >
+                    <div
+                      className="flex items-center justify-between px-[16px] py-[12px] rounded-[16px] cursor-pointer hover:bg-[#f9f9f9] active:bg-[#f9f9f9] transition-colors"
+                      onClick={() => {
+                        // TODO: 나다운 태그 상세 페이지로 이동
+                        console.log('나다운 태그 클릭');
+                      }}
+                    >
+                      <div className="flex flex-col gap-[8px] flex-1">
+                        <div className="flex items-center justify-between w-full">
+                          <p className="font-['Pretendard_Variable',sans-serif] font-medium leading-[28.5px] text-[16px] text-black tracking-[-0.32px]">
+                            나다운 태그
+                          </p>
+                          <div className="relative shrink-0 size-[16px]">
+                            <ArrowRightIcon />
+                          </div>
+                        </div>
+
+                        {/* Tags */}
+                        <div className="flex flex-wrap gap-[4px] w-full">
+                          <div className="flex items-center justify-center rounded-[999px]" style={{ backgroundColor: '#f0f8f8', padding: '7px' }}>
+                            <p className="font-['Pretendard_Variable',sans-serif] font-medium leading-[16px] text-[12px] tracking-[-0.24px]" style={{ color: '#368683' }}>
+                              # 설득력 있는
+                            </p>
+                          </div>
+                          <div className="flex items-center justify-center rounded-[999px]" style={{ backgroundColor: '#f0f8f8', padding: '7px' }}>
+                            <p className="font-['Pretendard_Variable',sans-serif] font-medium leading-[16px] text-[12px] tracking-[-0.24px]" style={{ color: '#368683' }}>
+                              # 리더십 있는
+                            </p>
+                          </div>
+                          <div className="flex items-center justify-center rounded-[999px]" style={{ backgroundColor: '#f0f8f8', padding: '7px' }}>
+                            <p className="font-['Pretendard_Variable',sans-serif] font-medium leading-[16px] text-[12px] tracking-[-0.24px]" style={{ color: '#368683' }}>
+                              # 감정 변화가 큰
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+
+                  {/* Divider */}
+                  <motion.div
+                    variants={itemVariants}
+                    className="h-[8px] -mx-[20px] bg-[#f9f9f9] my-[0px]"
+                  />
+                </>
+              )}
 
               {/* Menu List Container */}
               <motion.div 
@@ -891,71 +947,22 @@ export default function ProfilePage({
                     </div>
                   </motion.div>
 
-                  {/* 디버그용 버튼: 사주 미등록 화면 토글 */}
-                  {DEV && (
-                  <motion.div 
-                    variants={itemVariants}
-                    onClick={() => setShowEmptyState(!showEmptyState)}
-                    className="content-stretch flex items-center justify-between px-[16px] py-[12px] rounded-[16px] w-full cursor-pointer hover:bg-[#f9f9f9] active:bg-[#f9f9f9] transition-colors bg-red-50"
-                  >
-                    <p className="font-['Pretendard_Variable:Medium',sans-serif] leading-[28.5px] text-[16px] text-red-500 tracking-[-0.32px]">
-                      [디버그] {showEmptyState ? '등록된 상태 보기' : '미등록 화면 보기'}
-                    </p>
-                  </motion.div>
-                  )}
 
-                  {/* ⭐ DEV 전용: 에러 페이지 확인 버튼들 */}
-                  {DEV && (
-                    <motion.div 
-                      variants={itemVariants}
-                      className="content-stretch flex flex-col gap-[8px] mt-[16px] px-[16px]"
-                    >
-                      <p className="text-[12px] text-[#848484] font-medium mb-[4px]">
-                        [DEV] 에러 페이지 확인
-                      </p>
-                      <div className="grid grid-cols-2 gap-[8px]">
-                        <button
-                          onClick={() => navigate('/error/404')}
-                          className="px-[12px] py-[8px] rounded-[8px] bg-gray-100 text-gray-700 text-[13px] font-medium hover:bg-gray-200 transition-colors cursor-pointer"
-                        >
-                          404 페이지 보기
-                        </button>
-                        <button
-                          onClick={() => navigate('/error/500')}
-                          className="px-[12px] py-[8px] rounded-[8px] bg-gray-100 text-gray-700 text-[13px] font-medium hover:bg-gray-200 transition-colors cursor-pointer"
-                        >
-                          500 페이지 보기
-                        </button>
-                        <button
-                          onClick={() => navigate('/error/503')}
-                          className="px-[12px] py-[8px] rounded-[8px] bg-gray-100 text-gray-700 text-[13px] font-medium hover:bg-gray-200 transition-colors cursor-pointer"
-                        >
-                          503 페이지 보기
-                        </button>
-                        <button
-                          onClick={() => navigate('/error/network')}
-                          className="px-[12px] py-[8px] rounded-[8px] bg-gray-100 text-gray-700 text-[13px] font-medium hover:bg-gray-200 transition-colors cursor-pointer"
-                        >
-                          인터넷 연결 끊김 보기
-                        </button>
-                      </div>
-                    </motion.div>
-                  )}
-                  {/* Footer */}
-                  <motion.div 
-                    variants={itemVariants}
-                    className="-mx-[20px] mt-auto"
-                  >
-                    <Footer 
-                      onNavigateToTerms={onNavigateToTermsOfService}
-                      onNavigateToPrivacy={onNavigateToPrivacyPolicy}
-                    />
-                  </motion.div>
                 </motion.div>
               </motion.div>
             </motion.div>
           )}
         </div>
+          {/* Footer Spacer - 최소 130px, 남은 공간 채움 */}
+          <div className="grow" style={{ minHeight: 130 }} />
+          {/* Footer */}
+          <div className="shrink-0 -mx-[20px]">
+            <Footer
+              onNavigateToTerms={onNavigateToTermsOfService}
+              onNavigateToPrivacy={onNavigateToPrivacyPolicy}
+            />
+          </div>
+          </div>{/* Min-height wrapper 닫기 */}
         </div>{/* ⭐ Scrollable Container 닫기 */}
       </div>
       <SessionExpiredDialog isOpen={isSessionExpired} />

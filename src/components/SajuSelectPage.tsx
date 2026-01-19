@@ -5,12 +5,12 @@ import svgPaths from "../imports/svg-tta3ixz6w2";
 import emptyStateSvgPaths from "../imports/svg-297vu4q7h0"; // Empty State 아이콘 (둥지)
 import { supabase } from '../lib/supabase';
 import { toast } from '../lib/toast';
-import Loading from './Loading';
 import { getTarotCardsForQuestions } from '../lib/tarotCards';
 import { SajuKebabMenu } from './SajuKebabMenu';
 import { ConfirmDialog } from './ConfirmDialog';
 import SajuCard, { SajuCardData } from './SajuCard';
 import { SessionExpiredDialog } from './SessionExpiredDialog';
+import { PageLoader } from './ui/PageLoader';
 
 interface SajuRecord {
   id: string;
@@ -57,8 +57,6 @@ export default function SajuSelectPage() {
   const [sajuList, setSajuList] = useState<SajuRecord[]>(initialState.list);
   // 🚀 캐시가 있으면 isLoading: false로 시작 (스켈레톤 없이 즉시 렌더링)
   const [isLoading, setIsLoading] = useState(!initialState.hasCache);
-  const [showLoading, setShowLoading] = useState(false);
-  const [loadingName, setLoadingName] = useState('');
   const [isGenerating, setIsGenerating] = useState(false); // ⭐ 중복 호출 방지
   
   // ⭐ 케밥 메뉴 상태
@@ -285,17 +283,26 @@ export default function SajuSelectPage() {
       toast.error('사주를 선택해주세요.');
       return;
     }
-    
+
     // ⭐ 중복 호출 방지
     if (isGenerating) {
       console.warn('⚠️ [사주선택] 이미 처리 중입니다.');
       return;
     }
-    
+
     setIsGenerating(true);
-    
+
     try {
       console.log('🚀 [사주선택] 선택된 사주 ID:', selectedSajuId);
+
+      // ⭐ 선택된 사주 데이터 찾기 (백그라운드 업데이트용)
+      const selectedSaju = sajuList.find(s => s.id === selectedSajuId);
+      if (!selectedSaju) {
+        console.error('❌ [사주선택] 선택된 사주를 찾을 수 없습니다.');
+        toast.error('사주 정보를 찾을 수 없습니다.');
+        setIsGenerating(false);
+        return;
+      }
 
       // ⭐️ 1단계: 최소한의 정보만 조회 (즉시 로딩 페이지 이동을 위해)
       const { data: { user } } = await supabase.auth.getUser();
@@ -410,42 +417,30 @@ export default function SajuSelectPage() {
         }
       }
 
-      // 선택된 사주 정보 조회 (이름 표시용)
-      const { data: sajuData } = await supabase
-        .from('saju_records')
-        .select('full_name, gender, birth_date, birth_time')
-        .eq('id', selectedSajuId)
-        .single();
-
-      if (sajuData) {
-        setLoadingName(sajuData.full_name);
-      }
-
-      // ⭐️ 2단계: 주문에 사주 정보 업데이트 (navigate 전에 반드시 완료)
-      console.log('🔄 [사주선택] 주문 업데이트 시작...');
-      if (sajuData) {
-        const { error: updateError } = await supabase
-          .from('orders')
-          .update({
-            saju_record_id: selectedSajuId,
-            full_name: sajuData.full_name,
-            gender: sajuData.gender,
-            birth_date: sajuData.birth_date,
-            birth_time: sajuData.birth_time,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', orderId);
-
-        if (updateError) {
-          console.error('❌ [사주선택] 주문 업데이트 실패:', updateError);
-        } else {
-          console.log('✅ [사주선택] 주문 업데이트 완료');
-        }
-      }
-
-      // ⭐️ 3단계: 로딩 페이지로 이동
-      console.log('🚀 [사주선택] 로딩 페이지로 이동');
+      // ⭐️ 2단계: 즉시 로딩 페이지로 이동 (차단 없이)
+      console.log('🚀 [사주선택] 로딩 페이지로 즉시 이동');
       navigate(`/loading?contentId=${contentId}&orderId=${orderId}`);
+
+      // ⭐️ 3단계: 백그라운드에서 주문 업데이트 (비차단)
+      console.log('🔄 [사주선택] 백그라운드 주문 업데이트 시작...');
+      supabase
+        .from('orders')
+        .update({
+          saju_record_id: selectedSajuId,
+          full_name: selectedSaju.full_name,
+          gender: selectedSaju.gender,
+          birth_date: selectedSaju.birth_date,
+          birth_time: selectedSaju.birth_time,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', orderId)
+        .then(({ error: updateError }) => {
+          if (updateError) {
+            console.error('❌ [백그라운드] 주문 업데이트 실패:', updateError);
+          } else {
+            console.log('✅ [백그라운드] 주문 업데이트 완료');
+          }
+        });
 
       // ⭐️ 4단계: 백그라운드에서 대표 사주 업데이트 (비동기)
       console.log('🔄 [사주선택] 백그라운드 업데이트 시작...');
@@ -483,10 +478,10 @@ export default function SajuSelectPage() {
         return;
       }
 
-      // ⭐ AI 생성이 진행 중인지 확인 (order_results 테이블 체크)
+      // ⭐ AI 생성이 진행 중인지 확인 (RLS 통과를 위해 orders 조인)
       const { data: resultsCheck, error: resultsError } = await supabase
         .from('order_results')
-        .select('id')
+        .select('id, orders!inner(user_id)')
         .eq('order_id', orderId)
         .limit(1);
 
@@ -502,20 +497,24 @@ export default function SajuSelectPage() {
       }
       
       console.log('✅ [사주선택] AI 생성 이력 없음 → 백그라운드 생성 시작');
-      
-      // ⭐ 타로 콘텐츠인지 확인하고 타로 카드 선택
-      const { data: contentData } = await supabase
-        .from('master_contents')
-        .select('category_main')
-        .eq('id', existingOrder.content_id)
-        .single();
-      
-      const { data: questionsData } = await supabase
-        .from('master_content_questions')
-        .select('question_type')
-        .eq('content_id', existingOrder.content_id)
-        .eq('question_type', 'tarot');
-      
+
+      // ⭐ 타로 콘텐츠인지 확인하고 타로 카드 선택 (병렬 실행)
+      const [contentResult, questionsResult] = await Promise.all([
+        supabase
+          .from('master_contents')
+          .select('category_main')
+          .eq('id', existingOrder.content_id)
+          .single(),
+        supabase
+          .from('master_content_questions')
+          .select('question_type')
+          .eq('content_id', existingOrder.content_id)
+          .eq('question_type', 'tarot')
+      ]);
+
+      const contentData = contentResult.data;
+      const questionsData = questionsResult.data;
+
       const isTarotContent = contentData?.category_main?.includes('타로') || contentData?.category_main?.toLowerCase() === 'tarot';
       const tarotQuestionCount = questionsData?.length || 0;
       
@@ -761,15 +760,12 @@ export default function SajuSelectPage() {
     });
 
   if (isLoading) {
-    return (
-      <div className="bg-white relative min-h-screen w-full flex justify-center items-center">
-        <div className="animate-spin rounded-full h-[32px] w-[32px] border-b-2 border-[#48b2af]"></div>
-      </div>
-    );
+    return <PageLoader />;
   }
 
-  if (showLoading) {
-    return <Loading name={loadingName} />;
+  // ⭐ 다음 버튼 클릭 후 로딩 페이지 이동 전 즉시 로딩 표시
+  if (isGenerating) {
+    return <PageLoader message="잠시만 기다려주세요" />;
   }
 
   return (
@@ -790,6 +786,10 @@ export default function SajuSelectPage() {
                     if (referrer) {
                       console.log('🔙 [SajuSelectPage] referrer로 이동:', referrer);
                       navigate(referrer);
+                    } else if (productId) {
+                      // 결제 후 사주 선택 페이지로 온 경우 → 상품 상세 페이지로 이동
+                      console.log('🔙 [SajuSelectPage] productId 존재 → 상품 상세 페이지로 이동:', productId);
+                      navigate(`/master/content/detail/${productId}`);
                     } else {
                       console.log('🔙 [SajuSelectPage] referrer 없음 → /purchase-history로 이동');
                       navigate('/purchase-history');

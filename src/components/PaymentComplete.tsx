@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import PurchaseFailure from './PurchaseFailure';
+import { PageLoader } from './ui/PageLoader';
 
 export default function PaymentComplete() {
   const navigate = useNavigate();
@@ -189,10 +190,5 @@ export default function PaymentComplete() {
   }
 
   // 로딩 중 (결제 성공 시 바로 이동하므로 이 화면만 보임)
-  return (
-    <div className="bg-white flex flex-col items-center justify-center min-h-screen gap-4">
-      <div className="animate-spin rounded-full h-[48px] w-[48px] border-b-2 border-[#48b2af]"></div>
-      <p className="font-['Pretendard_Variable:Medium',sans-serif] text-[16px] text-black">결제 완료 처리 ...</p>
-    </div>
-  );
+  return <PageLoader message="결제 완료 처리 중..." />;
 }

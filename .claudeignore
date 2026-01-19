@@ -1,0 +1,48 @@
+# 의존성 파일 (대용량)
+package-lock.json
+node_modules/
+
+# 빌드 결과물
+build/
+dist/
+.vercel/
+
+# 로그 파일
+logs/
+*.log
+
+# 환경 변수 (보안)
+.env
+.env.local
+env.local
+
+# 시스템 파일
+.DS_Store
+*.swp
+*.swo
+*~
+
+# 캐시
+.cache/
+.turbo/
+.vite/
+
+# 대용량 데이터
+*.csv
+*.sql
+*.db
+data/
+
+# 미디어 파일
+*.mp4
+*.mov
+*.zip
+*.tar.gz
+*.pdf
+
+# 임시 파일
+temp_val.txt
+*.tmp
+
+# Git 내부 파일
+.git/

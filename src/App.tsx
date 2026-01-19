@@ -21,6 +21,8 @@ import MasterContentQuestions, { Question } from './components/MasterContentQues
 import MasterContentDetail from './components/MasterContentDetail';
 import MasterContentDetailPage from './components/MasterContentDetailPage';
 import FreeContentDetail from './components/FreeContentDetail';
+import PaidContentDetailSkeleton from './components/skeletons/PaidContentDetailSkeleton'; // ⭐ 스켈레톤 로딩
+import { freeContentService } from './lib/freeContentService'; // ⭐ 무료 콘텐츠 캐시 체크
 import SajuInputPage from './components/SajuInputPage';
 import SajuManagementPage from './components/SajuManagementPage';
 import SajuAddPage from './components/SajuAddPage';
@@ -30,16 +32,17 @@ import FreeSajuAddPage from './components/FreeSajuAddPage';
 import LoadingPage from './components/LoadingPage';
 import FreeContentLoading from './components/FreeContentLoading';
 import FreeBirthInfoInput from './components/FreeBirthInfoInput';
-import SajuResultPage from './components/SajuResultPage';
-import TarotResultPage from './components/TarotResultPage';
+import UnifiedResultPage from './components/UnifiedResultPage'; // ⭐ 통합 결과 페이지
 import TarotShufflePage from './components/TarotShufflePage'; // ⭐ 타로 셔플 페이지
 import WelcomeCouponPage from './components/WelcomeCouponPage'; // ⭐ 추가
 import ResultCompletePage from './components/ResultCompletePage'; // ⭐ 추가
+import AlimtalkInfoInputPage from './components/AlimtalkInfoInputPage'; // ⭐ 알림톡 정보 입력 페이지
 import ErrorPage from './components/ErrorPage'; // ⭐ 공통 에러 페이지
 import ErrorBoundary from './components/ErrorBoundary'; // ⭐ 에러 바운더리
+import { PageLoader } from './components/ui/PageLoader'; // ⭐ 공통 로딩 컴포넌트
 import HomePage from './pages/HomePage';
 import AuthCallback from './pages/AuthCallback';
-import TarotDemo from './pages/TarotDemo'; // ⭐ 타로 데모 페이지
+// TarotDemo 백업됨 (TarotFlowPage 제거로 인해)
 import { allProducts } from './data/products';
 import { initGA, trackPageView } from './utils/analytics';
 import { supabase } from './lib/supabase';
@@ -221,15 +224,26 @@ function ProductDetailPage() {
   const numericId = Number(id);
   const staticProduct = !isNaN(numericId) ? allProducts.find(p => p.id === numericId) : null;
 
+  // ⭐️ UUID 콘텐츠: freeContentService 캐시 확인 (동기)
+  // 캐시가 있으면 무료 콘텐츠이므로 즉시 FreeContentDetail 렌더링 가능
+  const cachedFreeContent = !staticProduct && id ? freeContentService.loadFromCache(id) : null;
+
   const [product, setProduct] = useState<any>(staticProduct || null);
-  // ⭐️ allProducts에서 찾았으면 로딩 불필요
-  const [isLoading, setIsLoading] = useState(!staticProduct);
+  // ⭐️ allProducts에서 찾았거나 캐시가 있으면 로딩 불필요
+  const [isLoading, setIsLoading] = useState(!staticProduct && !cachedFreeContent);
 
   // ⭐️ master_contents 조회 (UUID 콘텐츠인 경우에만)
   useEffect(() => {
-    // allProducts에서 이미 찾았으면 DB 조회 스킵
+    // allProducts에서 이미 찾았거나 캐시가 있으면 DB 조회 스킵
     if (staticProduct) {
       console.log('✅ [ProductDetailPage] allProducts에서 즉시 로드:', staticProduct.title);
+      return;
+    }
+
+    // ⭐️ freeContentService 캐시가 있으면 DB 조회 스킵
+    // (FreeContentDetail이 자체적으로 데이터를 관리함)
+    if (cachedFreeContent) {
+      console.log('✅ [ProductDetailPage] 캐시 존재 → DB 조회 스킵');
       return;
     }
 
@@ -288,12 +302,25 @@ function ProductDetailPage() {
     loadProduct();
   }, [id]);
 
-  if (isLoading) {
+  // ⭐️ 무료 콘텐츠 캐시가 있으면 즉시 FreeContentDetail 렌더링 (로딩 스킵)
+  if (cachedFreeContent && id) {
+    console.log('✅ [ProductDetailPage] 캐시 감지 → FreeContentDetail 즉시 렌더링');
     return (
-      <div className="flex items-center justify-center min-h-screen bg-white">
-        <div className="animate-spin rounded-full h-[32px] w-[32px] border-b-2 border-[#48b2af]"></div>
-      </div>
+      <FreeContentDetail
+        contentId={id}
+        onBack={() => navigate('/')}
+        onHome={() => navigate('/')}
+        onContentClick={(contentId) => navigate(`/product/${contentId}`)}
+        onBannerClick={(productId) => navigate(`/product/${productId}`)}
+      />
     );
+  }
+
+  // ⭐️ UUID 콘텐츠 로딩 중: 스켈레톤 표시 (PageLoader 대신)
+  // - 자식 컴포넌트(FreeContentDetail, MasterContentDetailPage)가 자체 스켈레톤을 갖고 있어서
+  //   PageLoader 사용 시 로딩이 2번 연속 표시되는 문제 해결
+  if (isLoading) {
+    return <PaidContentDetailSkeleton />;
   }
 
   if (!product) {
@@ -479,11 +506,7 @@ function PaymentNewPage() {
   }, [staticProduct]);
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-[32px] w-[32px] border-b-2 border-[#48b2af]"></div>
-      </div>
-    );
+    return <PageLoader />;
   }
 
   // ⭐ allProducts에서 찾지 못한 경우 (UUID인 경우)는 contentId만 전달
@@ -494,48 +517,50 @@ function PaymentNewPage() {
         contentId={id}
         onBack={() => navigate(`/product/${id}`)}
         onPurchase={async () => {
-          // ⭐ 로딩 페이지 이미지 미리 로드 (사주 입력/선택 동안 백그라운드에서 로드)
+          // ⭐ 로딩 페이지 이미지 미리 로드 (백그라운드에서 병렬 실행)
           preloadLoadingPageImages();
 
-          // 결제 완료 후 사주 정보 유무 확인하여 분기
+          // ⭐ 결제 완료 후 사주 정보 유무 확인 (캐시 우선, API는 폴백)
           const { data: { user } } = await supabase.auth.getUser();
 
-          console.log('🔍 [handlePurchaseComplete] 사주 정보 확인 시작');
-          console.log('👤 [handlePurchaseComplete] user:', user?.id);
-          
           if (user) {
-            // 전체 사주 정보 조회 (디버깅용)
-            const { data: allSajuRecords, error: allError } = await supabase
-              .from('saju_records')
-              .select('id, full_name, notes, is_primary')
-              .eq('user_id', user.id);
+            // 🚀 1순위: 캐시 확인 (즉시 렌더링, API 쿼리 스킵)
+            const cachedJson = localStorage.getItem('saju_records_cache');
+            let hasSaju = false;
 
-            console.log('📋 [handlePurchaseComplete] 전체 사주 레코드:', allSajuRecords);
-            console.log('📋 [handlePurchaseComplete] 사주 개수:', allSajuRecords?.length || 0);
-            if (allError) console.error('❌ [handlePurchaseComplete] 사주 조회 에러:', allError);
+            if (cachedJson) {
+              try {
+                const cached = JSON.parse(cachedJson);
+                hasSaju = cached.length > 0;
+                console.log('🚀 [PaymentNew→onPurchase] 캐시 발견 → API 쿼리 스킵', { count: cached.length });
+              } catch (e) {
+                console.error('❌ [PaymentNew→onPurchase] 캐시 파싱 실패:', e);
+              }
+            }
 
-            // ⭐️ is_primary 필드로 본인 사주 확인
-            const { data: mySaju, error } = await supabase
-              .from('saju_records')
-              .select('id, full_name, notes, is_primary')
-              .eq('user_id', user.id)
-              .eq('is_primary', true)
-              .maybeSingle();
+            // 🔍 2순위: 캐시 없을 때만 API 쿼리 (폴백)
+            if (!hasSaju) {
+              console.log('🔍 [PaymentNew→onPurchase] 캐시 없음 → API 쿼리 실행');
+              const { data: mySaju } = await supabase
+                .from('saju_records')
+                .select('id')
+                .eq('user_id', user.id)
+                .eq('is_primary', true)
+                .maybeSingle();
 
-            console.log('✅ [handlePurchaseComplete] 본인 사주 정보:', mySaju);
+              hasSaju = !!mySaju;
+            }
 
-            if (mySaju) {
+            if (hasSaju) {
               // 본인 사주 있음 → 사주 선택 페이지
-              console.log('✅ 결제 완료 → 본인 사주 있음 → 사주 선택 페이지로 이동');
+              console.log('✅ 결제 완료 → 사주 선택 페이지로 이동 (캐시 기반)');
               navigate(`/product/${id}/saju-select`);
             } else {
               // 본인 사주 없음 → 사주 입력 페이지
-              console.log('✅ 결제 완료 → 본인 사주 없음 → 사주 입력 페이지로 이동');
+              console.log('✅ 결제 완료 → 사주 입력 페이지로 이동');
               navigate(`/product/${id}/birthinfo`);
             }
           } else {
-            // 로그인 안됨 (발생하면 안되는 케이스)
-            console.log('❌ [handlePurchaseComplete] 로그인 안됨 → 사주 입력 페이지로 이동');
             navigate(`/product/${id}/birthinfo`);
           }
         }}
@@ -547,48 +572,50 @@ function PaymentNewPage() {
 
   // ⭐ allProducts에서 찾은 경우 (기존 로직 유지)
   const handlePurchaseComplete = async () => {
-    // ⭐ 로딩 페이지 이미지 미리 로드 (사주 입력/선택 동안 백그라운드에서 로드)
+    // ⭐ 로딩 페이지 이미지 미리 로드 (백그라운드에서 병렬 실행)
     preloadLoadingPageImages();
 
-    // 결제 완료 후 사주 정보 유무 확인하여 분기
+    // ⭐ 결제 완료 후 사주 정보 유무 확인 (캐시 우선, API는 폴백)
     const { data: { user } } = await supabase.auth.getUser();
 
-    console.log('🔍 [handlePurchaseComplete] 사주 정보 확인 시작');
-    console.log('👤 [handlePurchaseComplete] user:', user?.id);
-    
     if (user) {
-      // 전체 사주 정보 조회 (디버깅용)
-      const { data: allSajuRecords, error: allError } = await supabase
-        .from('saju_records')
-        .select('id, full_name, notes, is_primary')
-        .eq('user_id', user.id);
+      // 🚀 1순위: 캐시 확인 (즉시 렌더링, API 쿼리 스킵)
+      const cachedJson = localStorage.getItem('saju_records_cache');
+      let hasSaju = false;
 
-      console.log('📋 [handlePurchaseComplete] 전체 사주 레코드:', allSajuRecords);
-      console.log('📋 [handlePurchaseComplete] 사주 개수:', allSajuRecords?.length || 0);
-      if (allError) console.error('❌ [handlePurchaseComplete] 사주 조회 에러:', allError);
+      if (cachedJson) {
+        try {
+          const cached = JSON.parse(cachedJson);
+          hasSaju = cached.length > 0;
+          console.log('🚀 [handlePurchaseComplete] 캐시 발견 → API 쿼리 스킵', { count: cached.length });
+        } catch (e) {
+          console.error('❌ [handlePurchaseComplete] 캐시 파싱 실패:', e);
+        }
+      }
 
-      // ⭐️ is_primary 필드로 본인 사주 확인
-      const { data: mySaju, error } = await supabase
-        .from('saju_records')
-        .select('id, full_name, notes, is_primary')
-        .eq('user_id', user.id)
-        .eq('is_primary', true)
-        .maybeSingle();
+      // 🔍 2순위: 캐시 없을 때만 API 쿼리 (폴백)
+      if (!hasSaju) {
+        console.log('🔍 [handlePurchaseComplete] 캐시 없음 → API 쿼리 실행');
+        const { data: mySaju } = await supabase
+          .from('saju_records')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('is_primary', true)
+          .maybeSingle();
 
-      console.log('✅ [handlePurchaseComplete] 본인 사주 정보:', mySaju);
+        hasSaju = !!mySaju;
+      }
 
-      if (mySaju) {
+      if (hasSaju) {
         // 본인 사주 있음 → 사주 선택 페이지
-        console.log('✅ 결제 완료 → 본인 사주 있음 → 사주 선택 페이지로 이동');
+        console.log('✅ 결제 완료 → 사주 선택 페이지로 이동 (캐시 기반)');
         navigate(`/product/${id}/saju-select`);
       } else {
         // 본인 사주 없음 → 사주 입력 페이지
-        console.log('✅ 결제 완료 → 본인 사주 없음 → 사주 입력 페이지로 이동');
+        console.log('✅ 결제 완료 → 사주 입력 페이지로 이동');
         navigate(`/product/${id}/birthinfo`);
       }
     } else {
-      // 로그인 안됨 (발생하면 안되는 케이스)
-      console.log('❌ [handlePurchaseComplete] 로그인 안됨 → 사주 입력 페이지로 이동');
       navigate(`/product/${id}/birthinfo`);
     }
   };
@@ -722,11 +749,7 @@ function BirthInfoPage() {
   }, [product, id, navigate]);
 
   if (isLoading || (product?.type === 'free' && hasSajuInfo === null)) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-white">
-        <div className="animate-spin rounded-full h-[32px] w-[32px] border-b-2 border-[#48b2af]"></div>
-      </div>
-    );
+    return <PageLoader />;
   }
 
   if (!product) {
@@ -815,7 +838,8 @@ function FreeResultPage() {
   let recordId = location.state?.recordId || resultKey;
   const userName = location.state?.userName;
   const contentId = location.state?.contentId || id;
-  
+  const productFromState = location.state?.product;  // ⭐ FreeContentLoading에서 전달받은 product
+
   // ⭐️ resultKey가 없으면 로딩 페이지로 리다이렉트 (Edge Function 호출 필수)
   useEffect(() => {
     if (!recordId && id) {
@@ -824,7 +848,7 @@ function FreeResultPage() {
       navigate(`/product/${id}/loading/free`, { replace: true });
     }
   }, [recordId, id, navigate]);
-  
+
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log('📋 [FreeResultPage] 컴포넌트 마운트');
   console.log('📌 [FreeResultPage] id:', id);
@@ -832,25 +856,48 @@ function FreeResultPage() {
   console.log('📌 [FreeResultPage] recordId:', recordId);
   console.log('📌 [FreeResultPage] userName:', userName);
   console.log('📌 [FreeResultPage] contentId:', contentId);
-  
+  console.log('📌 [FreeResultPage] productFromState:', productFromState ? '있음' : '없음');
+
   // ⭐️ 상품 정보 로드 (allProducts는 동기, master_contents는 비동기)
   // allProducts 조회는 즉시 완료되므로 초기값으로 설정
   const numericId = Number(id);
   const staticProduct = !isNaN(numericId) ? allProducts.find(p => p.id === numericId) : null;
 
-  const [product, setProduct] = useState<any>(staticProduct || null);
-  // ⭐️ allProducts에서 찾았으면 로딩 불필요
-  const [isLoading, setIsLoading] = useState(!staticProduct);
+  // ⭐ state에서 전달받은 product 우선 사용 (FreeContentLoading에서 조회 완료)
+  const initialProduct = productFromState || staticProduct || null;
+  const [product, setProduct] = useState<any>(initialProduct);
+  // ⭐️ product가 이미 있으면 로딩 불필요 (state 전달 or allProducts 조회 완료)
+  const [isLoading, setIsLoading] = useState(!initialProduct);
   const [recommendedContents, setRecommendedContents] = useState<any[]>([]);
 
   useEffect(() => {
-    // ⭐️ allProducts에서 이미 찾았으면 DB 조회 스킵
-    if (staticProduct) {
-      console.log('✅ [FreeResultPage] allProducts에서 즉시 로드:', staticProduct);
-      return;
-    }
-
     const loadProduct = async () => {
+      // ⭐️ product가 이미 있으면 product 조회만 스킵, 추천 콘텐츠는 조회
+      if (initialProduct) {
+        console.log('✅ [FreeResultPage] product 이미 있음 → product 조회 스킵:', initialProduct);
+        console.log('  - 출처:', productFromState ? 'FreeContentLoading state' : 'allProducts');
+
+        // ⭐ 추천 콘텐츠만 조회
+        try {
+          const { freeContentService } = await import('./lib/freeContentService');
+          const recommended = await freeContentService.fetchRecommendedContents(initialProduct.id);
+          console.log('✅ [FreeResultPage] 추천 콘텐츠 로드 (initialProduct):', recommended.length, '개');
+
+          const formattedRecommended = recommended.map(content => ({
+            id: content.id,
+            title: content.title,
+            type: content.content_type as 'free' | 'paid',
+            image: content.thumbnail_url || ''
+          }));
+
+          setRecommendedContents(formattedRecommended);
+        } catch (error) {
+          console.error('❌ [FreeResultPage] 추천 콘텐츠 조회 실패:', error);
+        }
+
+        return;
+      }
+
       // ⭐️ master_contents 조회 (UUID 콘텐츠인 경우)
       if (id) {
         console.log('🔍 [FreeResultPage] master_contents 조회 시작...');
@@ -926,13 +973,9 @@ function FreeResultPage() {
 
   // 로딩 중
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-white">
-        <div className="animate-spin rounded-full h-[32px] w-[32px] border-b-2 border-[#48b2af]"></div>
-      </div>
-    );
+    return <PageLoader />;
   }
-  
+
   // ⭐️ product만 체크 (recordId는 localStorage key이므로 반드시 있음)
   if (!product) {
     console.error('❌ [FreeResultPage] product 없음');
@@ -1000,6 +1043,22 @@ function FreeResultPage() {
 }
 
 // Profile Page Wrapper
+// ⭐ 알림톡 정보 입력 페이지 Wrapper
+function AlimtalkInfoInputPageWrapper() {
+  const navigate = useNavigate();
+  const goBack = useGoBack('/');
+
+  return (
+    <AlimtalkInfoInputPage
+      onBack={goBack}
+      onNext={(phoneNumber) => {
+        console.log('📱 [AlimtalkInfoInput] 휴대폰 번호:', phoneNumber);
+        // TODO: 다음 페이지로 이동 로직 구현
+      }}
+    />
+  );
+}
+
 function ProfilePageWrapper() {
   const navigate = useNavigate();
   const goBack = useGoBack('/'); // 🛡️ iOS 스와이프 뒤로가기 대응: navigate(-1) 사용
@@ -1338,55 +1397,30 @@ function MasterContentPaymentPageWrapper() {
     return <Navigate to="/" replace />;
   }
 
+  // ⭐ 결제 완료 후 사주 정보 확인 (최적화: 디버깅 쿼리 제거, ~200ms 절약)
   const handlePurchaseSuccess = async () => {
     try {
-      // 본인 사주 정보 재 여부 확인
       const userJson = localStorage.getItem('user');
       const user = userJson ? JSON.parse(userJson) : null;
-      
+
       if (!user?.id) {
-        console.log('로그인되지 않은 사용자');
         navigate('/');
         return;
       }
 
-      console.log('🔍 [결제완료] 사주 정보 조회 시작, user_id:', user.id);
-
-      // 모든 사주 정보 조회 (디버깅용)
-      const { data: allSajuRecords, error: allError } = await supabase
+      // ⭐️ is_primary 필드로 본인 사주 조회 (단일 쿼리)
+      const { data: mySaju } = await supabase
         .from('saju_records')
-        .select('id, full_name, notes, is_primary')
-        .eq('user_id', user.id);
-
-      console.log('📋 [결제완료] 전체 사주 레코드:', allSajuRecords);
-      console.log('📋 [결제완료] 사주 레코드 상세:');
-      allSajuRecords?.forEach((record, idx) => {
-        console.log(`   [${idx}] id: ${record.id}, name: ${record.full_name}, notes: ${record.notes}, is_primary: ${record.is_primary}`);
-      });
-
-      // ⭐️ is_primary 필드로 본인 사주 조회 (notes 대신)
-      const { data: mySaju, error } = await supabase
-        .from('saju_records')
-        .select('id, full_name, notes, is_primary')
+        .select('id')
         .eq('user_id', user.id)
         .eq('is_primary', true)
         .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') {
-        // PGRST116 = Row not found (정상 케이스)
-        console.error('❌ [결제완료] 사주 정보 조회 실패:', error);
-      }
-
-      console.log('✅ [결제완료] 본인 사주 정보:', mySaju);
-
-      // 분기 처리
       if (mySaju) {
-        // 본인 사주 있음 → 사주 정보 선택 페이지
-        console.log('✅ [결제완료] 본인 사주 있음 → 사주 선택 페이지로 이동');
+        console.log('✅ 결제 완료 → 사주 선택 페이지로 이동');
         navigate(`/product/${id}/saju-select`);
       } else {
-        // 본인 사주 음 → 사주 정보 입력 페이지 (결제용)
-        console.log('📝 [결제완료] 본인 사주 없음 → 사주 입력 페이지로 이동');
+        console.log('✅ 결제 완료 → 사주 입력 페이지로 이동');
         navigate(`/product/${id}/birthinfo`);
       }
     } catch (error) {
@@ -1471,11 +1505,7 @@ function MasterContentCreateFlowWrapper() {
 
   // 권한 확인 중이면 로딩 표시
   if (isCheckingAuth) {
-    return (
-      <div className="bg-white relative w-full min-h-screen flex justify-center items-center">
-        <div className="animate-spin rounded-full h-[32px] w-[32px] border-b-2 border-[#48b2af]"></div>
-      </div>
-    );
+    return <PageLoader />;
   }
 
   // 현재 화면 결정 (URL 기반)
@@ -1603,15 +1633,15 @@ export default function App() {
           <Route path="/saju/add" element={<SajuAddPageWrapper />} />
           <Route path="/loading" element={<LoadingPage />} />
           <Route path="/free-loading" element={<FreeContentLoading />} />
-          <Route path="/result/saju" element={<SajuResultPage />} />
-          <Route path="/result/tarot" element={<TarotResultPage />} />
+          <Route path="/result" element={<UnifiedResultPage />} /> {/* ⭐ 통합 결과 페이지 */}
           <Route path="/tarot/shuffle" element={<TarotShufflePage />} /> {/* ⭐ 타로 셔플 페이지 */}
           <Route path="/signup/terms" element={<TermsPageWrapper />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/welcome-coupon" element={<WelcomeCouponPageWrapper />} />
           <Route path="/result/complete" element={<ResultCompletePage />} />
-          <Route path="/tarot-demo" element={<TarotDemo />} />
-          
+          <Route path="/alimtalk/input" element={<AlimtalkInfoInputPageWrapper />} /> {/* ⭐ 알림톡 정보 입력 */}
+          {/* TarotDemo 백업됨 */}
+
           {/* ⭐ 공통 에러 페이지 라우트 (DEV 확인용) */}
           <Route path="/error/404" element={<ErrorPage type="404" />} />
           <Route path="/error/500" element={<ErrorPage type="500" />} />
