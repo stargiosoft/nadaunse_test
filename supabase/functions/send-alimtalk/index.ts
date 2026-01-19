@@ -53,8 +53,13 @@ serve(async (req) => {
       )
     }
 
+    // 전화번호 정규화 (하이픈 제거, 숫자만 남김)
+    // ⚠️ TalkDream API는 하이픈 없는 숫자만 허용 (예: 01012345678)
+    const normalizedMobile = mobile.replace(/[^0-9]/g, '')
+
     console.log('📱 알림톡 발송 시작')
-    console.log('📱 수신자:', mobile)
+    console.log('📱 수신자 (원본):', mobile)
+    console.log('📱 수신자 (정규화):', normalizedMobile)
     console.log('📱 주문 ID:', orderId)
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
@@ -67,7 +72,7 @@ serve(async (req) => {
       .insert({
         order_id: orderId,
         user_id: userId,
-        phone_number: mobile,
+        phone_number: normalizedMobile, // ⭐ 정규화된 전화번호 저장
         template_code: TALKDREAM_CONFIG.templateId,
         message_content: null,
         variables: {
@@ -127,17 +132,17 @@ serve(async (req) => {
           service: Number(TALKDREAM_CONFIG.service), // number 타입으로 변환
           messageType: 'AT', // 알림톡
           template: TALKDREAM_CONFIG.templateId,
-          mobile: mobile,
+          mobile: normalizedMobile, // ⭐ 정규화된 전화번호 사용 (하이픈 제거)
           message: message,
           buttons: [
             {
-              type: 'AC', // 채널추가
+              type: 'AC', // 채널추가 (TalkDream 설정에서 카카오톡 채널 자동 연결)
               name: '채널 추가'
             },
             {
               type: 'WL', // 웹링크
               name: '나만의 이야기 보기',
-              // ⭐ 운세풀이 결과 페이지로 이동 (orderId, contentId 직접 치환)
+              // ⭐ 템플릿 검수된 URL (/result/saju)로 발송 후 리다이렉트
               url_mobile: `https://nadaunse.com/result/saju?orderId=${orderId}&contentId=${contentId}&from=purchase`,
               url_pc: `https://nadaunse.com/result/saju?orderId=${orderId}&contentId=${contentId}&from=purchase`
             }

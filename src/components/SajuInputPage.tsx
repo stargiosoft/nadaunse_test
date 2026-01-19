@@ -465,7 +465,7 @@ export default function SajuInputPage({ onBack, onSaved }: SajuInputPageProps) {
         gender,
         birth_date: birthDate + 'T00:00:00Z', // timestamp 형식으로 변환
         birth_time: finalBirthTime,
-        phone_number: phoneNumber.trim() || null,
+        phone_number: phoneNumber.replace(/[^\d]/g, '') || null, // ⭐ 하이픈 제거하여 숫자만 저장
       };
 
       if (isEditMode && editingSaju?.id) {
