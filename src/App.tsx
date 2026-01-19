@@ -1059,6 +1059,12 @@ function AlimtalkInfoInputPageWrapper() {
   );
 }
 
+// ⭐ /result/saju → /result 리다이렉트 (알림톡 템플릿 호환성)
+function ResultSajuRedirect() {
+  const location = useLocation();
+  return <Navigate to={`/result${location.search}`} replace />;
+}
+
 function ProfilePageWrapper() {
   const navigate = useNavigate();
   const goBack = useGoBack('/'); // 🛡️ iOS 스와이프 뒤로가기 대응: navigate(-1) 사용
@@ -1634,6 +1640,7 @@ export default function App() {
           <Route path="/loading" element={<LoadingPage />} />
           <Route path="/free-loading" element={<FreeContentLoading />} />
           <Route path="/result" element={<UnifiedResultPage />} /> {/* ⭐ 통합 결과 페이지 */}
+          <Route path="/result/saju" element={<ResultSajuRedirect />} /> {/* ⭐ 알림톡 템플릿 호환성 (리다이렉트) */}
           <Route path="/tarot/shuffle" element={<TarotShufflePage />} /> {/* ⭐ 타로 셔플 페이지 */}
           <Route path="/signup/terms" element={<TermsPageWrapper />} />
           <Route path="/auth/callback" element={<AuthCallback />} />

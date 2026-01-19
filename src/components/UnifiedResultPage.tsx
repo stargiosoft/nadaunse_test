@@ -310,6 +310,14 @@ export default function UnifiedResultPage() {
     const prevResult = allResults.find(r => r.question_order === currentQuestionOrder - 1);
     if (!prevResult) return;
 
+    // ⭐ 이전 질문이 타로이고 아직 선택 안 했으면 셔플 페이지로
+    if (prevResult.question_type === 'tarot' && !prevResult.tarot_user_viewed) {
+      const fromParam = from ? `&from=${from}` : '';
+      const contentIdStr = contentId ? `&contentId=${contentId}` : '';
+      navigate(`/tarot/shuffle?orderId=${orderId}&questionOrder=${prevResult.question_order}${contentIdStr}${fromParam}`);
+      return;
+    }
+
     // ⭐ 내부 상태 변경으로 애니메이션 적용
     setCurrentQuestionOrder(currentQuestionOrder - 1);
 
