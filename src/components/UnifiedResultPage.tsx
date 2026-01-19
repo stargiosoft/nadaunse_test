@@ -407,7 +407,7 @@ export default function UnifiedResultPage() {
   const isTarot = currentResult.question_type === 'tarot';
 
   return (
-    <div className="fixed top-0 bottom-0 left-1/2 -translate-x-1/2 bg-white flex flex-col w-full max-w-[440px]">
+    <div className="fixed inset-0 bg-white flex flex-col w-full max-w-[440px] mx-auto">
       {/* Top Navigation */}
       <div className="bg-white h-[52px] shrink-0 w-full z-20">
         <div className="flex items-center justify-between px-[12px] h-full">
@@ -424,8 +424,12 @@ export default function UnifiedResultPage() {
         </div>
       </div>
 
-      {/* Scrollable Content Area */}
-      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto overscroll-contain">
+      {/* Scrollable Content Area - iOS 터치 스크롤 지원 */}
+      <div
+        ref={scrollContainerRef}
+        className="flex-1 min-h-0 overflow-y-auto pb-[100px]"
+        style={{ WebkitOverflowScrolling: 'touch' }}
+      >
         <div className="h-[8px] shrink-0 w-full" />
 
         {/* Content - Slide Animation */}

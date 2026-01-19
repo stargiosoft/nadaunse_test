@@ -256,14 +256,6 @@ export default function ResultCompletePage({ onBack, onClose }: ResultCompletePa
   const [isCheckingCoupon, setIsCheckingCoupon] = useState(true); // ⭐ 쿠폰 체크 중 상태
   const [contentCategory, setContentCategory] = useState<string | null>(null); // ⭐ 현재 콘텐츠의 카테고리
 
-  // ⭐ 페이지 진입 시 오버스크롤(바운스) 방지
-  useEffect(() => {
-    document.body.style.overscrollBehaviorY = 'none';
-    return () => {
-      document.body.style.overscrollBehaviorY = 'auto';
-    };
-  }, []);
-
   // ⭐ 페이지 로드 시 쿠폰 발급 여부 체크 + 추천 콘텐츠 조회 + 현재 콘텐츠 카테고리 조회
   useEffect(() => {
     const initializePage = async () => {
@@ -507,10 +499,10 @@ export default function ResultCompletePage({ onBack, onClose }: ResultCompletePa
   const hasMore = displayCount < recommendedContents.length;
 
   return (
-    <div className="bg-white relative min-h-screen w-full flex justify-center">
-      <div className="w-full max-w-[440px] relative">
+    <div className="bg-white fixed inset-0 flex justify-center">
+      <div className="w-full max-w-[440px] h-full flex flex-col bg-white">
         {/* Top Navigation */}
-        <div className="bg-white h-[52px] sticky top-0 z-20 w-full">
+        <div className="bg-white h-[52px] shrink-0 z-20 w-full">
           <div className="flex flex-col justify-center size-full">
             <div className="content-stretch flex flex-col items-start justify-center px-[12px] py-[4px] relative size-full">
               <div className="content-stretch flex items-center justify-between relative shrink-0 w-full">
@@ -529,19 +521,19 @@ export default function ResultCompletePage({ onBack, onClose }: ResultCompletePa
           </div>
         </div>
 
-        {/* Spacer */}
-        <div className="h-[16px] shrink-0 w-full" />
+        {/* Main Content - flex-1 overflow-auto로 스크롤 영역 설정 */}
+        <div className="flex-1 overflow-auto w-full">
+          <div className="h-[16px] shrink-0 w-full" />
 
-        {/* Main Content */}
-        <motion.div 
-          className="flex flex-col gap-[32px] items-center w-full max-w-[440px] mx-auto pb-[140px]"
-          initial="hidden"
-          animate="visible"
-          variants={{
-            hidden: {},
-            visible: { transition: { staggerChildren: 0.1 } }
-          }}
-        >
+          <motion.div
+            className="flex flex-col gap-[32px] items-center w-full max-w-[440px] mx-auto pb-[140px]"
+            initial="hidden"
+            animate="visible"
+            variants={{
+              hidden: {},
+              visible: { transition: { staggerChildren: 0.1 } }
+            }}
+          >
           {/* Character & Buttons Section */}
           <motion.div 
             className="flex flex-col gap-[12px] items-center relative shrink-0 w-full px-[20px]"
@@ -695,6 +687,7 @@ export default function ResultCompletePage({ onBack, onClose }: ResultCompletePa
             </div>
           </motion.div>
         </motion.div>
+        </div>
 
         {/* Bottom Home Indicator */}
         <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[390px]">
