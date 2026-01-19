@@ -86,6 +86,96 @@ import { motion, AnimatePresence } from 'motion/react';
 
 ---
 
+### ResultCompletePage iOS Safari 스크롤 바운스 버그 수정
+**결정**: `ResultCompletePage.tsx`에 `fixed inset-0` + `flex-col` 레이아웃 패턴 적용하여 스크롤 바운스 제거
+
+**배경**:
+- "풀이는 여기까지예요" 페이지에서 아래로 스크롤 시 화면이 위아래로 여러번 빠르게 바운스하는 버그 발생
+- iOS Safari에서 특히 심각하게 발생 (Android Chrome에서도 동일)
+- 이전에 SajuResultPage, SajuSelectPage 등에서 동일한 증상 해결한 이력 있음 (commit: `132ef2d0`)
+
+**원인 분석**:
+- `relative min-h-screen` 레이아웃 사용 시 iOS Safari가 페이지 전체를 스크롤 영역으로 인식
+- `overscrollBehaviorY: 'none'`만으로는 iOS Safari 바운스 효과 완전히 제거 불가
+- 페이지 전체가 고정되지 않고 유동적으로 움직이면서 바운스 발생
+
+**해결 방법 (SajuSelectPage 패턴 재사용)**:
+```tsx
+// Before - 바운스 발생
+<div className="bg-white relative min-h-screen w-full flex justify-center">
+  <div className="w-full max-w-[440px] relative">
+    <div className="bg-white h-[52px] sticky top-0 z-20 w-full">
+      {/* Top Navigation */}
+    </div>
+    <motion.div className="flex flex-col gap-[32px] items-center w-full max-w-[440px] mx-auto pb-[140px]">
+      {/* Main Content */}
+    </motion.div>
+  </div>
+</div>
+
+// After - 바운스 제거
+<div className="bg-white fixed inset-0 flex justify-center">
+  <div className="w-full max-w-[440px] h-full flex flex-col bg-white">
+    {/* Top Navigation - shrink-0로 고정 높이 */}
+    <div className="bg-white h-[52px] shrink-0 z-20 w-full">
+      {/* Navigation */}
+    </div>
+
+    {/* Main Content - flex-1 overflow-auto로 스크롤 영역 설정 */}
+    <div className="flex-1 overflow-auto w-full">
+      <motion.div className="flex flex-col gap-[32px] items-center w-full max-w-[440px] mx-auto pb-[140px]">
+        {/* Content */}
+      </motion.div>
+    </div>
+  </div>
+</div>
+```
+
+**변경 내용**:
+1. **Layout 구조 변경**:
+   - `relative min-h-screen` → `fixed inset-0 flex justify-center`
+   - `max-w-[440px] relative` → `max-w-[440px] h-full flex flex-col bg-white`
+
+2. **Top Navigation**:
+   - `sticky top-0` → `shrink-0` (고정 높이)
+
+3. **Main Content 영역**:
+   - 새로운 wrapper div 추가: `flex-1 overflow-auto w-full`
+   - 이 영역만 스크롤되도록 설정
+
+4. **불필요한 코드 제거**:
+   - `overscrollBehaviorY` useEffect 제거 (fixed layout에서는 불필요)
+
+**동작 원리**:
+```
+fixed inset-0 (화면 전체 고정)
+└── max-w-[440px] h-full flex flex-col (세로 플렉스 컨테이너)
+    ├── Top Navigation (shrink-0 - 고정 높이)
+    ├── Main Content (flex-1 overflow-auto - 스크롤 영역)
+    └── Bottom Home Indicator (fixed)
+```
+
+**트레이드오프**:
+- ✅ iOS Safari 스크롤 바운스 완전히 제거
+- ✅ 안정적인 레이아웃 (화면 전체 고정)
+- ✅ 코드 단순화 (불필요한 useEffect 제거)
+- ✅ 동일한 패턴을 여러 페이지에서 재사용 가능
+
+**영향 범위**:
+- `/components/ResultCompletePage.tsx` - 풀이 완료 페이지
+
+**참고 커밋**:
+- `132ef2d0`: 사주 정보 선택 페이지 스크롤 바운스 버그 수정 v2
+- 동일한 패턴이 적용된 페이지: `SajuSelectPage.tsx`, `FreeSajuSelectPage.tsx`, `ProfilePage.tsx`
+
+**교훈**:
+- iOS Safari 스크롤 바운스는 `fixed inset-0` + `flex-col` 레이아웃으로 해결 가능
+- `overscrollBehaviorY: 'none'`만으로는 iOS Safari 바운스 완전히 제거 불가
+- 검증된 패턴을 재사용하면 빠르고 안정적으로 문제 해결 가능
+- 스크롤 관련 버그는 실제 iOS 기기에서 반드시 테스트 필요
+
+---
+
 ## 2026-01-17
 
 ### order_results 테이블에서 tarot_card_id 컬럼 제거

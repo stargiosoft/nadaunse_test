@@ -870,14 +870,34 @@ function FreeResultPage() {
   const [recommendedContents, setRecommendedContents] = useState<any[]>([]);
 
   useEffect(() => {
-    // ⭐️ product가 이미 있으면 DB 조회 스킵 (state 전달 or allProducts 조회 완료)
-    if (initialProduct) {
-      console.log('✅ [FreeResultPage] product 이미 있음 → DB 조회 스킵:', initialProduct);
-      console.log('  - 출처:', productFromState ? 'FreeContentLoading state' : 'allProducts');
-      return;
-    }
-
     const loadProduct = async () => {
+      // ⭐️ product가 이미 있으면 product 조회만 스킵, 추천 콘텐츠는 조회
+      if (initialProduct) {
+        console.log('✅ [FreeResultPage] product 이미 있음 → product 조회 스킵:', initialProduct);
+        console.log('  - 출처:', productFromState ? 'FreeContentLoading state' : 'allProducts');
+
+        // ⭐ 추천 콘텐츠만 조회
+        try {
+          const { freeContentService } = await import('./lib/freeContentService');
+          const recommended = await freeContentService.fetchRecommendedContents(initialProduct.id);
+          console.log('✅ [FreeResultPage] 추천 콘텐츠 로드 (initialProduct):', recommended.length, '개');
+
+          const formattedRecommended = recommended.map(content => ({
+            id: content.id,
+            title: content.title,
+            type: content.content_type as 'free' | 'paid',
+            image: content.thumbnail_url || ''
+          }));
+
+          setRecommendedContents(formattedRecommended);
+        } catch (error) {
+          console.error('❌ [FreeResultPage] 추천 콘텐츠 조회 실패:', error);
+        }
+
+        return;
+      }
+
+      // ⭐️ master_contents 조회 (UUID 콘텐츠인 경우)
       // ⭐️ master_contents 조회 (UUID 콘텐츠인 경우)
       if (id) {
         console.log('🔍 [FreeResultPage] master_contents 조회 시작...');

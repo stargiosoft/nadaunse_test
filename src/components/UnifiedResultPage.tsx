@@ -401,13 +401,13 @@ export default function UnifiedResultPage() {
       {/* Scrollable Content Area - iOS 터치 스크롤 지원 */}
       <div
         ref={scrollContainerRef}
-        className="flex-1 min-h-0 overflow-y-auto pb-[100px]"
+        className="flex-1 min-h-0 overflow-y-auto pb-[156px]"
         style={{ WebkitOverflowScrolling: 'touch' }}
       >
         <div className="h-[8px] shrink-0 w-full" />
 
         {/* Content */}
-        <div className="px-[20px] pb-[200px] w-full">
+        <div className="px-[20px] w-full">
           <div
             key={`result-${currentQuestionOrder}`}
             className="bg-[#f9f9f9] rounded-[16px] p-[20px] w-full"
