@@ -898,7 +898,6 @@ function FreeResultPage() {
       }
 
       // ⭐️ master_contents 조회 (UUID 콘텐츠인 경우)
-      // ⭐️ master_contents 조회 (UUID 콘텐츠인 경우)
       if (id) {
         console.log('🔍 [FreeResultPage] master_contents 조회 시작...');
         

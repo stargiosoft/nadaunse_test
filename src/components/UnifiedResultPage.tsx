@@ -401,8 +401,8 @@ export default function UnifiedResultPage() {
       {/* Scrollable Content Area - iOS 터치 스크롤 지원 */}
       <div
         ref={scrollContainerRef}
-        className="flex-1 min-h-0 overflow-y-auto pb-[156px]"
-        style={{ WebkitOverflowScrolling: 'touch' }}
+        className="flex-1 min-h-0 overflow-y-auto"
+        style={{ paddingBottom: '128px', WebkitOverflowScrolling: 'touch' }}
       >
         <div className="h-[8px] shrink-0 w-full" />
 
