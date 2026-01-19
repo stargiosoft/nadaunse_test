@@ -433,17 +433,16 @@ export default function UnifiedResultPage() {
         <div className="h-[8px] shrink-0 w-full" />
 
         {/* Content - Slide Animation */}
-        <div className="px-[20px] pb-[200px] w-full overflow-hidden">
-          <AnimatePresence mode="popLayout" custom={direction}>
+        <div className="px-[20px] pb-[200px] w-full">
+          <AnimatePresence mode="wait" custom={direction}>
             <motion.div
               key={currentQuestionOrder}
-              layout
               custom={direction}
               variants={slideVariants}
               initial="enter"
               animate="center"
               exit="exit"
-              transition={{ duration: 0.3, ease: "easeInOut" }}
+              transition={{ duration: 0.25, ease: "easeOut" }}
               className="bg-[#f9f9f9] rounded-[16px] p-[20px] w-full"
             >
               {/* Header */}
