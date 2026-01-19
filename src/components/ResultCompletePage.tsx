@@ -521,8 +521,11 @@ export default function ResultCompletePage({ onBack, onClose }: ResultCompletePa
           </div>
         </div>
 
-        {/* Main Content - flex-1 overflow-auto로 스크롤 영역 설정 */}
-        <div className="flex-1 overflow-auto w-full">
+        {/* Main Content - flex-1 min-h-0 overflow-y-auto로 스크롤 영역 설정 */}
+        <div
+          className="flex-1 min-h-0 overflow-y-auto w-full"
+          style={{ WebkitOverflowScrolling: 'touch' }}
+        >
           <div className="h-[16px] shrink-0 w-full" />
 
           <motion.div
